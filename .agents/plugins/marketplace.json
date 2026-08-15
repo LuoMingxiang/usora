@@ -7,8 +7,9 @@
     {
       "name": "usora",
       "source": {
-        "source": "local",
-        "path": "./plugins/usora"
+        "source": "url",
+        "url": "https://github.com/LuoMingxiang/usora.git",
+        "ref": "master"
       },
       "policy": {
         "installation": "AVAILABLE",
