@@ -5,7 +5,7 @@ description: "Operate the Usora local-first Personal Skill Hub: initialize stora
 
 # Usora Skill Hub
 
-Use the Usora MCP tools for all Hub mutations. Do not ask the user to install Python or run a CLI.
+Use the Usora MCP tools for all Hub mutations. In a workspace containing the Usora `AGENTS.md`, behave as always-on: do not wait for an explicit Skill invocation. Do not ask the user to install Python or run a CLI.
 
 Maintain one Activity per AI session. After substantive progress, call `activity_capture` with the stable current `session_id`; repeated calls must update the same record with key points, decisions, approach, and result. Never capture a full transcript and never invent an Activity.
 
