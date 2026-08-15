@@ -14,7 +14,7 @@ Maintain one Activity per AI session. After substantive progress, call `activity
 - “Initialize my Skill Hub” → MCP tool `hub_init`
 - “Show my Skill Hub status” → MCP tool `hub_status`
 - “Clean up generated Activities” → MCP tool `hub_cleanup` with `mode: generated`
-- “Clean all Activities” → MCP tool `hub_cleanup` with `mode: all, confirm: true`
+- “Clean all Activities and Candidates” → MCP tool `hub_cleanup` with `mode: all, confirm: true`
 - “Capture this task” → MCP tool `activity_capture`
 - “Create a Candidate” → MCP tool `candidate_create`
 - “Evaluate this Candidate” → MCP tool `candidate_evaluate`
