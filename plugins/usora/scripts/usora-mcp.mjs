@@ -676,7 +676,7 @@ const tools = [
   },
   {
     name: "hub_status",
-    description: "Inspect Hub counts and configuration without loading all Activities. Returns the resolved data directory (hub) and config path so the user always knows where data lives.",
+    description: "Inspect Hub counts and configuration without loading all Activities. Returns the resolved data directory (hub), config path, counts, and next_action lifecycle hint so the user knows where data lives and what to do next.",
     inputSchema: { type: "object", properties: {} },
   },
   {
