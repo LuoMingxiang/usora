@@ -32,6 +32,6 @@ Record task, context, key_points, approach, result, technologies, outcome, sourc
 
 ## Sync behavior
 
-Use MCP tools for initialization, Activity capture, Candidate review, and publication. The Hub is created lazily under `~/.usora`; initialization never creates sample data.
+Use MCP tools for initialization, Activity capture, Candidate review, and publication. The Hub is created lazily under the active workspace's `.usora`; set `USORA_HOME` to share one Hub across workspaces. Initialization never creates sample data.
 
 Candidates can be explicitly evaluated before publication. Publishing updates the single current Skill in place and records its `revision`, Maintainer, and publication time; do not create version directories.

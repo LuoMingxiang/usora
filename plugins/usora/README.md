@@ -16,7 +16,7 @@ Usora 是一个本地优先的 AI 能力沉淀插件：把真实工作记录为 
 
 Use the Usora MCP tools from Codex. No Python or separate CLI installation is required.
 
-The default Hub is `~/.usora`, or set `USORA_HOME` to use a project-local directory.
+The default Hub is `.usora` in the active workspace, so Codex can write it within its MCP sandbox. Set `USORA_HOME` to use a user-wide shared Hub across workspaces and AI clients.
 
 The MCP server initializes Usora lazily, captures real Activities, records Candidates and evaluations, and publishes Skills only through the configured Maintainer.
 
@@ -38,10 +38,10 @@ Activity → Candidate → Skill Draft → Evaluation → Publish
 
 ## Data
 
-The default data directory is `~/.usora`. Set `USORA_HOME` to use a project-local directory.
+The default data directory is `.usora` in the active workspace. Set `USORA_HOME` to use a user-wide shared Hub.
 
 ```text
-~/.usora/
+.usora/
 ├── config.json
 ├── activities/
 ├── candidates/

@@ -32,7 +32,7 @@ Activity → Candidate → Skill Draft → Evaluation → Publish
 创建并发布一个 Skill
 ```
 
-默认数据目录为 `~/.usora`，也可以通过 `USORA_HOME` 指定项目级目录。
+默认数据目录为当前工作区的 `.usora`，以适配 Codex MCP 沙箱；也可以通过 `USORA_HOME` 指定跨工作区、跨 AI 共用的 Hub。
 
 ## MVP 边界
 
