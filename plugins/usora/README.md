@@ -52,6 +52,12 @@ The default data directory is `.usora` in the active workspace. Set `USORA_HOME`
 
 If the host does not provide a stable `session_id`, Usora generates a time-ordered ID with a 128-bit random salt so repeated calls in one MCP process merge into one Activity.
 
+## Uninstalling
+
+Uninstalling the plugin is handled by Codex: choose `Uninstall plugin` in the `/plugins` browser, or run `codex plugin marketplace remove <name>`.
+
+Uninstalling does **not** remove local data. To fully clean up, first clear the Hub via `hub_cleanup` with `mode: all` (requires `confirm: true`), then manually delete the `.usora/` directory under the workspace or `USORA_HOME`.
+
 ## MVP boundary
 
 Usora is currently a local, single-user MVP. It does not include a Web UI, cloud sync, team collaboration, public Skill marketplace, or direct AI-to-AI communication.
