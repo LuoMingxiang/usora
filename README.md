@@ -32,11 +32,11 @@ Activity → Candidate → Skill Draft → Evaluation → Publish
 创建并发布一个 Skill
 ```
 
-初始化是引导式交互，且**必须先选择数据目录**：说「初始化我的 Usora」后，Codex 会依次引导你选择数据目录、Primary Maintainer 和自动化策略，确认后才创建 Hub。在选定目录之前，任何数据都不会被写入；`hub_status` 会返回 `located: false` 并提示先选目录。
+初始化很简单：说「初始化我的 Usora」后，Codex 会在默认目录 `.usora`（当前工作区下）创建 Hub。之后想改数据目录，直接说「把我的 Usora 数据移到 `<路径>`」即可——Codex 会通过 `hub_config` 的 `path` 把已有数据**迁移**到新目录，并清空旧目录。
 
-初始化时选择的目录会通过 `hub_init` 的 `path` 参数持久化到 `config.json` 的 `hub_path`，之后所有操作自动沿用；`hub_status` 会返回实际数据目录和配置文件路径，方便随时定位数据。之后想改目录，说一声即可通过 `hub_config` 的 `path` 立即生效，无需重启。
+数据目录记录在 `config.json` 的 `hub_path`，`hub_status` 会返回实际数据目录（`hub`）和配置文件路径（`config_path`），方便随时定位数据。
 
-> 注意：不再支持 `USORA_HOME` 环境变量，目录必须由用户在初始化时显式选择。
+> 注意：不支持 `USORA_HOME` 环境变量，数据目录通过 `hub_config` 管理。
 
 ## 卸载
 

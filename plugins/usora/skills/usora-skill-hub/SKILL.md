@@ -11,8 +11,9 @@ Maintain one Activity per AI session. After substantive progress, call `activity
 
 ## Natural-language mapping
 
-- “Initialize my Skill Hub” → run the mandatory Initialization walkthrough below, then MCP tool `hub_init` (with `path`) and `hub_config`
+- “Initialize my Skill Hub” → MCP tool `hub_init` (creates the Hub under the default `<cwd>/.usora`, or the previously relocated directory)
 - “Configure my Maintainer or automation policy” → MCP tool `hub_config`
+- “Move/relocate my Usora data to `<path>`” → MCP tool `hub_config` with `path` (moves existing data and clears the old directory)
 - “Show my Skill Hub status” → MCP tool `hub_status` (reports the resolved data directory and config path)
 - “Where is my Usora data stored?” → MCP tool `hub_status`, then tell the user the `hub` and `config_path` fields
 - “Clean up generated Activities” → MCP tool `hub_cleanup` with `mode: generated`
@@ -25,23 +26,13 @@ Maintain one Activity per AI session. After substantive progress, call `activity
 - “Evaluate this Skill” → MCP tool `skill_evaluate`
 - “Capture this task” → Usora MCP tool `activity_capture`
 
-## Initialization (mandatory interaction)
+## Initialization
 
-The user MUST choose a data directory before any data can be written. Until then, every data-mutating tool fails with "not initialized" and `hub_status` returns `hub: null, located: false`.
+Initialization is simple: call `hub_init` (no `path`). It creates the Hub under the default directory `<cwd>/.usora`, or under the directory the user previously relocated to. Never create sample data. Optionally pass `maintainer`/`automation_policy` to set them at the same time.
 
-When the user says “初始化我的 Usora” (or similar), call `hub_init` WITHOUT `path` first. The MCP server returns `initialized: false` and a `pending` list of questions — it writes nothing to disk. Present those questions to the user and wait for answers:
+## Relocating data
 
-1. **Data directory** (`path`) — where should the Hub data live? Offer the `default` from the `pending` entry so the user can accept it with one reply, but require an explicit answer.
-2. **Maintainer** (`maintainer`) — which AI is the Primary Maintainer? Offer the `default` and its `options`.
-3. **Automation policy** (`automation_policy`) — offer the `default` and the three `options`.
-
-Only after the user has answered, call `hub_init` again WITH `path` (and optionally `maintainer` and `automation_policy`). This persists the choices in `config.hub_path`, resolves the data directory, and returns `initialized: true` with `hub` and `config_path`.
-
-Then confirm back to the user: the data directory (`hub`), config path (`config_path`), Maintainer, and automation policy.
-
-Never initialize silently or assume a default directory. The `USORA_HOME` environment variable is NOT supported — do not suggest or set it. If the Hub is already initialized, ask whether to keep the existing location or relocate (via `hub_config` with `path`), and re-confirm the Maintainer and policy before changing anything.
-
-To change the data directory later, call `hub_config` with `path` — it applies immediately without restart.
+When the user wants to move their data to a different directory, call `hub_config` with `path` set to the new directory (absolute or relative to the workspace). This MOVES all existing records (activities, candidates, skills, archive, events) into the new directory and clears the old directory, then persists the new location in `config.hub_path`. Confirm back the `hub`, `moved_from`, and `config_path` from the result. The `USORA_HOME` environment variable is not used.
 
 ## Uninstalling / cleanup behavior
 
@@ -59,6 +50,6 @@ Record task, context, key_points, approach, result, technologies, outcome, sourc
 
 ## Sync behavior
 
-Use MCP tools for initialization, Activity capture, Candidate review, and publication. Initialization is interactive: the user must choose a data directory before any data is written (see the mandatory walkthrough above). The `USORA_HOME` environment variable is not used. Initialization never creates sample data.
+Use MCP tools for initialization, Activity capture, Candidate review, and publication. Initialization uses the default `<cwd>/.usora` directory (or the directory the user relocated to); the `USORA_HOME` environment variable is not used. Initialization never creates sample data.
 
 Candidates can be explicitly evaluated before publication. Publishing updates the single current Skill in place and records its `revision`, Maintainer, and publication time; do not create version directories.

@@ -16,12 +16,13 @@ Usora 是一个本地优先的 AI 能力沉淀插件：把真实工作记录为 
 
 Use the Usora MCP tools from Codex. No Python or separate CLI installation is required.
 
-Initialization is interactive and requires a directory: Codex guides you through choosing the data directory, the Maintainer, and the automation policy before it creates the Hub. Until you pick a directory, no data is written (`hub_status` reports `located: false`). Say “初始化我的 Usora” to start the walkthrough. The `USORA_HOME` environment variable is not supported.
+Initialization is simple: say “初始化我的 Usora” and Codex creates the Hub under the default `<cwd>/.usora` directory. The `USORA_HOME` environment variable is not supported.
 
 You can ask Codex:
 
 ```text
 初始化我的 Usora
+把我的 Usora 数据移到 <path>
 记录这个任务
 查看 Usora 状态
 我的 Usora 数据存在哪？
@@ -37,7 +38,7 @@ Activity → Candidate → Skill Draft → Evaluation → Publish
 
 ## Data
 
-You choose a custom directory at initialization: call `hub_init` with a `path` argument (absolute or relative to the workspace). The choice is persisted in `config.json` as `hub_path`, so every later operation resolves to that directory automatically. `hub_status` reports the resolved `hub` directory and the `config_path`, so you can always find your data. To relocate later, call `hub_config` with `path` — it applies immediately.
+The default data directory is `<cwd>/.usora`. To move your data elsewhere, call `hub_config` with a `path` argument (absolute or relative to the workspace). This MOVES all existing records into the new directory and clears the old one, and persists the new location in `config.json` as `hub_path`. `hub_status` reports the resolved `hub` directory and the `config_path`, so you can always find your data.
 
 ```text
 <hub>/

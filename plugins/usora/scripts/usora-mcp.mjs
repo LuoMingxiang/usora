@@ -21,9 +21,8 @@ import crypto from "node:crypto";
  * Anchor directory that always holds `config.json`.
  *
  * This must be a *fixed* location so the config can be found before it has
- * told us where the user wants their data. It is `<cwd>/.usora`. The
- * `USORA_HOME` environment variable is intentionally NOT supported: the data
- * directory must be chosen explicitly by the user during initialization.
+ * told us where the user wants their data. It is `<cwd>/.usora`, which is
+ * also the default data directory until the user relocates it.
  *
  * @type {string}
  */
@@ -32,16 +31,15 @@ const anchorHome = path.resolve(process.cwd(), ".usora");
 /**
  * Resolve the absolute path to the local data Hub.
  *
- * Returns `null` when the user has not yet chosen a directory (`hub_path` is
- * absent from the config). Callers that mutate data must treat `null` as
- * "not initialized" and refuse to proceed until the user picks a directory.
+ * Defaults to the anchor directory `<cwd>/.usora`; once the user relocates
+ * via `hub_config` (`hub_path`), that directory is used instead.
  *
  * @param {object} [config] - Loaded Hub config, if already available.
- * @returns {Promise<string|null>} Absolute Hub path, or `null` if unlocated.
+ * @returns {Promise<string>} Absolute Hub path.
  */
 async function resolveHome(config) {
   const cfg = config || await loadConfig();
-  return cfg.hub_path ? path.resolve(cfg.hub_path) : null;
+  return cfg.hub_path ? path.resolve(cfg.hub_path) : anchorHome;
 }
 
 /**
@@ -90,28 +88,17 @@ const newId = prefix => `${prefix}-${crypto.randomBytes(5).toString("hex")}`;
  * Resolve a path inside the Hub root.
  * @param {string} dir - Sub-directory name.
  * @returns {Promise<string>} Absolute path within the Hub.
- * @throws {Error} When the Hub has not been located (no chosen directory).
  */
 async function dirPath(dir) {
-  const home = await resolveHome();
-  if (!home) {
-    throw Error("Usora is not initialized: choose a data directory first (hub_init with `path`)");
-  }
-  return path.join(home, dir);
+  return path.join(await resolveHome(), dir);
 }
 
 /**
  * Create every Hub sub-directory (idempotent).
- *
- * No-op when the Hub has not been located yet (no `hub_path`), so read-only
- * tools like `hub_init`/`hub_status` can report the "not located" state
- * without creating anything on disk.
- *
  * @returns {Promise<void>}
  */
 async function ensure() {
   const home = await resolveHome();
-  if (!home) return;
   await Promise.all(DIRS.map(dir => fs.mkdir(path.join(home, dir), { recursive: true })));
 }
 
@@ -252,60 +239,17 @@ function mergeUnique(left, right) {
  */
 
 /**
- * `hub_init`: initialize storage, or return the questions the user must
- * confirm first.
+ * `hub_init`: ensure storage exists and the config file is present.
  *
- * Usora initialization is interactive. When the caller has NOT supplied the
- * required choices (`path`), no data is written; instead the server returns a
- * `pending` result containing the questions and options the client must
- * present to the user. Once the user answers, the client calls `hub_init`
- * again with `path` (and optionally `maintainer`/`automation_policy`).
+ * Never creates sample data. Uses the default directory `<cwd>/.usora` unless
+ * the user has already relocated via `hub_config` (`hub_path`). Optionally
+ * accepts `maintainer`/`automation_policy` to set during init.
  *
- * Never creates sample data.
- *
- * @param {ToolArgs} [args={}] - Optional `path` (data directory), `maintainer`,
- *   and `automation_policy`.
- * @returns {Promise<object>} Either `{ initialized: true, hub, config_path, ... }`
- *   when `path` is provided, or `{ initialized: false, pending: [...], ... }`
- *   listing the questions the user must answer.
+ * @param {ToolArgs} [args={}] - Optional `maintainer` and `automation_policy`.
+ * @returns {Promise<object>} The resolved Hub path and config path.
  */
 async function handleHubInit(args = {}) {
   const config = await loadConfig();
-
-  // Interactive guard: without a chosen directory, do not initialize — return
-  // the questions the user must confirm instead.
-  if (args.path === undefined) {
-    return {
-      initialized: false,
-      pending: [
-        {
-          id: "path",
-          question: "Where should your Usora data be stored?",
-          required: true,
-          default: path.join(process.cwd(), ".usora"),
-          note: "Absolute path, or relative to the current workspace.",
-        },
-        {
-          id: "maintainer",
-          question: "Which AI is your Primary Maintainer?",
-          required: false,
-          default: config.maintainer || "codex",
-          options: ["codex", "claude-code", "codebuddy", "workbuddy", "gemini"],
-        },
-        {
-          id: "automation_policy",
-          question: "Which automation policy do you want?",
-          required: false,
-          default: config.automation_policy || "manual_approval",
-          options: AUTOMATION_POLICIES,
-        },
-      ],
-      hint: "Ask the user these questions, then call hub_init again with `path` (and optionally `maintainer` and `automation_policy`).",
-    };
-  }
-
-  requireString(args.path, "path");
-  config.hub_path = path.resolve(args.path);
   if (args.maintainer !== undefined) {
     config.maintainer = args.maintainer;
   }
@@ -328,20 +272,24 @@ async function handleHubInit(args = {}) {
 }
 
 /**
- * `hub_config`: update the Maintainer, automation policy, and/or data
- * directory.
+ * `hub_config`: update the Maintainer, automation policy, and/or relocate the
+ * data directory.
+ *
+ * When `path` is supplied, the existing Hub data is MOVED to the new
+ * directory: every existing sub-directory's contents are migrated, and the
+ * old directory's contents are cleared. `path` may be absolute or relative to
+ * the workspace.
  *
  * @param {ToolArgs} args - May contain `path`, `maintainer`, `automation_policy`.
- * @returns {Promise<object>} The updated config (with resolved `hub` when
- *   `path` is set).
+ * @returns {Promise<object>} The updated config (with `hub` and
+ *   `moved_from` when relocating).
  * @throws {Error} When `automation_policy` is not a valid value.
  */
 async function handleHubConfig(args) {
   const config = await loadConfig();
-  if (args.path !== undefined) {
-    requireString(args.path, "path");
-    config.hub_path = path.resolve(args.path);
-  }
+  const oldHome = await resolveHome(config);
+  const newHome = args.path !== undefined ? path.resolve(args.path) : oldHome;
+
   if (args.maintainer !== undefined) {
     config.maintainer = args.maintainer;
   }
@@ -351,10 +299,32 @@ async function handleHubConfig(args) {
     }
     config.automation_policy = args.automation_policy;
   }
+
+  // Relocate: move data from the old directory to the new one, then clear it.
+  let movedFrom = null;
+  if (args.path !== undefined && newHome !== oldHome) {
+    movedFrom = oldHome;
+    await fs.mkdir(newHome, { recursive: true });
+    for (const dir of DIRS) {
+      const src = path.join(oldHome, dir);
+      const dst = path.join(newHome, dir);
+      await fs.mkdir(dst, { recursive: true });
+      for (const entry of await fs.readdir(src).catch(() => [])) {
+        await fs.rename(path.join(src, entry), path.join(dst, entry));
+      }
+      await fs.rm(src, { recursive: true, force: true });
+    }
+    config.hub_path = newHome;
+  }
+
   const saved = await saveConfig(config);
-  if (args.path !== undefined) {
-    await fs.mkdir(await resolveHome(config), { recursive: true });
-    return { ...saved, hub: await resolveHome(config), config_path: path.join(anchorHome, "config.json") };
+  if (movedFrom) {
+    return {
+      ...saved,
+      hub: newHome,
+      moved_from: movedFrom,
+      config_path: path.join(anchorHome, "config.json"),
+    };
   }
   return saved;
 }
@@ -362,26 +332,12 @@ async function handleHubConfig(args) {
 /**
  * `hub_status`: report config and record counts without loading records.
  *
- * When the Hub has not been located yet, `hub` is `null` and `located` is
- * `false`, with a `next_step` telling the user to choose a directory.
- *
  * @returns {Promise<object>} Hub path, config, and per-collection counts.
  */
 async function handleHubStatus() {
-  const home = await resolveHome();
-  if (!home) {
-    return {
-      hub: null,
-      located: false,
-      config_path: path.join(anchorHome, "config.json"),
-      config: await loadConfig(),
-      next_step: "Choose a data directory: call hub_init with `path`.",
-    };
-  }
   const count = async dir => (await fs.readdir(await dirPath(dir))).length;
   return {
-    hub: home,
-    located: true,
+    hub: await resolveHome(),
     config_path: path.join(anchorHome, "config.json"),
     config: await loadConfig(),
     activities: await count("activities"),
@@ -423,9 +379,6 @@ async function handleHubCleanup(args) {
  */
 async function cleanAll() {
   const home = await resolveHome();
-  if (!home) {
-    return { mode: "all", counts: {}, hub: null, action: "nothing_to_clean", note: "Usora is not initialized; no data directory chosen." };
-  }
   const counts = {};
   for (const dir of DIRS) {
     const target = path.join(home, dir);
@@ -703,11 +656,10 @@ async function call(name, args = {}) {
 const tools = [
   {
     name: "hub_init",
-    description: "Initialize the user's local Usora storage. Never create sample data. If `path` is omitted, no data is written; the server returns a `pending` list of questions (data directory, Maintainer, automation policy) that the client must ask the user before calling hub_init again with `path`.",
+    description: "Initialize the user's local Usora storage in the default directory (<cwd>/.usora) or the directory previously chosen via hub_config. Never create sample data. Optionally set maintainer/automation_policy.",
     inputSchema: {
       type: "object",
       properties: {
-        path: { type: "string", description: "The data directory the user chose (absolute or relative to the workspace). Required to actually initialize; persisted in config.hub_path." },
         maintainer: { type: "string", description: "Optional Primary Maintainer to set during init (e.g. codex)." },
         automation_policy: { type: "string", enum: AUTOMATION_POLICIES, description: "Optional automation policy to set during init." },
       },
@@ -715,7 +667,7 @@ const tools = [
   },
   {
     name: "hub_status",
-    description: "Inspect Hub counts and configuration without loading all Activities. Returns the resolved data directory (hub) and config path. When the Hub has not been located yet, returns hub=null and located=false with a next_step prompting the user to choose a directory.",
+    description: "Inspect Hub counts and configuration without loading all Activities. Returns the resolved data directory (hub) and config path so the user always knows where data lives.",
     inputSchema: { type: "object", properties: {} },
   },
   {
@@ -725,8 +677,8 @@ const tools = [
   },
   {
     name: "hub_config",
-    description: "Configure the Maintainer, automation policy, and/or data directory. Pass `path` to change the data directory immediately (persisted and applied without restart).",
-    inputSchema: { type: "object", properties: { path: { type: "string", description: "Optional new data directory (absolute or relative)." }, maintainer: { type: "string" }, automation_policy: { type: "string", enum: AUTOMATION_POLICIES } } },
+    description: "Configure the Maintainer, automation policy, and/or relocate the data directory. Pass `path` to MOVE the existing Hub data to a new directory (migrates existing records and clears the old directory), applied immediately.",
+    inputSchema: { type: "object", properties: { path: { type: "string", description: "Optional new data directory (absolute or relative). Existing data is moved there and the old directory cleared." }, maintainer: { type: "string" }, automation_policy: { type: "string", enum: AUTOMATION_POLICIES } } },
   },
   {
     name: "activity_capture",
