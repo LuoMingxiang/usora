@@ -16,6 +16,10 @@
 
 Usora is a local-first Codex plugin and personal capability layer for the AI era. The name combines *usus* (practice, usage, experience) with *aura* (an invisible field of influence): the capability field created by accumulated practice. It captures useful session context as Activities, turns repeated patterns into Candidates, and lets a Maintainer evaluate and publish reusable Skills without sending your project memory to a hosted service.
 
+<p align="center">
+  <img src="plugins/usora/assets/origin.png" alt="Usora name origin: usus plus aura" width="720">
+</p>
+
 ```text
 Activity -> Candidate -> Skill Draft -> Evaluation -> Publish
 ```

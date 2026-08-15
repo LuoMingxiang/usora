@@ -16,6 +16,10 @@
 
 Usora is a Codex plugin for building a personal capability layer from everyday AI work. The name combines *usus* (practice, usage, experience) with *aura* (an invisible field of influence): the capability field created by accumulated practice. It records useful AI work as Activities, promotes reusable patterns into Candidates, and helps a configured Maintainer publish Skills.
 
+<p align="center">
+  <img src="assets/origin.png" alt="Usora name origin: usus plus aura" width="720">
+</p>
+
 ## Core Flow
 
 ```text
