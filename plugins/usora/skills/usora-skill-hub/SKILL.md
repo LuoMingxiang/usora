@@ -12,6 +12,7 @@ Maintain one Activity per AI session. After substantive progress, call `activity
 ## Natural-language mapping
 
 - “Initialize my Skill Hub” → MCP tool `hub_init`
+- “Configure my Maintainer or automation policy” → MCP tool `hub_config`
 - “Show my Skill Hub status” → MCP tool `hub_status`
 - “Clean up generated Activities” → MCP tool `hub_cleanup` with `mode: generated`
 - “Clean everything” → MCP tool `hub_cleanup` with `mode: all, confirm: true` (deletes all Hub data)
@@ -19,6 +20,8 @@ Maintain one Activity per AI session. After substantive progress, call `activity
 - “Create a Candidate” → MCP tool `candidate_create`
 - “Evaluate this Candidate” → MCP tool `candidate_evaluate`
 - “Publish this Skill” → MCP tool `skill_publish`
+- “Create a Skill draft” → MCP tool `skill_create`
+- “Evaluate this Skill” → MCP tool `skill_evaluate`
 - “Capture this task” → Usora MCP tool `activity_capture`
 
 Always preserve the boundary: Workers and Reviewers may contribute Activities and Candidates; only the configured Maintainer publishes Skills. Do not load the entire Activity history into context. Use `status`, recent records, and targeted IDs.
