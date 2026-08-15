@@ -7,7 +7,7 @@ description: "Operate Usora: initialize storage, record Activities, discover Can
 
 Use the Usora MCP tools for all Hub mutations. In a workspace containing the Usora `AGENTS.md`, behave as always-on: do not wait for an explicit Skill invocation. Do not ask the user to install Python or run a CLI.
 
-Maintain one Activity per AI session. After substantive progress, call `activity_capture` with the stable current `session_id`; repeated calls must update the same record with key points, decisions, approach, and result. Never capture a full transcript and never invent an Activity.
+Maintain one Activity per AI session. After substantive progress, call `activity_capture`; pass `session_id` when the host provides a stable one, otherwise the MCP server uses a process-scoped ID formatted as `session-{timestamp_hex}-{128_bit_random_salt}`. Repeated calls must update the same record with key points, decisions, approach, and result. Never capture a full transcript and never invent an Activity.
 
 ## Natural-language mapping
 
