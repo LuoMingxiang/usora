@@ -3,7 +3,7 @@
     "usora": {
       "command": "node",
       "args": ["scripts/usora-mcp.mjs"],
-      "cwd": "${PLUGIN_ROOT}"
+      "cwd": "."
     }
   }
 }
