@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-  <strong>Local-first memory for turning AI work into reusable skills.</strong>
+  <strong>Turn practice into capability.</strong>
 </p>
 
 <p align="center">
@@ -14,7 +14,7 @@
 
 # Usora
 
-Usora is a local-first Codex plugin that helps an AI assistant learn from real work without sending your project memory to a hosted service. It captures useful session context as Activities, turns repeated patterns into Candidates, and lets a Maintainer evaluate and publish reusable Skills.
+Usora is a local-first Codex plugin and personal capability layer for the AI era. The name combines *usus* (practice, usage, experience) with *aura* (an invisible field of influence): the capability field created by accumulated practice. It captures useful session context as Activities, turns repeated patterns into Candidates, and lets a Maintainer evaluate and publish reusable Skills without sending your project memory to a hosted service.
 
 ```text
 Activity -> Candidate -> Skill Draft -> Evaluation -> Publish
@@ -22,11 +22,12 @@ Activity -> Candidate -> Skill Draft -> Evaluation -> Publish
 
 ## Why Usora?
 
-AI assistants often solve the same local workflow problems again and again. Usora gives those lessons a small lifecycle:
+AI assistants often solve the same local workflow problems again and again, but the working method disappears after the task. Usora treats experience as personal data and gives those lessons a small lifecycle:
 
 - **Capture work as Activities**: store concise task summaries, decisions, approaches, outcomes, and technologies.
 - **Discover reusable Candidates**: promote repeated patterns into reviewable improvement ideas.
 - **Publish Skills deliberately**: keep the Maintainer in control of what becomes reusable behavior.
+- **Evolve personal capability**: let your past practice become future AI assistance.
 - **Stay local-first**: use plain local files under your workspace by default, with no Python, database, or separate CLI required.
 
 ## Current MVP

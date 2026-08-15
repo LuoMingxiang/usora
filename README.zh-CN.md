@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-  <strong>把真实 AI 工作沉淀成可复用 Skill 的本地优先记忆层。</strong>
+  <strong>把实践转化为能力。</strong>
 </p>
 
 <p align="center">
@@ -14,7 +14,7 @@
 
 # Usora
 
-Usora 是一个本地优先的 Codex 插件，用来帮助 AI 助手从真实工作中沉淀能力，而不是把项目记忆交给云端服务。它会把有价值的会话上下文记录为 Activity，从重复模式中生成 Candidate，再由 Maintainer 评估并发布为可复用的 Skill。
+Usora 是一个本地优先的 Codex 插件，也是 AI 时代的个人能力层。它的名字来自 *usus*（实践、使用、经验）与 *aura*（不可见的影响场）：由长期实践累积出来的能力场。Usora 会把有价值的会话上下文记录为 Activity，从重复模式中生成 Candidate，再由 Maintainer 评估并发布为可复用的 Skill，而不是把项目记忆交给云端服务。
 
 ```text
 Activity -> Candidate -> Skill Draft -> Evaluation -> Publish
@@ -22,11 +22,12 @@ Activity -> Candidate -> Skill Draft -> Evaluation -> Publish
 
 ## 为什么需要 Usora？
 
-AI 助手常常会反复解决同一类本地工作流问题。Usora 为这些经验提供了一个轻量生命周期：
+AI 助手常常会反复解决同一类本地工作流问题，但真正有价值的工作方法往往在任务结束后消散。Usora 把经验视为新的个人数据，并为这些经验提供一个轻量生命周期：
 
 - **记录 Activity**：保存任务摘要、关键决策、实现思路、结果和相关技术。
 - **发现 Candidate**：把重复出现的模式提升为可审阅的改进候选。
 - **审慎发布 Skill**：由 Maintainer 决定哪些经验可以进入可复用行为。
+- **演进个人能力**：让过去的实践成为未来 AI 协作的老师。
 - **坚持本地优先**：默认使用工作区中的本地文件，不需要 Python、数据库或单独 CLI。
 
 ## 当前 MVP

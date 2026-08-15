@@ -4,7 +4,7 @@
 
 <p align="center">
   <strong>Usora for Codex</strong><br>
-  Local-first Activity, Candidate, and Skill lifecycle tools.
+  Turn practice into reusable AI capability.
 </p>
 
 <p align="center">
@@ -14,7 +14,7 @@
 
 # Usora Plugin
 
-Usora is a Codex plugin that records useful AI work as Activities, promotes reusable patterns into Candidates, and helps a configured Maintainer publish Skills.
+Usora is a Codex plugin for building a personal capability layer from everyday AI work. The name combines *usus* (practice, usage, experience) with *aura* (an invisible field of influence): the capability field created by accumulated practice. It records useful AI work as Activities, promotes reusable patterns into Candidates, and helps a configured Maintainer publish Skills.
 
 ## Core Flow
 
