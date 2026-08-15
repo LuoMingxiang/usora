@@ -1,19 +1,27 @@
 {
   "name": "usora",
-  "version": "0.1.0+codex.20260815053521",
-  "description": "AI-independent, local-first Personal Skill Hub that turns work experience into reusable capabilities.",
+  "version": "0.1.0+codex.20260815054121",
+  "description": "A personal AI capability hub that turns real work into reusable, continuously improving skills.",
   "author": {
     "name": "Local developer"
   },
   "skills": "./skills/",
   "mcpServers": "./.mcp.json",
   "interface": {
-    "displayName": "Usora",
-    "shortDescription": "Turn practice into reusable AI capability.",
-    "longDescription": "Usora collects normalized Activities, discovers Candidates, and helps a configurable Maintainer evaluate and publish evolving Skills in a local, Git-friendly Hub.",
+    "displayName": "Usora Skill Hub",
+    "shortDescription": "Turn real work into reusable AI skills.",
+    "longDescription": "Usora is a local-first personal capability hub. It captures the key points of AI work sessions, discovers reusable patterns, and continuously improves one shared Skill library across AI agents.",
     "developerName": "Local developer",
     "category": "Productivity",
-    "capabilities": [],
-    "defaultPrompt": "Help me initialize or operate my Usora Skill Hub."
+    "capabilities": [
+      "Local-first",
+      "Session memory",
+      "Skill evolution"
+    ],
+    "defaultPrompt": [
+      "Initialize my Skill Hub",
+      "Capture this session",
+      "Show my recent Skills"
+    ]
   }
 }

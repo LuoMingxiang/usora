@@ -1,7 +1,7 @@
 {
   "name": "personal",
   "interface": {
-    "displayName": "Usora"
+    "displayName": "Usora Skill Hub"
   },
   "plugins": [
     {
