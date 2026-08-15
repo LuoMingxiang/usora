@@ -32,7 +32,9 @@ Activity → Candidate → Skill Draft → Evaluation → Publish
 创建并发布一个 Skill
 ```
 
-默认数据目录为当前工作区的 `.usora`，以适配 Codex MCP 沙箱；也可以通过 `USORA_HOME` 指定跨工作区、跨 AI 共用的 Hub。初始化时还可通过 `hub_init` 的 `path` 参数选择任意目录，选择会被持久化到 `config.json` 的 `hub_path`，之后所有操作自动沿用；`hub_status` 会返回实际数据目录和配置文件路径，方便随时定位数据。
+初始化是引导式交互：说「初始化我的 Usora」后，Codex 会依次引导你选择数据目录、Primary Maintainer 和自动化策略，确认后才创建 Hub。
+
+默认数据目录为当前工作区的 `.usora`，以适配 Codex MCP 沙箱；也可以通过 `USORA_HOME` 指定跨工作区、跨 AI 共用的 Hub。初始化时选择的目录会通过 `hub_init` 的 `path` 参数持久化到 `config.json` 的 `hub_path`，之后所有操作自动沿用；`hub_status` 会返回实际数据目录和配置文件路径，方便随时定位数据。
 
 ## 卸载
 

@@ -18,13 +18,12 @@ Use the Usora MCP tools from Codex. No Python or separate CLI installation is re
 
 The default Hub is `.usora` in the active workspace, so Codex can write it within its MCP sandbox. Set `USORA_HOME` to use a user-wide shared Hub across workspaces and AI clients.
 
-The MCP server initializes Usora lazily, captures real Activities, records Candidates and evaluations, and publishes Skills only through the configured Maintainer.
+Initialization is interactive: Codex guides you through choosing the data directory, the Maintainer, and the automation policy before it creates the Hub. Say “初始化我的 Usora” to start the walkthrough.
 
 You can ask Codex:
 
 ```text
 初始化我的 Usora
-初始化我的 Usora，数据放在 <path>
 记录这个任务
 查看 Usora 状态
 我的 Usora 数据存在哪？
