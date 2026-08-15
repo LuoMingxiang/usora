@@ -1,0 +1,38 @@
+#!/usr/bin/env node
+import fs from "node:fs/promises";
+import path from "node:path";
+import os from "node:os";
+import readline from "node:readline";
+import crypto from "node:crypto";
+
+const home = path.resolve(process.env.USORA_HOME || path.join(os.homedir(), ".usora"));
+const now = () => new Date().toISOString();
+const id = p => `${p}-${crypto.randomBytes(5).toString("hex")}`;
+const dirs = ["activities", "candidates", "skills", "archive", "events"];
+async function ensure() { await Promise.all(dirs.map(d => fs.mkdir(path.join(home, d), { recursive: true }))); }
+async function readJson(file, fallback = null) { try { return JSON.parse(await fs.readFile(file, "utf8")); } catch { return fallback; } }
+async function writeJson(file, value) { const tmp = `${file}.${process.pid}.tmp`; await fs.writeFile(tmp, JSON.stringify(value, null, 2) + "\n", "utf8"); await fs.rename(tmp, file); }
+async function config() { return readJson(path.join(home, "config.json"), { maintainer: "codex", automation_policy: "manual_approval", version: 1 }); }
+async function event(type, data) { await writeJson(path.join(home, "events", `${Date.now()}-${id("event")}.json`), { type, timestamp: now(), data }); }
+function result(id, value) { return { jsonrpc: "2.0", id, result: { content: [{ type: "text", text: JSON.stringify(value, null, 2) }] } }; }
+function error(id, message) { return { jsonrpc: "2.0", id, error: { code: -32000, message } }; }
+async function call(name, a = {}) {
+  await ensure();
+  if (name === "hub_init") { const c = await config(); await writeJson(path.join(home, "config.json"), c); return { hub: home, initialized: true }; }
+  if (name === "hub_status") { const count = async d => (await fs.readdir(path.join(home, d))).length; return { hub: home, config: await config(), activities: await count("activities"), candidates: await count("candidates"), skills: (await fs.readdir(path.join(home, "skills"))).length }; }
+  if (name === "activity_capture") { if (!a.task || !a.result) throw Error("task and result are required"); const item = { id: id("activity"), source: a.source || "codex", session_id: a.session_id || null, project: a.project || null, timestamp: now(), task: a.task, context: a.context || "", approach: a.approach || [], result: a.result, technologies: a.technologies || [], outcome: a.outcome || "success", state: "NEW" }; await writeJson(path.join(home, "activities", `${item.id}.json`), item); await event("ActivityCreated", item); return item; }
+  if (name === "candidate_create") { if (!a.title || !a.summary) throw Error("title and summary are required"); const item = { id: id("candidate"), title: a.title, summary: a.summary, source: a.source || "codex", evidence: a.evidence || [], created_at: now(), state: "OPEN" }; await writeJson(path.join(home, "candidates", `${item.id}.json`), item); await event("CandidateCreated", item); return item; }
+  if (name === "candidate_evaluate") { const file = path.join(home, "candidates", `${a.id}.json`), item = await readJson(file); if (!item) throw Error("Candidate not found"); item.evaluation = { result: a.result, reviewer: a.reviewer || "codex", evaluated_at: now() }; item.state = a.result === "pass" ? "EVALUATED" : "REJECTED"; await writeJson(file, item); await event("ReviewSubmitted", item); return item; }
+  if (name === "skill_publish") { const c = await config(); if (c.maintainer !== (a.actor || "codex")) throw Error("Only the configured Maintainer can publish"); const dir = path.join(home, "skills", a.name), metaFile = path.join(dir, "skill.json"), meta = await readJson(metaFile); if (!meta) throw Error("Skill not found"); if (meta.state !== "EVALUATED" || meta.evaluation?.result !== "pass") throw Error("Skill requires a passing evaluation"); const [x, y, z] = (meta.version || "0.1.0").split(".").map(Number); meta.version = `${x}.${y}.${z + 1}`; meta.state = "PUBLISHED"; meta.published_at = now(); await writeJson(metaFile, meta); await fs.mkdir(path.join(dir, "versions", meta.version), { recursive: true }); await fs.copyFile(path.join(dir, "SKILL.md"), path.join(dir, "versions", meta.version, "SKILL.md")); await writeJson(path.join(dir, "versions", meta.version, "skill.json"), meta); await event("SkillPublished", meta); return meta; }
+  throw Error(`Unknown Usora tool: ${name}`);
+}
+const tools = [
+  { name: "hub_init", description: "Initialize the user's local Usora Skill Hub. Never create sample data.", inputSchema: { type: "object", properties: {} } },
+  { name: "hub_status", description: "Inspect Hub counts and configuration without loading all Activities.", inputSchema: { type: "object", properties: {} } },
+  { name: "activity_capture", description: "Capture one concise structured Activity from the completed AI task.", inputSchema: { type: "object", required: ["task", "result"], properties: { task: { type: "string" }, result: { type: "string" }, context: { type: "string" }, approach: { type: "array", items: { type: "string" } }, technologies: { type: "array", items: { type: "string" } }, outcome: { type: "string" }, source: { type: "string" }, session_id: { type: "string" }, project: { type: "string" } } } },
+  { name: "candidate_create", description: "Create a Candidate from an observed reusable pattern; do not create one for a one-off task.", inputSchema: { type: "object", required: ["title", "summary"], properties: { title: { type: "string" }, summary: { type: "string" }, evidence: { type: "array", items: { type: "string" } }, source: { type: "string" } } } },
+  { name: "candidate_evaluate", description: "Evaluate a Candidate as pass or fail and record the reviewer.", inputSchema: { type: "object", required: ["id", "result"], properties: { id: { type: "string" }, result: { type: "string", enum: ["pass", "fail"] }, reviewer: { type: "string" } } } },
+  { name: "skill_publish", description: "Publish an evaluated Skill as the configured Maintainer and save a version snapshot.", inputSchema: { type: "object", required: ["name"], properties: { name: { type: "string" }, actor: { type: "string" } } } }
+];
+const rl = readline.createInterface({ input: process.stdin, crlfDelay: Infinity });
+rl.on("line", async line => { try { const req = JSON.parse(line); if (req.method === "initialize") process.stdout.write(JSON.stringify(result(req.id, { protocolVersion: "2024-11-05", capabilities: { tools: {} }, serverInfo: { name: "usora", version: "1.0.0" } })) + "\n"); else if (req.method === "tools/list") process.stdout.write(JSON.stringify(result(req.id, { tools })) + "\n"); else if (req.method === "tools/call") process.stdout.write(JSON.stringify(result(req.id, await call(req.params.name, req.params.arguments))) + "\n"); else if (req.id !== undefined) process.stdout.write(JSON.stringify(error(req.id, `Unsupported method: ${req.method}`)) + "\n"); } catch (e) { if (JSON.parse(line).id !== undefined) process.stdout.write(JSON.stringify(error(JSON.parse(line).id, e.message)) + "\n"); } });
