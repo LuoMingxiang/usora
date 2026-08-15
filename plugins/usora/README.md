@@ -24,8 +24,10 @@ You can ask Codex:
 
 ```text
 初始化我的 Usora
+初始化我的 Usora，数据放在 <path>
 记录这个任务
 查看 Usora 状态
+我的 Usora 数据存在哪？
 创建一个 Skill 草稿
 评估并发布这个 Skill
 ```
@@ -40,14 +42,17 @@ Activity → Candidate → Skill Draft → Evaluation → Publish
 
 The default data directory is `.usora` in the active workspace. Set `USORA_HOME` to use a user-wide shared Hub.
 
+You can also choose a custom directory at initialization: call `hub_init` with a `path` argument (absolute or relative to the workspace). The choice is persisted in `config.json` as `hub_path`, so every later operation resolves to that directory automatically. `hub_status` reports the resolved `hub` directory and the `config_path`, so you can always find your data.
+
 ```text
-.usora/
-├── config.json
+<hub>/
 ├── activities/
 ├── candidates/
 ├── skills/
 ├── archive/
 └── events/
+
+<anchor>/.usora/config.json   # always here (USORA_HOME or <cwd>/.usora)
 ```
 
 If the host does not provide a stable `session_id`, Usora generates a time-ordered ID with a 128-bit random salt so repeated calls in one MCP process merge into one Activity.
@@ -56,7 +61,11 @@ If the host does not provide a stable `session_id`, Usora generates a time-order
 
 Uninstalling the plugin is handled by Codex: choose `Uninstall plugin` in the `/plugins` browser, or run `codex plugin marketplace remove <name>`.
 
-Uninstalling does **not** remove local data. To fully clean up, first clear the Hub via `hub_cleanup` with `mode: all` (requires `confirm: true`), then manually delete the `.usora/` directory under the workspace or `USORA_HOME`.
+Uninstalling does **not** remove local data. To clean up:
+
+1. Run `hub_status` to see where your data lives (`hub`) and where the config is (`config_path`).
+2. Clear the data with `hub_cleanup` `mode: all` (requires `confirm: true`). This empties all records, Skills, and events but keeps the data directory and config, so the path remains discoverable.
+3. If you want the directory gone too, delete the (now empty) data directory manually.
 
 ## MVP boundary
 

@@ -18,15 +18,33 @@ import crypto from "node:crypto";
 // ---------------------------------------------------------------------------
 
 /**
- * Absolute path to the local Hub.
+ * Anchor directory that always holds `config.json`.
  *
- * Codex restricts a local MCP server to the active workspace, so the default
- * Hub lives under `<cwd>/.usora`. Set `USORA_HOME` to share one Hub across
- * workspaces or AI clients.
+ * This must be a *fixed* location so the config can be found before it has
+ * told us where the user wants their data. It is `USORA_HOME` when set (a
+ * user-wide shared Hub), otherwise `<cwd>/.usora` (sandbox-safe default).
  *
  * @type {string}
  */
-const home = path.resolve(process.env.USORA_HOME || path.join(process.cwd(), ".usora"));
+const anchorHome = path.resolve(process.env.USORA_HOME || path.join(process.cwd(), ".usora"));
+
+/**
+ * Resolve the absolute path to the local data Hub.
+ *
+ * Resolution order:
+ *   1. `config.hub_path`, once the user has chosen a directory via `hub_init`
+ *      (persisted so all future operations keep using it);
+ *   2. the anchor directory (`USORA_HOME` or `<cwd>/.usora`).
+ *
+ * `hub_path` may be an absolute path or one relative to the process CWD.
+ *
+ * @param {object} [config] - Loaded Hub config, if already available.
+ * @returns {Promise<string>} Absolute Hub path.
+ */
+async function resolveHome(config) {
+  const cfg = config || await loadConfig();
+  return path.resolve(cfg.hub_path || anchorHome);
+}
 
 /**
  * Process-scoped session id.
@@ -73,10 +91,10 @@ const newId = prefix => `${prefix}-${crypto.randomBytes(5).toString("hex")}`;
 /**
  * Resolve a path inside the Hub root.
  * @param {string} dir - Sub-directory name.
- * @returns {string} Absolute path within the Hub.
+ * @returns {Promise<string>} Absolute path within the Hub.
  */
-function dirPath(dir) {
-  return path.join(home, dir);
+async function dirPath(dir) {
+  return path.join(await resolveHome(), dir);
 }
 
 /**
@@ -84,7 +102,8 @@ function dirPath(dir) {
  * @returns {Promise<void>}
  */
 async function ensure() {
-  await Promise.all(DIRS.map(dir => fs.mkdir(dirPath(dir), { recursive: true })));
+  const home = await resolveHome();
+  await Promise.all(DIRS.map(dir => fs.mkdir(path.join(home, dir), { recursive: true })));
 }
 
 /**
@@ -121,16 +140,20 @@ async function writeJson(file, value) {
  * @returns {Promise<void>}
  */
 async function writeEvent(type, data) {
-  const file = path.join(dirPath("events"), `${Date.now()}-${newId("event")}.json`);
+  const file = path.join(await dirPath("events"), `${Date.now()}-${newId("event")}.json`);
   await writeJson(file, { type, timestamp: now(), data });
 }
 
 /**
  * Load Hub configuration, applying defaults when it does not exist.
- * @returns {Promise<{maintainer: string, automation_policy: string, version: number}>}
+ *
+ * Always read from the fixed `anchorHome` so the config is discoverable
+ * regardless of where the user's data directory lives.
+ *
+ * @returns {Promise<{maintainer: string, automation_policy: string, version: number, hub_path?: string}>}
  */
 async function loadConfig() {
-  return readJson(path.join(home, "config.json"), {
+  return readJson(path.join(anchorHome, "config.json"), {
     maintainer: "codex",
     automation_policy: "manual_approval",
     version: 1,
@@ -144,7 +167,7 @@ async function loadConfig() {
  */
 async function saveConfig(value) {
   const next = { ...value, version: value.version || 1 };
-  await writeJson(path.join(home, "config.json"), next);
+  await writeJson(path.join(anchorHome, "config.json"), next);
   return next;
 }
 
@@ -190,7 +213,7 @@ function safeName(value, field) {
  * @returns {Promise<{file: string, item: object}|null>} Match, or `null` if none.
  */
 async function findActivityBySession(sessionId) {
-  const dir = dirPath("activities");
+  const dir = await dirPath("activities");
   for (const file of await fs.readdir(dir)) {
     if (!file.endsWith(".json")) continue;
     const item = await readJson(path.join(dir, file));
@@ -223,12 +246,24 @@ function mergeUnique(left, right) {
  *
  * Never creates sample data.
  *
- * @returns {Promise<{hub: string, initialized: boolean}>}
+ * When `args.path` is supplied, the Hub data directory is (re)located there
+ * and the choice is persisted in `config.hub_path`, so later operations keep
+ * using it without re-specifying the path. `args.path` may be absolute or
+ * relative to the process CWD.
+ *
+ * @param {ToolArgs} [args={}] - Optional `path` for the data directory.
+ * @returns {Promise<{hub: string, config_path: string, initialized: boolean}>}
  */
-async function handleHubInit() {
+async function handleHubInit(args = {}) {
   const config = await loadConfig();
+  if (args.path !== undefined) {
+    requireString(args.path, "path");
+    config.hub_path = path.resolve(args.path);
+  }
   await saveConfig(config);
-  return { hub: home, initialized: true };
+  const home = await resolveHome(config);
+  await fs.mkdir(home, { recursive: true });
+  return { hub: home, config_path: path.join(anchorHome, "config.json"), initialized: true };
 }
 
 /**
@@ -258,9 +293,10 @@ async function handleHubConfig(args) {
  * @returns {Promise<object>} Hub path, config, and per-collection counts.
  */
 async function handleHubStatus() {
-  const count = dir => fs.readdir(dirPath(dir)).then(files => files.length);
+  const count = async dir => (await fs.readdir(await dirPath(dir))).length;
   return {
-    hub: home,
+    hub: await resolveHome(),
+    config_path: path.join(anchorHome, "config.json"),
     config: await loadConfig(),
     activities: await count("activities"),
     candidates: await count("candidates"),
@@ -291,26 +327,25 @@ async function handleHubCleanup(args) {
 }
 
 /**
- * Irreversibly delete every Hub record, Skill, archive, event, and config.
+ * Irreversibly delete every Hub record, Skill, archive, and event.
  *
- * @returns {Promise<object>} Per-collection deletion counts.
+ * The data directory and its sub-directories are recreated empty, and the
+ * config file (including `hub_path`) is kept so the user can still discover
+ * where their data lives after a cleanup/uninstall.
+ *
+ * @returns {Promise<object>} Per-collection deletion counts and the Hub path.
  */
 async function cleanAll() {
   const counts = {};
+  const home = await resolveHome();
   for (const dir of DIRS) {
-    const target = dirPath(dir);
-    const files = await fs.readdir(target);
+    const target = path.join(home, dir);
+    const files = await fs.readdir(target).catch(() => []);
     counts[dir] = files.length;
     await fs.rm(target, { recursive: true, force: true });
     await fs.mkdir(target, { recursive: true });
   }
-  try {
-    await fs.unlink(path.join(home, "config.json"));
-    counts.config = 1;
-  } catch {
-    counts.config = 0;
-  }
-  return { mode: "all", counts, action: "deleted_all_hub_data" };
+  return { mode: "all", counts, hub: home, config_path: path.join(anchorHome, "config.json"), action: "deleted_all_hub_data" };
 }
 
 /**
@@ -320,13 +355,14 @@ async function cleanAll() {
  */
 async function archiveGenerated() {
   let archived = 0;
-  const activitiesDir = dirPath("activities");
+  const activitiesDir = await dirPath("activities");
+  const archiveDir = await dirPath("archive");
   for (const file of await fs.readdir(activitiesDir)) {
     if (!file.endsWith(".json")) continue;
     const source = path.join(activitiesDir, file);
     const item = await readJson(source);
     if (ARCHIVABLE_STATES.includes(item?.state) || item?.skill_id) {
-      await fs.rename(source, path.join(dirPath("archive"), file));
+      await fs.rename(source, path.join(archiveDir, file));
       archived++;
     }
   }
@@ -380,7 +416,7 @@ async function handleActivityCapture(args) {
   item.updated_at = now();
 
   const file = existing?.file || `${item.id}.json`;
-  await writeJson(path.join(dirPath("activities"), file), item);
+  await writeJson(path.join(await dirPath("activities"), file), item);
   await writeEvent(existing ? "ActivityUpdated" : "ActivityCreated", item);
   return { ...item, merged: Boolean(existing) };
 }
@@ -405,7 +441,7 @@ async function handleCandidateCreate(args) {
     created_at: now(),
     state: "OPEN",
   };
-  await writeJson(path.join(dirPath("candidates"), `${item.id}.json`), item);
+  await writeJson(path.join(await dirPath("candidates"), `${item.id}.json`), item);
   await writeEvent("CandidateCreated", item);
   return item;
 }
@@ -418,7 +454,7 @@ async function handleCandidateCreate(args) {
  * @throws {Error} When the Candidate does not exist.
  */
 async function handleCandidateEvaluate(args) {
-  const file = path.join(dirPath("candidates"), `${safeName(args.id, "id")}.json`);
+  const file = path.join(await dirPath("candidates"), `${safeName(args.id, "id")}.json`);
   const item = await readJson(file);
   if (!item) throw Error("Candidate not found");
 
@@ -446,7 +482,7 @@ async function handleSkillCreate(args) {
     throw Error("name and content are required");
   }
   const skillName = safeName(args.name, "name");
-  const dir = path.join(dirPath("skills"), skillName);
+  const dir = path.join(await dirPath("skills"), skillName);
   await fs.mkdir(dir, { recursive: true });
 
   const meta = {
@@ -476,7 +512,7 @@ async function handleSkillCreate(args) {
  */
 async function handleSkillEvaluate(args) {
   const skillName = safeName(args.name, "name");
-  const file = path.join(dirPath("skills"), skillName, "skill.json");
+  const file = path.join(await dirPath("skills"), skillName, "skill.json");
   const item = await readJson(file);
   if (!item) throw Error("Skill not found");
   if (!["pass", "fail"].includes(args.result)) {
@@ -515,7 +551,7 @@ async function handleSkillPublish(args) {
   }
 
   const skillName = safeName(args.name, "name");
-  const file = path.join(dirPath("skills"), skillName, "skill.json");
+  const file = path.join(await dirPath("skills"), skillName, "skill.json");
   const meta = await readJson(file);
   if (!meta) throw Error("Skill not found");
   if (meta.state !== "EVALUATED" || meta.evaluation?.result !== "pass") {
@@ -576,11 +612,19 @@ async function call(name, args = {}) {
  * @type {Array<{name: string, description: string, inputSchema: object}>}
  */
 const tools = [
-  { name: "hub_init", description: "Initialize the user's local Usora storage. Never create sample data.", inputSchema: { type: "object", properties: {} } },
-  { name: "hub_status", description: "Inspect Hub counts and configuration without loading all Activities.", inputSchema: { type: "object", properties: {} } },
+  {
+    name: "hub_init",
+    description: "Initialize the user's local Usora storage. Never create sample data. Optionally pass `path` to choose the data directory; the choice is persisted so later operations keep using it.",
+    inputSchema: { type: "object", properties: { path: { type: "string", description: "Optional absolute or relative directory for Hub data; persisted in config." } } },
+  },
+  {
+    name: "hub_status",
+    description: "Inspect Hub counts and configuration without loading all Activities. Returns the resolved data directory (hub) and config path so the user always knows where data lives.",
+    inputSchema: { type: "object", properties: {} },
+  },
   {
     name: "hub_cleanup",
-    description: "Clean in two modes: generated archives processed Activities; all permanently deletes every Usora Hub record, Skill, archive, event, and config and requires confirm=true.",
+    description: "Clean in two modes: generated archives processed Activities; all permanently deletes every Usora Hub record, Skill, archive, event, and config and requires confirm=true. It empties the data directory but keeps the Hub directory and config file so the user can review the path.",
     inputSchema: { type: "object", properties: { mode: { type: "string", enum: ["generated", "all"] }, confirm: { type: "boolean" } } },
   },
   {

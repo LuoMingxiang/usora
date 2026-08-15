@@ -32,13 +32,13 @@ Activity → Candidate → Skill Draft → Evaluation → Publish
 创建并发布一个 Skill
 ```
 
-默认数据目录为当前工作区的 `.usora`，以适配 Codex MCP 沙箱；也可以通过 `USORA_HOME` 指定跨工作区、跨 AI 共用的 Hub。
+默认数据目录为当前工作区的 `.usora`，以适配 Codex MCP 沙箱；也可以通过 `USORA_HOME` 指定跨工作区、跨 AI 共用的 Hub。初始化时还可通过 `hub_init` 的 `path` 参数选择任意目录，选择会被持久化到 `config.json` 的 `hub_path`，之后所有操作自动沿用；`hub_status` 会返回实际数据目录和配置文件路径，方便随时定位数据。
 
 ## 卸载
 
 卸载插件由 Codex 负责：在 `/plugins` 插件浏览器中选择 `Uninstall plugin`，或使用 `codex plugin marketplace remove <name>` 移除市场。
 
-注意：卸载插件**不会删除本地数据**。如需彻底清理，请先通过 `hub_cleanup` 的 `mode: all`（需 `confirm: true`）清空 Hub 数据，再手动删除工作区或 `USORA_HOME` 下的 `.usora/` 目录。
+注意：卸载插件**不会删除本地数据**。如需彻底清理，请先通过 `hub_status` 查看数据所在路径，再通过 `hub_cleanup` 的 `mode: all`（需 `confirm: true`）清空 Hub 数据（会保留数据目录和配置文件，便于后续确认路径）；若想连目录一起删除，再手动删除数据目录本身。
 
 ## MVP 边界
 
