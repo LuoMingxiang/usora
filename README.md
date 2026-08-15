@@ -1,62 +1,69 @@
+<p align="center">
+  <img src="plugins/usora/assets/usora.png" alt="Usora" width="520">
+</p>
+
+<p align="center">
+  <strong>Local-first memory for turning AI work into reusable skills.</strong>
+</p>
+
+<p align="center">
+  <a href="README.zh-CN.md">中文</a> ·
+  <a href="plugins/usora/README.md">Plugin guide</a> ·
+  <a href="CONTRIBUTING.md">Contributing</a>
+</p>
+
 # Usora
 
-Usora 是一个本地优先的 AI 能力沉淀插件。它把真实工作记录为 Activity，从重复模式生成 Candidate，再由 Maintainer 评估并发布可复用的 Skill。
-
-## MVP
+Usora is a local-first Codex plugin that helps an AI assistant learn from real work without sending your project memory to a hosted service. It captures useful session context as Activities, turns repeated patterns into Candidates, and lets a Maintainer evaluate and publish reusable Skills.
 
 ```text
-Activity → Candidate → Skill Draft → Evaluation → Publish
+Activity -> Candidate -> Skill Draft -> Evaluation -> Publish
 ```
 
-当前 MVP 支持：
+## Why Usora?
 
-- 本地 Hub 初始化与状态查看
-- Activity 按会话合并记录
-- Candidate 创建与评估
-- Maintainer 和自动化策略配置
-- Skill 创建、评估、发布与版本递增
-- 已处理 Activity 归档
+AI assistants often solve the same local workflow problems again and again. Usora gives those lessons a small lifecycle:
 
-## 安装
+- **Capture work as Activities**: store concise task summaries, decisions, approaches, outcomes, and technologies.
+- **Discover reusable Candidates**: promote repeated patterns into reviewable improvement ideas.
+- **Publish Skills deliberately**: keep the Maintainer in control of what becomes reusable behavior.
+- **Stay local-first**: use plain local files under your workspace by default, with no Python, database, or separate CLI required.
 
-从插件市场安装 `Usora`。插件使用 Codex MCP，不需要 Python、数据库或单独 CLI。
+## Current MVP
 
-## 使用
+- Initialize and inspect a local Usora Hub.
+- Merge Activity records by AI session.
+- Create and evaluate Candidates.
+- Configure Maintainer and automation policy.
+- Create, evaluate, publish, and revise Skills in place.
+- Archive processed Activities.
 
-安装后可以直接对 Codex 说：
+## Quick Start
+
+Install `Usora` from the Codex plugin marketplace, then ask Codex:
 
 ```text
-初始化我的 Usora
-记录这个任务
-查看 Usora 状态
-创建并发布一个 Skill
+Initialize my Usora
+Capture this session
+Show Usora status
+Create and publish a Skill
 ```
 
-初始化很简单：说「初始化我的 Usora」后，Codex 会在默认目录 `.usora`（当前工作区下）创建 Hub。之后想改数据目录，直接说「把我的 Usora 数据移到 `<路径>`」即可——Codex 会通过 `hub_config` 的 `path` 把已有数据**迁移**到新目录，并清空旧目录。
+By default, Usora creates its Hub at `<cwd>/.usora`. To move the data later, ask Codex to move Usora data to another path; the plugin migrates existing records and saves the new location in `.usora/config.json`.
 
-数据目录记录在 `config.json` 的 `hub_path`，`hub_status` 会返回实际数据目录（`hub`）和配置文件路径（`config_path`），方便随时定位数据。
+For plugin-specific usage, storage layout, and cleanup details, see the [plugin guide](plugins/usora/README.md).
 
-> 注意：不支持 `USORA_HOME` 环境变量，数据目录通过 `hub_config` 管理。
+## MVP Boundary
 
-## 卸载
+Usora is currently a local, single-user MVP. It does not include a Web UI, cloud sync, team collaboration, a public Skill marketplace, or direct AI-to-AI communication.
 
-卸载插件由 Codex 负责：在 `/plugins` 插件浏览器中选择 `Uninstall plugin`，或使用 `codex plugin marketplace remove <name>` 移除市场。
+## Contributing
 
-注意：卸载插件**不会删除本地数据**。如需彻底清理，请先通过 `hub_status` 查看数据所在路径，再通过 `hub_cleanup` 的 `mode: all`（需 `confirm: true`）清空 Hub 数据（会保留数据目录和配置文件，便于后续确认路径）；若想连目录一起删除，再手动删除数据目录本身。
+Contributions are welcome. Before opening a pull request, please read:
 
-## MVP 边界
-
-Usora 当前是本地单用户 MVP，不包含 Web UI、云端同步、团队协作、公开 Skill 市场或 AI 之间的直接通信。
-
-更多插件使用说明见 [插件 README](plugins/usora/README.md)。
-
-## 贡献
-
-欢迎贡献！在提交 PR 之前，请先阅读：
-
-- [CONTRIBUTING.md](CONTRIBUTING.md) — 贡献流程与开发约定
-- [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) — 社区行为准则
-- [SECURITY.md](SECURITY.md) — 安全漏洞上报方式
+- [CONTRIBUTING.md](CONTRIBUTING.md)
+- [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)
+- [SECURITY.md](SECURITY.md)
 
 ## License
 

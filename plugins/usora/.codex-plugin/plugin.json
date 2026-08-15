@@ -23,7 +23,7 @@
       "Capture this session",
       "Show my recent Skills"
     ],
-    "composerIcon": "./assets/logo.svg",
-    "logo": "./assets/logo.svg"
+    "composerIcon": "./assets/logo.png",
+    "logo": "./assets/logo.png"
   }
 }

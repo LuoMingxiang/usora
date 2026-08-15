@@ -1,44 +1,59 @@
-# Usora
+<p align="center">
+  <img src="assets/logo.png" alt="Usora logo" width="120">
+</p>
 
-Usora 是一个本地优先的 AI 能力沉淀插件：把真实工作记录为 Activity，从重复模式生成 Candidate，再由 Maintainer 评估并发布可复用的 Skill。
+<p align="center">
+  <strong>Usora for Codex</strong><br>
+  Local-first Activity, Candidate, and Skill lifecycle tools.
+</p>
 
-## MVP 能力
+<p align="center">
+  <a href="../../README.md">Project README</a> ·
+  <a href="../../README.zh-CN.md">中文</a>
+</p>
 
-- 初始化本地 Usora 存储
-- 按会话合并记录 Activity
-- 创建和评估 Candidate
-- 配置 Maintainer 与自动化策略
-- 创建、评估、发布 Skill
-- Skill 原地版本递增
-- 归档已处理 Activity
+# Usora Plugin
 
-## Quick start
+Usora is a Codex plugin that records useful AI work as Activities, promotes reusable patterns into Candidates, and helps a configured Maintainer publish Skills.
 
-Use the Usora MCP tools from Codex. No Python or separate CLI installation is required.
-
-Initialization is simple: say “初始化我的 Usora” and Codex creates the Hub under the default `<cwd>/.usora` directory. The `USORA_HOME` environment variable is not supported.
-
-You can ask Codex:
+## Core Flow
 
 ```text
-初始化我的 Usora
-把我的 Usora 数据移到 <path>
-记录这个任务
-查看 Usora 状态
-我的 Usora 数据存在哪？
-创建一个 Skill 草稿
-评估并发布这个 Skill
+Activity -> Candidate -> Skill Draft -> Evaluation -> Publish
 ```
 
-Core flow:
+## Capabilities
+
+- Initialize local Usora storage.
+- Merge Activity captures by session.
+- Create and evaluate Candidates.
+- Configure Maintainer and automation policy.
+- Create, evaluate, publish, and revise Skills in place.
+- Archive processed Activities.
+
+## Quick Start
+
+Use the Usora MCP tools through Codex. No Python, database, or separate CLI installation is required.
+
+Ask Codex:
 
 ```text
-Activity → Candidate → Skill Draft → Evaluation → Publish
+Initialize my Usora
+Move my Usora data to <path>
+Capture this session
+Show Usora status
+Where is my Usora data?
+Create a Skill draft
+Evaluate and publish this Skill
 ```
 
 ## Data
 
-The default data directory is `<cwd>/.usora`. To move your data elsewhere, call `hub_config` with a `path` argument (absolute or relative to the workspace). This MOVES all existing records into the new directory and clears the old one, and persists the new location in `config.json` as `hub_path`. `hub_status` reports the resolved `hub` directory and the `config_path`, so you can always find your data.
+The default data directory is `<cwd>/.usora`. The `USORA_HOME` environment variable is not supported.
+
+To move data elsewhere, call `hub_config` with a `path` argument, either absolute or relative to the workspace. Usora moves existing records into the new directory, clears the old record folders, and persists the new location in `config.json` as `hub_path`.
+
+`hub_status` reports both the resolved `hub` directory and `config_path`.
 
 ```text
 <hub>/
@@ -48,25 +63,31 @@ The default data directory is `<cwd>/.usora`. To move your data elsewhere, call 
 ├── archive/
 └── events/
 
-<cwd>/.usora/config.json   # the config file always lives here
+<cwd>/.usora/config.json   # config file
 ```
 
-If the host does not provide a stable `session_id`, Usora generates a time-ordered ID with a 128-bit random salt so repeated calls in one MCP process merge into one Activity.
+If the host does not provide a stable `session_id`, Usora generates a process-scoped ID with a time-ordered prefix and 128-bit random salt so repeated captures in one MCP process update one Activity.
 
 ## Uninstalling
 
-Uninstalling the plugin is handled by Codex: choose `Uninstall plugin` in the `/plugins` browser, or run `codex plugin marketplace remove <name>`.
+Codex handles plugin removal. Use `Uninstall plugin` in the `/plugins` browser, or remove the marketplace entry with:
 
-Uninstalling does **not** remove local data. To clean up:
+```text
+codex plugin marketplace remove <name>
+```
 
-1. Run `hub_status` to see where your data lives (`hub`) and where the config is (`config_path`).
-2. Clear the data with `hub_cleanup` `mode: all` (requires `confirm: true`). This empties all records, Skills, and events but keeps the data directory and config, so the path remains discoverable.
-3. If you want the directory gone too, delete the (now empty) data directory manually.
+Uninstalling the plugin does **not** remove local Usora data.
 
-## MVP boundary
+To clean data:
 
-Usora is currently a local, single-user MVP. It does not include a Web UI, cloud sync, team collaboration, public Skill marketplace, or direct AI-to-AI communication.
+1. Run `hub_status` to locate `hub` and `config_path`.
+2. Run `hub_cleanup` with `mode: all` and `confirm: true`.
+3. Delete the now-empty data directory manually if you also want the directory removed.
 
-## Design boundary
+## MVP Boundary
+
+Usora is currently a local, single-user MVP. It does not include a Web UI, cloud sync, team collaboration, a public Skill marketplace, or direct AI-to-AI communication.
+
+## Design Boundary
 
 The plugin owns storage, lifecycle, roles, and state progression. AI-specific integrations should normalize sessions into Activities and must not implement Skill business logic.
