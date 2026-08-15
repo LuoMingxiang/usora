@@ -49,3 +49,15 @@ Activity → Candidate → Skill Draft → Evaluation → Publish
 Usora 当前是本地单用户 MVP，不包含 Web UI、云端同步、团队协作、公开 Skill 市场或 AI 之间的直接通信。
 
 更多插件使用说明见 [插件 README](plugins/usora/README.md)。
+
+## 贡献
+
+欢迎贡献！在提交 PR 之前，请先阅读：
+
+- [CONTRIBUTING.md](CONTRIBUTING.md) — 贡献流程与开发约定
+- [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) — 社区行为准则
+- [SECURITY.md](SECURITY.md) — 安全漏洞上报方式
+
+## License
+
+[MIT](LICENSE)
