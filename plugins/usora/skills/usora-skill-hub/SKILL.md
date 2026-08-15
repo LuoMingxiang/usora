@@ -7,7 +7,7 @@ description: "Operate the Usora local-first Personal Skill Hub: initialize stora
 
 Use the Usora MCP tools for all Hub mutations. Do not ask the user to install Python or run a CLI.
 
-After completing a substantive user task, capture one concise Activity with `activity_capture`, including task, approach, result, technologies, and outcome. Never capture a full transcript and never invent an Activity.
+Maintain one Activity per AI session. After substantive progress, call `activity_capture` with the stable current `session_id`; repeated calls must update the same record with key points, decisions, approach, and result. Never capture a full transcript and never invent an Activity.
 
 ## Natural-language mapping
 
@@ -23,7 +23,7 @@ Always preserve the boundary: Workers and Reviewers may contribute Activities an
 
 ## Normalized Activity
 
-Record task, context, approach, result, technologies, outcome, source, and session/project metadata. Do not store a full transcript when a concise structured record is sufficient.
+Record task, context, key_points, approach, result, technologies, outcome, source, and session/project metadata. One session must map to one Activity file; use updates/key_points to preserve evolution across the session.
 
 ## Sync behavior
 
