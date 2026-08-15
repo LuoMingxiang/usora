@@ -13,7 +13,8 @@ Maintain one Activity per AI session. After substantive progress, call `activity
 
 - “Initialize my Skill Hub” → MCP tool `hub_init`
 - “Show my Skill Hub status” → MCP tool `hub_status`
-- “Clean up my Skill Hub” → MCP tool `hub_cleanup` (archives processed Activities only)
+- “Clean up generated Activities” → MCP tool `hub_cleanup` with `mode: generated`
+- “Clean all Activities” → MCP tool `hub_cleanup` with `mode: all, confirm: true`
 - “Capture this task” → MCP tool `activity_capture`
 - “Create a Candidate” → MCP tool `candidate_create`
 - “Evaluate this Candidate” → MCP tool `candidate_evaluate`
@@ -30,4 +31,4 @@ Record task, context, key_points, approach, result, technologies, outcome, sourc
 
 Use MCP tools for initialization, Activity capture, Candidate review, and publication. The Hub is created lazily under `~/.usora`; initialization never creates sample data.
 
-Candidates can be explicitly evaluated before publication. Publishing increments the patch version and records the Maintainer and publication time.
+Candidates can be explicitly evaluated before publication. Publishing updates the single current Skill in place and records its `revision`, Maintainer, and publication time; do not create version directories.
