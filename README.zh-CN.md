@@ -24,6 +24,10 @@ Usora 是一个本地优先的 Codex 插件，也是 AI 时代的个人能力层
 Activity -> Candidate -> Skill Draft -> Evaluation -> Publish
 ```
 
+<p align="center">
+  <img src="plugins/usora/assets/work_zh.png" alt="Usora 如何把 AI 工作转化为可复用 Skill" width="720">
+</p>
+
 ## 为什么需要 Usora？
 
 AI 助手常常会反复解决同一类本地工作流问题，但真正有价值的工作方法往往在任务结束后消散。Usora 把经验视为新的个人数据，并为这些经验提供一个轻量生命周期：

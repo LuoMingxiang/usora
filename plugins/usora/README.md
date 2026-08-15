@@ -26,6 +26,10 @@ Usora is a Codex plugin for building a personal capability layer from everyday A
 Activity -> Candidate -> Skill Draft -> Evaluation -> Publish
 ```
 
+<p align="center">
+  <img src="assets/work.png" alt="How Usora turns AI work into reusable skills" width="720">
+</p>
+
 ## Capabilities
 
 - Initialize local Usora storage.

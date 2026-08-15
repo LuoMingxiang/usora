@@ -24,6 +24,10 @@ Usora is a local-first Codex plugin and personal capability layer for the AI era
 Activity -> Candidate -> Skill Draft -> Evaluation -> Publish
 ```
 
+<p align="center">
+  <img src="plugins/usora/assets/work.png" alt="How Usora turns AI work into reusable skills" width="720">
+</p>
+
 ## Why Usora?
 
 AI assistants often solve the same local workflow problems again and again, but the working method disappears after the task. Usora treats experience as personal data and gives those lessons a small lifecycle:
