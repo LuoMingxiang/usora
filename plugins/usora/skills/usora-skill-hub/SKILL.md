@@ -1,9 +1,9 @@
 ---
 name: usora-skill-hub
-description: "Operate the Usora local-first Personal Skill Hub: initialize storage, record Activities, discover Candidates, configure the Maintainer, evaluate/publish Skills, inspect status, and clean up processed data."
+description: "Operate Usora: initialize storage, record Activities, discover Candidates, configure the Maintainer, evaluate/publish Skills, inspect status, and clean up processed data."
 ---
 
-# Usora Skill Hub
+# Usora
 
 Use the Usora MCP tools for all Hub mutations. In a workspace containing the Usora `AGENTS.md`, behave as always-on: do not wait for an explicit Skill invocation. Do not ask the user to install Python or run a CLI.
 

@@ -8,7 +8,7 @@
   "skills": "./skills/",
   "mcpServers": "./.mcp.json",
   "interface": {
-    "displayName": "Usora Skill Hub",
+    "displayName": "Usora",
     "shortDescription": "Turn real work into reusable AI skills.",
     "longDescription": "Usora is a local-first personal capability hub. It captures the key points of AI work sessions, discovers reusable patterns, and continuously improves one shared Skill library across AI agents.",
     "developerName": "Local developer",

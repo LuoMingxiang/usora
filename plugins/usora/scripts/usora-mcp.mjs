@@ -33,7 +33,7 @@ async function call(name, a = {}) {
   throw Error(`Unknown Usora tool: ${name}`);
 }
 const tools = [
-  { name: "hub_init", description: "Initialize the user's local Usora Skill Hub. Never create sample data.", inputSchema: { type: "object", properties: {} } },
+  { name: "hub_init", description: "Initialize the user's local Usora storage. Never create sample data.", inputSchema: { type: "object", properties: {} } },
   { name: "hub_status", description: "Inspect Hub counts and configuration without loading all Activities.", inputSchema: { type: "object", properties: {} } },
   { name: "hub_cleanup", description: "Clean in two modes: generated archives processed Activities; all permanently deletes every Usora Hub record, Skill, archive, event, and config and requires confirm=true.", inputSchema: { type: "object", properties: { mode: { type: "string", enum: ["generated", "all"] }, confirm: { type: "boolean" } } } },
   { name: "activity_capture", description: "Create or update the single Activity record for a Codex session. Repeated calls with the same session_id merge key points instead of creating files.", inputSchema: { type: "object", required: ["session_id", "task", "result"], properties: { session_id: { type: "string" }, task: { type: "string" }, summary: { type: "string" }, result: { type: "string" }, key_points: { type: "array", items: { type: "string" } }, context: { type: "string" }, approach: { type: "array", items: { type: "string" } }, technologies: { type: "array", items: { type: "string" } }, outcome: { type: "string" }, source: { type: "string" }, project: { type: "string" } } } },
