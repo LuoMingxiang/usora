@@ -10,4 +10,6 @@ After each substantive task or meaningful checkpoint:
 
 Do not capture full transcripts, trivial acknowledgements, secrets, or invented work. If no stable session ID is available, do not create a misleading record; report that automatic session aggregation is unavailable.
 
+Do not create Candidates or Skills automatically. Only enter Candidate review or Skill generation when the user explicitly asks to discover, evaluate, create, evolve, or publish a Skill.
+
 Use `hub_init`, `hub_status`, `hub_cleanup`, `candidate_create`, `candidate_evaluate`, and `skill_publish` through MCP. For cleanup, use `generated` by default; use `all` only when the user explicitly requests deletion of every Usora record and passes confirmation. Never ask the user to install Python or run a CLI.
