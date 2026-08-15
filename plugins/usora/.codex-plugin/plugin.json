@@ -1,19 +1,12 @@
 {
   "name": "usora",
-  "version": "0.1.0+codex.20260815073000",
+  "version": "0.1.0+codex.20260815074437",
   "description": "A personal AI capability hub that turns real work into reusable, continuously improving skills.",
   "author": {
     "name": "Local developer"
   },
   "skills": "./skills/",
-  "mcpServers": {
-    "usora": {
-      "command": "node",
-      "args": [
-        "${PLUGIN_ROOT}/scripts/usora-mcp.mjs"
-      ]
-    }
-  },
+  "mcpServers": "./.mcp.json",
   "interface": {
     "displayName": "Usora",
     "shortDescription": "Turn real work into reusable AI skills.",
