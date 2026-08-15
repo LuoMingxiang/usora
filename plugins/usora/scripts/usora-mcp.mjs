@@ -21,29 +21,27 @@ import crypto from "node:crypto";
  * Anchor directory that always holds `config.json`.
  *
  * This must be a *fixed* location so the config can be found before it has
- * told us where the user wants their data. It is `USORA_HOME` when set (a
- * user-wide shared Hub), otherwise `<cwd>/.usora` (sandbox-safe default).
+ * told us where the user wants their data. It is `<cwd>/.usora`. The
+ * `USORA_HOME` environment variable is intentionally NOT supported: the data
+ * directory must be chosen explicitly by the user during initialization.
  *
  * @type {string}
  */
-const anchorHome = path.resolve(process.env.USORA_HOME || path.join(process.cwd(), ".usora"));
+const anchorHome = path.resolve(process.cwd(), ".usora");
 
 /**
  * Resolve the absolute path to the local data Hub.
  *
- * Resolution order:
- *   1. `config.hub_path`, once the user has chosen a directory via `hub_init`
- *      (persisted so all future operations keep using it);
- *   2. the anchor directory (`USORA_HOME` or `<cwd>/.usora`).
- *
- * `hub_path` may be an absolute path or one relative to the process CWD.
+ * Returns `null` when the user has not yet chosen a directory (`hub_path` is
+ * absent from the config). Callers that mutate data must treat `null` as
+ * "not initialized" and refuse to proceed until the user picks a directory.
  *
  * @param {object} [config] - Loaded Hub config, if already available.
- * @returns {Promise<string>} Absolute Hub path.
+ * @returns {Promise<string|null>} Absolute Hub path, or `null` if unlocated.
  */
 async function resolveHome(config) {
   const cfg = config || await loadConfig();
-  return path.resolve(cfg.hub_path || anchorHome);
+  return cfg.hub_path ? path.resolve(cfg.hub_path) : null;
 }
 
 /**
@@ -92,17 +90,28 @@ const newId = prefix => `${prefix}-${crypto.randomBytes(5).toString("hex")}`;
  * Resolve a path inside the Hub root.
  * @param {string} dir - Sub-directory name.
  * @returns {Promise<string>} Absolute path within the Hub.
+ * @throws {Error} When the Hub has not been located (no chosen directory).
  */
 async function dirPath(dir) {
-  return path.join(await resolveHome(), dir);
+  const home = await resolveHome();
+  if (!home) {
+    throw Error("Usora is not initialized: choose a data directory first (hub_init with `path`)");
+  }
+  return path.join(home, dir);
 }
 
 /**
  * Create every Hub sub-directory (idempotent).
+ *
+ * No-op when the Hub has not been located yet (no `hub_path`), so read-only
+ * tools like `hub_init`/`hub_status` can report the "not located" state
+ * without creating anything on disk.
+ *
  * @returns {Promise<void>}
  */
 async function ensure() {
   const home = await resolveHome();
+  if (!home) return;
   await Promise.all(DIRS.map(dir => fs.mkdir(path.join(home, dir), { recursive: true })));
 }
 
@@ -167,6 +176,7 @@ async function loadConfig() {
  */
 async function saveConfig(value) {
   const next = { ...value, version: value.version || 1 };
+  await fs.mkdir(anchorHome, { recursive: true });
   await writeJson(path.join(anchorHome, "config.json"), next);
   return next;
 }
@@ -318,14 +328,20 @@ async function handleHubInit(args = {}) {
 }
 
 /**
- * `hub_config`: update the Maintainer and/or automation policy.
+ * `hub_config`: update the Maintainer, automation policy, and/or data
+ * directory.
  *
- * @param {ToolArgs} args - May contain `maintainer` and `automation_policy`.
- * @returns {Promise<object>} The updated config.
+ * @param {ToolArgs} args - May contain `path`, `maintainer`, `automation_policy`.
+ * @returns {Promise<object>} The updated config (with resolved `hub` when
+ *   `path` is set).
  * @throws {Error} When `automation_policy` is not a valid value.
  */
 async function handleHubConfig(args) {
   const config = await loadConfig();
+  if (args.path !== undefined) {
+    requireString(args.path, "path");
+    config.hub_path = path.resolve(args.path);
+  }
   if (args.maintainer !== undefined) {
     config.maintainer = args.maintainer;
   }
@@ -335,18 +351,37 @@ async function handleHubConfig(args) {
     }
     config.automation_policy = args.automation_policy;
   }
-  return saveConfig(config);
+  const saved = await saveConfig(config);
+  if (args.path !== undefined) {
+    await fs.mkdir(await resolveHome(config), { recursive: true });
+    return { ...saved, hub: await resolveHome(config), config_path: path.join(anchorHome, "config.json") };
+  }
+  return saved;
 }
 
 /**
  * `hub_status`: report config and record counts without loading records.
  *
+ * When the Hub has not been located yet, `hub` is `null` and `located` is
+ * `false`, with a `next_step` telling the user to choose a directory.
+ *
  * @returns {Promise<object>} Hub path, config, and per-collection counts.
  */
 async function handleHubStatus() {
+  const home = await resolveHome();
+  if (!home) {
+    return {
+      hub: null,
+      located: false,
+      config_path: path.join(anchorHome, "config.json"),
+      config: await loadConfig(),
+      next_step: "Choose a data directory: call hub_init with `path`.",
+    };
+  }
   const count = async dir => (await fs.readdir(await dirPath(dir))).length;
   return {
-    hub: await resolveHome(),
+    hub: home,
+    located: true,
     config_path: path.join(anchorHome, "config.json"),
     config: await loadConfig(),
     activities: await count("activities"),
@@ -387,8 +422,11 @@ async function handleHubCleanup(args) {
  * @returns {Promise<object>} Per-collection deletion counts and the Hub path.
  */
 async function cleanAll() {
-  const counts = {};
   const home = await resolveHome();
+  if (!home) {
+    return { mode: "all", counts: {}, hub: null, action: "nothing_to_clean", note: "Usora is not initialized; no data directory chosen." };
+  }
+  const counts = {};
   for (const dir of DIRS) {
     const target = path.join(home, dir);
     const files = await fs.readdir(target).catch(() => []);
@@ -677,7 +715,7 @@ const tools = [
   },
   {
     name: "hub_status",
-    description: "Inspect Hub counts and configuration without loading all Activities. Returns the resolved data directory (hub) and config path so the user always knows where data lives.",
+    description: "Inspect Hub counts and configuration without loading all Activities. Returns the resolved data directory (hub) and config path. When the Hub has not been located yet, returns hub=null and located=false with a next_step prompting the user to choose a directory.",
     inputSchema: { type: "object", properties: {} },
   },
   {
@@ -687,8 +725,8 @@ const tools = [
   },
   {
     name: "hub_config",
-    description: "Configure the Maintainer and automation policy.",
-    inputSchema: { type: "object", properties: { maintainer: { type: "string" }, automation_policy: { type: "string", enum: AUTOMATION_POLICIES } } },
+    description: "Configure the Maintainer, automation policy, and/or data directory. Pass `path` to change the data directory immediately (persisted and applied without restart).",
+    inputSchema: { type: "object", properties: { path: { type: "string", description: "Optional new data directory (absolute or relative)." }, maintainer: { type: "string" }, automation_policy: { type: "string", enum: AUTOMATION_POLICIES } } },
   },
   {
     name: "activity_capture",

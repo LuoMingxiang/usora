@@ -27,7 +27,9 @@ Maintain one Activity per AI session. After substantive progress, call `activity
 
 ## Initialization (mandatory interaction)
 
-Initialization is interactive. When the user says “初始化我的 Usora” (or similar), call `hub_init` WITHOUT `path` first. The MCP server returns `initialized: false` and a `pending` list of questions — it writes nothing to disk. Present those questions to the user and wait for answers:
+The user MUST choose a data directory before any data can be written. Until then, every data-mutating tool fails with "not initialized" and `hub_status` returns `hub: null, located: false`.
+
+When the user says “初始化我的 Usora” (or similar), call `hub_init` WITHOUT `path` first. The MCP server returns `initialized: false` and a `pending` list of questions — it writes nothing to disk. Present those questions to the user and wait for answers:
 
 1. **Data directory** (`path`) — where should the Hub data live? Offer the `default` from the `pending` entry so the user can accept it with one reply, but require an explicit answer.
 2. **Maintainer** (`maintainer`) — which AI is the Primary Maintainer? Offer the `default` and its `options`.
@@ -37,7 +39,9 @@ Only after the user has answered, call `hub_init` again WITH `path` (and optiona
 
 Then confirm back to the user: the data directory (`hub`), config path (`config_path`), Maintainer, and automation policy.
 
-Never initialize silently. If the user wants to skip a question, only skip it if they explicitly say so; otherwise keep asking. If the Hub is already initialized, ask whether to keep the existing location or relocate, and re-confirm the Maintainer and policy before changing anything.
+Never initialize silently or assume a default directory. The `USORA_HOME` environment variable is NOT supported — do not suggest or set it. If the Hub is already initialized, ask whether to keep the existing location or relocate (via `hub_config` with `path`), and re-confirm the Maintainer and policy before changing anything.
+
+To change the data directory later, call `hub_config` with `path` — it applies immediately without restart.
 
 ## Uninstalling / cleanup behavior
 
@@ -55,6 +59,6 @@ Record task, context, key_points, approach, result, technologies, outcome, sourc
 
 ## Sync behavior
 
-Use MCP tools for initialization, Activity capture, Candidate review, and publication. Initialization is interactive: it must follow the mandatory walkthrough above (directory, Maintainer, automation policy) before creating the Hub. The default data location is the active workspace's `.usora`; set `USORA_HOME` to share one Hub across workspaces. Initialization never creates sample data.
+Use MCP tools for initialization, Activity capture, Candidate review, and publication. Initialization is interactive: the user must choose a data directory before any data is written (see the mandatory walkthrough above). The `USORA_HOME` environment variable is not used. Initialization never creates sample data.
 
 Candidates can be explicitly evaluated before publication. Publishing updates the single current Skill in place and records its `revision`, Maintainer, and publication time; do not create version directories.

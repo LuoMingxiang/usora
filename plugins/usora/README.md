@@ -16,9 +16,7 @@ Usora 是一个本地优先的 AI 能力沉淀插件：把真实工作记录为 
 
 Use the Usora MCP tools from Codex. No Python or separate CLI installation is required.
 
-The default Hub is `.usora` in the active workspace, so Codex can write it within its MCP sandbox. Set `USORA_HOME` to use a user-wide shared Hub across workspaces and AI clients.
-
-Initialization is interactive: Codex guides you through choosing the data directory, the Maintainer, and the automation policy before it creates the Hub. Say “初始化我的 Usora” to start the walkthrough.
+Initialization is interactive and requires a directory: Codex guides you through choosing the data directory, the Maintainer, and the automation policy before it creates the Hub. Until you pick a directory, no data is written (`hub_status` reports `located: false`). Say “初始化我的 Usora” to start the walkthrough. The `USORA_HOME` environment variable is not supported.
 
 You can ask Codex:
 
@@ -39,9 +37,7 @@ Activity → Candidate → Skill Draft → Evaluation → Publish
 
 ## Data
 
-The default data directory is `.usora` in the active workspace. Set `USORA_HOME` to use a user-wide shared Hub.
-
-You can also choose a custom directory at initialization: call `hub_init` with a `path` argument (absolute or relative to the workspace). The choice is persisted in `config.json` as `hub_path`, so every later operation resolves to that directory automatically. `hub_status` reports the resolved `hub` directory and the `config_path`, so you can always find your data.
+You choose a custom directory at initialization: call `hub_init` with a `path` argument (absolute or relative to the workspace). The choice is persisted in `config.json` as `hub_path`, so every later operation resolves to that directory automatically. `hub_status` reports the resolved `hub` directory and the `config_path`, so you can always find your data. To relocate later, call `hub_config` with `path` — it applies immediately.
 
 ```text
 <hub>/
@@ -51,7 +47,7 @@ You can also choose a custom directory at initialization: call `hub_init` with a
 ├── archive/
 └── events/
 
-<anchor>/.usora/config.json   # always here (USORA_HOME or <cwd>/.usora)
+<cwd>/.usora/config.json   # the config file always lives here
 ```
 
 If the host does not provide a stable `session_id`, Usora generates a time-ordered ID with a 128-bit random salt so repeated calls in one MCP process merge into one Activity.
