@@ -74,3 +74,34 @@ test("hub_init path relocates data and hub_cleanup(all) empties without deleting
   await access(dataDir); // data directory still present
   await access(path.join(cwd, ".usora", "config.json")); // anchor config survives
 });
+
+test("hub_init without path returns pending questions and writes no data", async t => {
+  const cwd = await mkdtemp(path.join(os.tmpdir(), "usora-mcp-"));
+  t.after(() => rm(cwd, { recursive: true, force: true }));
+
+  const requests = [
+    { jsonrpc: "2.0", id: 1, method: "initialize", params: { protocolVersion: "2024-11-05", capabilities: {}, clientInfo: { name: "test", version: "1" } } },
+    { jsonrpc: "2.0", id: 2, method: "tools/call", params: { name: "hub_init", arguments: {} } }
+  ];
+  const child = spawn(process.execPath, [path.resolve("plugins/usora/scripts/usora-mcp.mjs")], { cwd, stdio: ["pipe", "pipe", "inherit"] });
+  const output = await new Promise((resolve, reject) => {
+    let text = "";
+    child.stdout.on("data", chunk => { text += chunk; });
+    child.once("error", reject);
+    child.once("close", code => code === 0 ? resolve(text) : reject(Error(`server exited ${code}`)));
+    child.stdin.end(requests.map(JSON.stringify).join("\n") + "\n");
+  });
+
+  const responses = output.trim().split("\n").map(JSON.parse);
+  const init = JSON.parse(responses[1].result.content[0].text);
+
+  assert.equal(init.initialized, false);
+  assert.ok(Array.isArray(init.pending));
+  const ids = init.pending.map(q => q.id);
+  assert.ok(ids.includes("path"));
+  assert.ok(ids.includes("maintainer"));
+  assert.ok(ids.includes("automation_policy"));
+
+  // No config or data directory must be written before the user answers.
+  await assert.rejects(access(path.join(cwd, ".usora", "config.json")));
+});

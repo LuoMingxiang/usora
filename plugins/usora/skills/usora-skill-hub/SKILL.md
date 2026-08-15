@@ -27,21 +27,17 @@ Maintain one Activity per AI session. After substantive progress, call `activity
 
 ## Initialization (mandatory interaction)
 
-Initialization is a guided, interactive walkthrough. You MUST ask the user and wait for their answers before calling any tool. Never initialize silently or assume defaults without explicit confirmation.
+Initialization is interactive. When the user says “初始化我的 Usora” (or similar), call `hub_init` WITHOUT `path` first. The MCP server returns `initialized: false` and a `pending` list of questions — it writes nothing to disk. Present those questions to the user and wait for answers:
 
-Ask the user, in order:
+1. **Data directory** (`path`) — where should the Hub data live? Offer the `default` from the `pending` entry so the user can accept it with one reply, but require an explicit answer.
+2. **Maintainer** (`maintainer`) — which AI is the Primary Maintainer? Offer the `default` and its `options`.
+3. **Automation policy** (`automation_policy`) — offer the `default` and the three `options`.
 
-1. **Data directory** — where should the Hub data live? Offer a sensible default (e.g. the active workspace's `.usora`) so the user can accept it with one reply, but require an explicit answer. Accept an absolute path or a path relative to the workspace.
-2. **Maintainer** — which AI/agent is the Primary Maintainer (e.g. `codex`, `claude-code`, `codebuddy`)? Offer the current default and require confirmation.
-3. **Automation policy** — one of `auto_publish`, `manual_approval`, or `auto_generate_manual_publish`. Explain each briefly and require a choice.
+Only after the user has answered, call `hub_init` again WITH `path` (and optionally `maintainer` and `automation_policy`). This persists the choices in `config.hub_path`, resolves the data directory, and returns `initialized: true` with `hub` and `config_path`.
 
-Only after the user has answered all three, perform initialization:
+Then confirm back to the user: the data directory (`hub`), config path (`config_path`), Maintainer, and automation policy.
 
-1. Call `hub_init` with `path` set to the chosen directory. The choice is persisted in `config.hub_path`, so every later operation resolves to it automatically.
-2. Call `hub_config` with the chosen `maintainer` and `automation_policy`.
-3. Confirm back to the user: the resolved data directory (`hub`), the config path (`config_path`), the Maintainer, and the automation policy.
-
-If the user wants to skip a question, only skip it if they explicitly say so; otherwise keep asking. If the Hub is already initialized, ask whether to keep the existing location or relocate, and re-confirm the Maintainer and policy before changing anything.
+Never initialize silently. If the user wants to skip a question, only skip it if they explicitly say so; otherwise keep asking. If the Hub is already initialized, ask whether to keep the existing location or relocate, and re-confirm the Maintainer and policy before changing anything.
 
 ## Uninstalling / cleanup behavior
 

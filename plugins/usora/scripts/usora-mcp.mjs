@@ -242,28 +242,79 @@ function mergeUnique(left, right) {
  */
 
 /**
- * `hub_init`: ensure storage exists and the config file is present.
+ * `hub_init`: initialize storage, or return the questions the user must
+ * confirm first.
+ *
+ * Usora initialization is interactive. When the caller has NOT supplied the
+ * required choices (`path`), no data is written; instead the server returns a
+ * `pending` result containing the questions and options the client must
+ * present to the user. Once the user answers, the client calls `hub_init`
+ * again with `path` (and optionally `maintainer`/`automation_policy`).
  *
  * Never creates sample data.
  *
- * When `args.path` is supplied, the Hub data directory is (re)located there
- * and the choice is persisted in `config.hub_path`, so later operations keep
- * using it without re-specifying the path. `args.path` may be absolute or
- * relative to the process CWD.
- *
- * @param {ToolArgs} [args={}] - Optional `path` for the data directory.
- * @returns {Promise<{hub: string, config_path: string, initialized: boolean}>}
+ * @param {ToolArgs} [args={}] - Optional `path` (data directory), `maintainer`,
+ *   and `automation_policy`.
+ * @returns {Promise<object>} Either `{ initialized: true, hub, config_path, ... }`
+ *   when `path` is provided, or `{ initialized: false, pending: [...], ... }`
+ *   listing the questions the user must answer.
  */
 async function handleHubInit(args = {}) {
   const config = await loadConfig();
-  if (args.path !== undefined) {
-    requireString(args.path, "path");
-    config.hub_path = path.resolve(args.path);
+
+  // Interactive guard: without a chosen directory, do not initialize — return
+  // the questions the user must confirm instead.
+  if (args.path === undefined) {
+    return {
+      initialized: false,
+      pending: [
+        {
+          id: "path",
+          question: "Where should your Usora data be stored?",
+          required: true,
+          default: path.join(process.cwd(), ".usora"),
+          note: "Absolute path, or relative to the current workspace.",
+        },
+        {
+          id: "maintainer",
+          question: "Which AI is your Primary Maintainer?",
+          required: false,
+          default: config.maintainer || "codex",
+          options: ["codex", "claude-code", "codebuddy", "workbuddy", "gemini"],
+        },
+        {
+          id: "automation_policy",
+          question: "Which automation policy do you want?",
+          required: false,
+          default: config.automation_policy || "manual_approval",
+          options: AUTOMATION_POLICIES,
+        },
+      ],
+      hint: "Ask the user these questions, then call hub_init again with `path` (and optionally `maintainer` and `automation_policy`).",
+    };
+  }
+
+  requireString(args.path, "path");
+  config.hub_path = path.resolve(args.path);
+  if (args.maintainer !== undefined) {
+    config.maintainer = args.maintainer;
+  }
+  if (args.automation_policy !== undefined) {
+    if (!AUTOMATION_POLICIES.includes(args.automation_policy)) {
+      throw Error("invalid automation_policy");
+    }
+    config.automation_policy = args.automation_policy;
   }
   await saveConfig(config);
   const home = await resolveHome(config);
   await fs.mkdir(home, { recursive: true });
-  return { hub: home, config_path: path.join(anchorHome, "config.json"), initialized: true };
+  return {
+    initialized: true,
+    hub: home,
+    config_path: path.join(anchorHome, "config.json"),
+    maintainer: config.maintainer,
+    automation_policy: config.automation_policy,
+  };
 }
 
 /**
@@ -614,8 +665,15 @@ async function call(name, args = {}) {
 const tools = [
   {
     name: "hub_init",
-    description: "Initialize the user's local Usora storage. Never create sample data. Optionally pass `path` to choose the data directory; the choice is persisted so later operations keep using it.",
-    inputSchema: { type: "object", properties: { path: { type: "string", description: "Optional absolute or relative directory for Hub data; persisted in config." } } },
+    description: "Initialize the user's local Usora storage. Never create sample data. If `path` is omitted, no data is written; the server returns a `pending` list of questions (data directory, Maintainer, automation policy) that the client must ask the user before calling hub_init again with `path`.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        path: { type: "string", description: "The data directory the user chose (absolute or relative to the workspace). Required to actually initialize; persisted in config.hub_path." },
+        maintainer: { type: "string", description: "Optional Primary Maintainer to set during init (e.g. codex)." },
+        automation_policy: { type: "string", enum: AUTOMATION_POLICIES, description: "Optional automation policy to set during init." },
+      },
+    },
   },
   {
     name: "hub_status",
