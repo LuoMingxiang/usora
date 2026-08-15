@@ -54,6 +54,32 @@ The default data directory is `<cwd>/.usora`. The `USORA_HOME` environment varia
 To move data elsewhere, call `hub_config` with a `path` argument, either absolute or relative to the workspace. Usora moves existing records into the new directory, clears the old record folders, and persists the new location in `config.json` as `hub_path`.
 
 `hub_status` reports both the resolved `hub` directory and `config_path`.
+It also returns `next_action`, a small lifecycle hint:
+
+```text
+capture_activity -> Capture this session
+create_candidate -> Create a Candidate
+create_skill -> Create a Skill draft
+review_or_cleanup -> Review Skills or clean processed Activities
+```
+
+A human-readable status summary should keep this order:
+
+```text
+Usora Hub
+Status: initialized
+Data: <hub>
+Config: <config_path>
+Maintainer: <config.maintainer>
+Policy: <config.automation_policy>
+
+Records
+Activities: <activities>
+Candidates: <candidates>
+Skills: <skills>
+
+Next useful action: <next_action label>
+```
 
 ```text
 <hub>/

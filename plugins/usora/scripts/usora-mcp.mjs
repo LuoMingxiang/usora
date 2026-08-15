@@ -336,13 +336,22 @@ async function handleHubConfig(args) {
  */
 async function handleHubStatus() {
   const count = async dir => (await fs.readdir(await dirPath(dir))).length;
+  const activities = await count("activities");
+  const candidates = await count("candidates");
+  const skills = await count("skills");
+  const nextAction =
+    activities === 0 ? "capture_activity" :
+    candidates === 0 ? "create_candidate" :
+    skills === 0 ? "create_skill" :
+    "review_or_cleanup";
   return {
     hub: await resolveHome(),
     config_path: path.join(anchorHome, "config.json"),
     config: await loadConfig(),
-    activities: await count("activities"),
-    candidates: await count("candidates"),
-    skills: await count("skills"),
+    activities,
+    candidates,
+    skills,
+    next_action: nextAction,
   };
 }
 

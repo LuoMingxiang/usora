@@ -81,7 +81,31 @@ test("hub_config with path moves data to the new directory and clears the old on
   const status = JSON.parse(responses[4].result.content[0].text);
   assert.equal(status.hub, newDir);
   assert.equal(status.activities, 1);
+  assert.equal(status.next_action, "create_candidate");
 
   // The anchor config must survive (it holds hub_path).
   await access(path.join(cwd, ".usora", "config.json"));
+});
+
+test("hub_status suggests the next lifecycle action from counts", async t => {
+  const cwd = await mkdtemp(path.join(os.tmpdir(), "usora-mcp-"));
+  t.after(() => rm(cwd, { recursive: true, force: true }));
+
+  const requests = [
+    initialize,
+    { jsonrpc: "2.0", id: 2, method: "tools/call", params: { name: "hub_init", arguments: {} } },
+    { jsonrpc: "2.0", id: 3, method: "tools/call", params: { name: "hub_status", arguments: {} } },
+    { jsonrpc: "2.0", id: 4, method: "tools/call", params: { name: "activity_capture", arguments: { session_id: "s1", task: "t", result: "r" } } },
+    { jsonrpc: "2.0", id: 5, method: "tools/call", params: { name: "hub_status", arguments: {} } },
+    { jsonrpc: "2.0", id: 6, method: "tools/call", params: { name: "candidate_create", arguments: { title: "Reusable pattern", summary: "A pattern worth reviewing." } } },
+    { jsonrpc: "2.0", id: 7, method: "tools/call", params: { name: "hub_status", arguments: {} } },
+    { jsonrpc: "2.0", id: 8, method: "tools/call", params: { name: "skill_create", arguments: { name: "reusable-pattern", content: "# Reusable Pattern" } } },
+    { jsonrpc: "2.0", id: 9, method: "tools/call", params: { name: "hub_status", arguments: {} } }
+  ];
+  const responses = await run(cwd, requests);
+
+  assert.equal(JSON.parse(responses[2].result.content[0].text).next_action, "capture_activity");
+  assert.equal(JSON.parse(responses[4].result.content[0].text).next_action, "create_candidate");
+  assert.equal(JSON.parse(responses[6].result.content[0].text).next_action, "create_skill");
+  assert.equal(JSON.parse(responses[8].result.content[0].text).next_action, "review_or_cleanup");
 });
