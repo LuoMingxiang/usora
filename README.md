@@ -53,10 +53,10 @@ Install `Usora` from the Codex plugin marketplace, then ask Codex:
 
 ```text
 Initialize my Usora
-Capture this session
 Show Usora status
-Create and publish a Skill
 ```
+
+In the first minute, success means you can see the local Hub path, record counts, and a next useful action. After real work, ask Codex to capture the session; repeated patterns can later become Candidates and published Skills.
 
 By default, Usora creates its Hub at `<cwd>/.usora`. To move the data later, ask Codex to move Usora data to another path; the plugin migrates existing records and saves the new location in `.usora/config.json`.
 

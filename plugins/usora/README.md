@@ -47,13 +47,15 @@ Ask Codex:
 
 ```text
 Initialize my Usora
-Move my Usora data to <path>
-Capture this session
 Show Usora status
+Capture this session
 Where is my Usora data?
+Move my Usora data to <path>
 Create a Skill draft
 Evaluate and publish this Skill
 ```
+
+For a 60-second first run, start with `Initialize my Usora` and `Show Usora status`. You should see the local Hub path, Activity/Candidate/Skill counts, and a next useful action.
 
 ## Data
 

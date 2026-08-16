@@ -53,10 +53,10 @@ AI 助手常常会反复解决同一类本地工作流问题，但真正有价�
 
 ```text
 初始化我的 Usora
-记录这个任务
 查看 Usora 状态
-创建并发布一个 Skill
 ```
+
+第一分钟的成功标准很简单：你能看到本地 Hub 路径、记录数量和下一步建议。完成真实工作后，再让 Codex 记录这个任务；重复出现的模式之后可以进入 Candidate，并由 Maintainer 发布为 Skill。
 
 默认情况下，Usora 会在 `<cwd>/.usora` 创建 Hub。之后如果想迁移数据目录，可以让 Codex 把 Usora 数据移到新的路径；插件会迁移已有记录，并把新位置保存到 `.usora/config.json`。
 
