@@ -45,6 +45,7 @@ AI assistants often solve the same local workflow problems again and again, but 
 - Create and evaluate Candidates.
 - Configure Maintainer and automation policy.
 - Create, evaluate, publish, and revise Skills in place.
+- Inspect recent Activities, Candidates, Skills, and lifecycle events.
 - Archive processed Activities.
 
 ## Quick Start

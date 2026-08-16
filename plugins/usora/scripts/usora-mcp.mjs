@@ -229,6 +229,15 @@ function mergeUnique(left, right) {
   return [...new Set([...(left || []), ...(right || [])])];
 }
 
+/**
+ * Clamp a user-supplied list limit to a small, predictable range.
+ * @param {*} value - User-supplied limit.
+ * @returns {number} Integer between 1 and 100, defaulting to 20.
+ */
+function listLimit(value) {
+  return Math.min(Math.max(Number(value) || 20, 1), 100);
+}
+
 // ---------------------------------------------------------------------------
 // Tool handlers
 // ---------------------------------------------------------------------------
@@ -473,6 +482,25 @@ async function handleActivityCapture(args) {
 }
 
 /**
+ * `activity_list`: list recent Activities without loading archives.
+ *
+ * @param {ToolArgs} [args={}] - Optional `limit` (default 20, max 100).
+ * @returns {Promise<object>} Count and recent Activities.
+ */
+async function handleActivityList(args = {}) {
+  const limit = listLimit(args.limit);
+  const activitiesDir = await dirPath("activities");
+  const items = [];
+  for (const file of await fs.readdir(activitiesDir).catch(() => [])) {
+    if (!file.endsWith(".json")) continue;
+    const item = await readJson(path.join(activitiesDir, file));
+    if (item) items.push(item);
+  }
+  items.sort((a, b) => (b.updated_at || b.started_at || "").localeCompare(a.updated_at || a.started_at || ""));
+  return { count: items.length, activities: items.slice(0, limit) };
+}
+
+/**
  * `candidate_create`: record a reusable pattern as a new Candidate.
  *
  * @param {ToolArgs} args - `title`, `summary`, optional `evidence` and `source`.
@@ -495,6 +523,25 @@ async function handleCandidateCreate(args) {
   await writeJson(path.join(await dirPath("candidates"), `${item.id}.json`), item);
   await writeEvent("CandidateCreated", item);
   return item;
+}
+
+/**
+ * `candidate_list`: list recent Candidates.
+ *
+ * @param {ToolArgs} [args={}] - Optional `limit` (default 20, max 100).
+ * @returns {Promise<object>} Count and recent Candidates.
+ */
+async function handleCandidateList(args = {}) {
+  const limit = listLimit(args.limit);
+  const candidatesDir = await dirPath("candidates");
+  const items = [];
+  for (const file of await fs.readdir(candidatesDir).catch(() => [])) {
+    if (!file.endsWith(".json")) continue;
+    const item = await readJson(path.join(candidatesDir, file));
+    if (item) items.push(item);
+  }
+  items.sort((a, b) => (b.updated_at || b.created_at || "").localeCompare(a.updated_at || a.created_at || ""));
+  return { count: items.length, candidates: items.slice(0, limit) };
 }
 
 /**
@@ -550,6 +597,7 @@ async function handleSkillCreate(args) {
 
   const content = args.content.endsWith("\n") ? args.content : `${args.content}\n`;
   await fs.writeFile(path.join(dir, "SKILL.md"), content, "utf8");
+  await writeEvent("SkillDraftCreated", meta);
   return meta;
 }
 
@@ -620,13 +668,30 @@ async function handleSkillPublish(args) {
 }
 
 /**
+ * `skill_read`: read one Skill's metadata and SKILL.md content.
+ *
+ * @param {ToolArgs} args - `name` of the Skill to read.
+ * @returns {Promise<object>} Skill metadata plus current SKILL.md content.
+ * @throws {Error} When the Skill is missing.
+ */
+async function handleSkillRead(args) {
+  const skillName = safeName(args.name, "name");
+  const dir = path.join(await dirPath("skills"), skillName);
+  const meta = await readJson(path.join(dir, "skill.json"));
+  if (!meta) throw Error("Skill not found");
+  const content = await fs.readFile(path.join(dir, "SKILL.md"), "utf8").catch(() => meta.content || "");
+  const { content: _storedContent, ...metadata } = meta;
+  return { metadata, content };
+}
+
+/**
  * `skill_list`: list Skill metadata without loading SKILL.md content.
  *
  * @param {ToolArgs} [args={}] - Optional `limit` (default 20, max 100).
  * @returns {Promise<object>} Count and recent Skill metadata.
  */
 async function handleSkillList(args = {}) {
-  const limit = Math.min(Math.max(Number(args.limit) || 20, 1), 100);
+  const limit = listLimit(args.limit);
   const skillsDir = await dirPath("skills");
   const items = [];
   for (const dir of await fs.readdir(skillsDir).catch(() => [])) {
@@ -640,6 +705,62 @@ async function handleSkillList(args = {}) {
 }
 
 /**
+ * `event_list`: list recent lifecycle events.
+ *
+ * @param {ToolArgs} [args={}] - Optional `limit` (default 20, max 100).
+ * @returns {Promise<object>} Count and recent events.
+ */
+async function handleEventList(args = {}) {
+  const limit = listLimit(args.limit);
+  const eventsDir = await dirPath("events");
+  const items = [];
+  for (const file of await fs.readdir(eventsDir).catch(() => [])) {
+    if (!file.endsWith(".json")) continue;
+    const item = await readJson(path.join(eventsDir, file));
+    if (item) items.push({ ...item, file });
+  }
+  items.sort((a, b) => (b.timestamp || "").localeCompare(a.timestamp || ""));
+  return { count: items.length, events: items.slice(0, limit) };
+}
+
+/**
+ * `hub_doctor`: run a lightweight local Hub health check.
+ *
+ * @returns {Promise<object>} Health summary, counts, and repair hints.
+ */
+async function handleHubDoctor() {
+  const config = await loadConfig();
+  const home = await resolveHome(config);
+  const counts = {};
+  const checks = [];
+  for (const dir of DIRS) {
+    const target = path.join(home, dir);
+    try {
+      counts[dir] = (await fs.readdir(target)).length;
+      checks.push({ name: `${dir}_dir`, ok: true, path: target });
+    } catch (err) {
+      counts[dir] = 0;
+      checks.push({ name: `${dir}_dir`, ok: false, path: target, message: err.message });
+    }
+  }
+  const skillDirs = await fs.readdir(path.join(home, "skills")).catch(() => []);
+  const orphanSkills = [];
+  for (const dir of skillDirs) {
+    const meta = await readJson(path.join(home, "skills", dir, "skill.json"));
+    if (!meta) orphanSkills.push(dir);
+  }
+  checks.push({ name: "skill_metadata", ok: orphanSkills.length === 0, orphan_skills: orphanSkills });
+  return {
+    ok: checks.every(check => check.ok),
+    hub: home,
+    config_path: path.join(anchorHome, "config.json"),
+    config,
+    counts,
+    checks,
+  };
+}
+
+/**
  * Map of tool name → async handler function.
  * @type {Object<string, (args: ToolArgs) => Promise<object>>}
  */
@@ -647,14 +768,19 @@ const HANDLERS = {
   hub_init: handleHubInit,
   hub_config: handleHubConfig,
   hub_status: handleHubStatus,
+  hub_doctor: handleHubDoctor,
   hub_cleanup: handleHubCleanup,
   activity_capture: handleActivityCapture,
+  activity_list: handleActivityList,
   candidate_create: handleCandidateCreate,
+  candidate_list: handleCandidateList,
   candidate_evaluate: handleCandidateEvaluate,
   skill_create: handleSkillCreate,
   skill_evaluate: handleSkillEvaluate,
   skill_publish: handleSkillPublish,
+  skill_read: handleSkillRead,
   skill_list: handleSkillList,
+  event_list: handleEventList,
 };
 
 /**
@@ -701,6 +827,11 @@ const tools = [
     inputSchema: { type: "object", properties: {} },
   },
   {
+    name: "hub_doctor",
+    description: "Run a lightweight local Hub health check for required directories, counts, config, and missing Skill metadata.",
+    inputSchema: { type: "object", properties: {} },
+  },
+  {
     name: "hub_cleanup",
     description: "Clean in two modes: generated archives processed Activities; all permanently deletes every Usora Hub record, Skill, archive, event, and config and requires confirm=true. It empties the data directory but keeps the Hub directory and config file so the user can review the path.",
     inputSchema: { type: "object", properties: { mode: { type: "string", enum: ["generated", "all"] }, confirm: { type: "boolean" } } },
@@ -732,9 +863,19 @@ const tools = [
     },
   },
   {
+    name: "activity_list",
+    description: "List recent Activities from the active Hub without loading archives.",
+    inputSchema: { type: "object", properties: { limit: { type: "number", description: "Optional result limit, default 20 and max 100." } } },
+  },
+  {
     name: "candidate_create",
     description: "Create a Candidate from an observed reusable pattern; do not create one for a one-off task.",
     inputSchema: { type: "object", required: ["title", "summary"], properties: { title: { type: "string" }, summary: { type: "string" }, evidence: { type: "array", items: { type: "string" } }, source: { type: "string" } } },
+  },
+  {
+    name: "candidate_list",
+    description: "List recent Candidates.",
+    inputSchema: { type: "object", properties: { limit: { type: "number", description: "Optional result limit, default 20 and max 100." } } },
   },
   {
     name: "candidate_evaluate",
@@ -757,8 +898,18 @@ const tools = [
     inputSchema: { type: "object", required: ["name"], properties: { name: { type: "string" }, actor: { type: "string" } } },
   },
   {
+    name: "skill_read",
+    description: "Read one Skill's metadata and SKILL.md content by name.",
+    inputSchema: { type: "object", required: ["name"], properties: { name: { type: "string" } } },
+  },
+  {
     name: "skill_list",
     description: "List recent Skill metadata without loading SKILL.md content.",
+    inputSchema: { type: "object", properties: { limit: { type: "number", description: "Optional result limit, default 20 and max 100." } } },
+  },
+  {
+    name: "event_list",
+    description: "List recent lifecycle events.",
     inputSchema: { type: "object", properties: { limit: { type: "number", description: "Optional result limit, default 20 and max 100." } } },
   },
 ];

@@ -45,6 +45,7 @@ AI 助手常常会反复解决同一类本地工作流问题，但真正有价�
 - 创建和评估 Candidate。
 - 配置 Maintainer 与自动化策略。
 - 创建、评估、发布 Skill，并在原地递增版本。
+- 查看最近的 Activity、Candidate、Skill 和生命周期事件。
 - 归档已处理 Activity。
 
 ## 快速开始

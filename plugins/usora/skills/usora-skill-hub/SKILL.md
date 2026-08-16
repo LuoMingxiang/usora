@@ -16,15 +16,20 @@ Maintain one Activity per AI session. After substantive progress, call `activity
 - “Move/relocate my Usora data to `<path>`” → MCP tool `hub_config` with `path` (moves existing data and clears the old directory)
 - “Show my Skill Hub status” → MCP tool `hub_status`, then present the canonical status summary below
 - “Where is my Usora data stored?” → MCP tool `hub_status`, then tell the user the `hub` and `config_path` fields
+- “Check my Skill Hub health” → MCP tool `hub_doctor`
 - “Clean up generated Activities” → MCP tool `hub_cleanup` with `mode: generated`
 - “Clean everything” → MCP tool `hub_cleanup` with `mode: all, confirm: true` (deletes all Hub data but keeps the data directory and config)
 - “Capture this task” → MCP tool `activity_capture`
+- “Show recent Activities” → MCP tool `activity_list`
 - “Create a Candidate” → MCP tool `candidate_create`
+- “Show recent Candidates” → MCP tool `candidate_list`
 - “Evaluate this Candidate” → MCP tool `candidate_evaluate`
 - “Publish this Skill” → MCP tool `skill_publish`
 - “Create a Skill draft” → MCP tool `skill_create`
 - “Evaluate this Skill” → MCP tool `skill_evaluate`
 - “Show recent Skills” → MCP tool `skill_list`
+- “Show this Skill” → MCP tool `skill_read`
+- “Show recent Usora events” → MCP tool `event_list`
 - “Capture this task” → Usora MCP tool `activity_capture`
 
 ## Initialization

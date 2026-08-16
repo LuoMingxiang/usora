@@ -37,7 +37,9 @@ Activity -> Candidate -> Skill Draft -> Evaluation -> Publish
 - Create and evaluate Candidates.
 - Configure Maintainer and automation policy.
 - Create, evaluate, publish, and revise Skills in place.
-- List recent Skill metadata without loading Skill content.
+- List recent Activities, Candidates, Skills, and lifecycle events.
+- Read one Skill by name.
+- Check local Hub health.
 - Archive processed Activities.
 
 ## Quick Start
@@ -50,11 +52,16 @@ Ask Codex:
 Initialize my Usora
 Show Usora status
 Capture this session
+Show recent Activities
 Where is my Usora data?
 Move my Usora data to <path>
+Show recent Candidates
 Create a Skill draft
 Evaluate and publish this Skill
 Show recent Skills
+Show this Skill
+Show recent Usora events
+Check my Skill Hub health
 ```
 
 For a 60-second first run, start with `Initialize my Usora` and `Show Usora status`. You should see the local Hub path, Activity/Candidate/Skill counts, and a next useful action.

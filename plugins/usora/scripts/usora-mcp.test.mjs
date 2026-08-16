@@ -128,3 +128,45 @@ test("skill_list returns recent Skill metadata without content", async t => {
   assert.equal(list.skills[0].name, "second-skill");
   assert.equal(list.skills[0].content, undefined);
 });
+
+test("read-side tools complete the Hub lifecycle view", async t => {
+  const cwd = await mkdtemp(path.join(os.tmpdir(), "usora-mcp-"));
+  t.after(() => rm(cwd, { recursive: true, force: true }));
+
+  const requests = [
+    initialize,
+    { jsonrpc: "2.0", id: 2, method: "tools/call", params: { name: "hub_init", arguments: {} } },
+    { jsonrpc: "2.0", id: 3, method: "tools/call", params: { name: "activity_capture", arguments: { session_id: "s1", task: "Build docs", result: "captured" } } },
+    { jsonrpc: "2.0", id: 4, method: "tools/call", params: { name: "candidate_create", arguments: { title: "Docs loop", summary: "Reusable docs improvement loop." } } },
+    { jsonrpc: "2.0", id: 5, method: "tools/call", params: { name: "skill_create", arguments: { name: "docs-loop", content: "# Docs Loop" } } },
+    { jsonrpc: "2.0", id: 6, method: "tools/call", params: { name: "activity_list", arguments: {} } },
+    { jsonrpc: "2.0", id: 7, method: "tools/call", params: { name: "candidate_list", arguments: {} } },
+    { jsonrpc: "2.0", id: 8, method: "tools/call", params: { name: "skill_read", arguments: { name: "docs-loop" } } },
+    { jsonrpc: "2.0", id: 9, method: "tools/call", params: { name: "event_list", arguments: { limit: 2 } } },
+    { jsonrpc: "2.0", id: 10, method: "tools/call", params: { name: "hub_doctor", arguments: {} } }
+  ];
+  const responses = await run(cwd, requests);
+
+  const activities = JSON.parse(responses[5].result.content[0].text);
+  assert.equal(activities.count, 1);
+  assert.equal(activities.activities[0].task, "Build docs");
+
+  const candidates = JSON.parse(responses[6].result.content[0].text);
+  assert.equal(candidates.count, 1);
+  assert.equal(candidates.candidates[0].title, "Docs loop");
+
+  const skill = JSON.parse(responses[7].result.content[0].text);
+  assert.equal(skill.metadata.name, "docs-loop");
+  assert.equal(skill.metadata.content, undefined);
+  assert.equal(skill.content, "# Docs Loop\n");
+
+  const events = JSON.parse(responses[8].result.content[0].text);
+  assert.equal(events.count, 3);
+  assert.equal(events.events.length, 2);
+
+  const doctor = JSON.parse(responses[9].result.content[0].text);
+  assert.equal(doctor.ok, true);
+  assert.equal(doctor.counts.activities, 1);
+  assert.equal(doctor.counts.candidates, 1);
+  assert.equal(doctor.counts.skills, 1);
+});
