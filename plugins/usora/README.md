@@ -119,18 +119,27 @@ Codex installs plugins into its local plugin cache and loads the installed copy,
 
 If a new Usora build is not visible after pulling or pushing changes, use this release loop:
 
-1. Update the Codex cachebuster suffix in `.codex-plugin/plugin.json`.
-2. Commit and push the plugin changes.
-3. Upgrade or reinstall Usora from the `/plugins` browser.
-4. Refresh or restart Codex and open a new task if older MCP tools still appear.
+1. Finish the plugin change locally.
+2. Run the release helper from the repo root:
 
-For local development, use the release helper instead of hand-editing the version:
+   ```text
+   ./scripts/release-usora-plugin.ps1
+   ```
+
+   The helper updates the Codex cachebuster suffix in `.codex-plugin/plugin.json`, validates the plugin manifest, and runs the Node MCP tests.
+
+3. Review the diff.
+4. Commit and push the plugin changes.
+5. Open `/plugins`, find Usora, and upgrade or reinstall it.
+6. Refresh or restart Codex and open a new task if older MCP tools still appear.
+
+To do the release commit and push in one run:
 
 ```text
-./scripts/release-usora-plugin.ps1
+./scripts/release-usora-plugin.ps1 -Commit -Push
 ```
 
-The helper uses PowerShell to update the cachebuster, validates the plugin manifest, and runs the Node MCP tests. Add `-Commit -Push` to update, validate, test, commit, and push in one run.
+Use this after reviewing or when the change is already ready to publish. It updates the cachebuster, validates, tests, commits `plugin.json` and this README, then pushes.
 
 Codex handles plugin removal. Use `Uninstall plugin` in the `/plugins` browser.
 

@@ -1,9 +1,9 @@
 {
   "name": "usora",
-  "version": "0.1.0+codex.20260816035034",
+  "version": "0.1.0+codex.20260816035248",
   "description": "A personal AI capability hub that turns real work into reusable, continuously improving skills.",
   "author": {
-    "name": "Local developer"
+    "name": "Veyra"
   },
   "skills": "./skills/",
   "mcpServers": "./.mcp.json",
@@ -11,7 +11,7 @@
     "displayName": "Usora",
     "shortDescription": "Turn practice into reusable AI capability.",
     "longDescription": "Usora is a local-first personal capability layer for the AI era. It turns accumulated practice into Activities, Candidates, and evolving Skills that help multiple AI agents reuse one user-owned capability library.",
-    "developerName": "Local developer",
+    "developerName": "Veyra",
     "category": "Productivity",
     "capabilities": [
       "Local-first",
