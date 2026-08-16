@@ -9,8 +9,8 @@ import { fileURLToPath } from "node:url";
 /**
  * Usora MCP server.
  *
- * A local-first JSON-RPC (stdio) server exposing the Usora tool surface:
- * Hub lifecycle, Activity capture, Candidate review, and Skill publication.
+ * A local-first JSON-RPC (stdio) server exposing the Usora tool surface: Hub lifecycle, Activity capture, Candidate
+ * review, and Skill publication.
  *
  * @module usora-mcp
  */
@@ -22,9 +22,8 @@ import { fileURLToPath } from "node:url";
 /**
  * Anchor directory that always holds `config.json`.
  *
- * This must be a *fixed* location so the config can be found before it has
- * told us where the user wants their data. It is `<cwd>/.usora`, which is
- * also the default data directory until the user relocates it.
+ * This must be a _fixed_ location so the config can be found before it has told us where the user wants their data. It
+ * is `<cwd>/.usora`, which is also the default data directory until the user relocates it.
  *
  * @type {string}
  */
@@ -33,23 +32,22 @@ const anchorHome = path.resolve(process.cwd(), ".usora");
 /**
  * Resolve the absolute path to the local data Hub.
  *
- * Defaults to the anchor directory `<cwd>/.usora`; once the user relocates
- * via `hub_config` (`hub_path`), that directory is used instead.
+ * Defaults to the anchor directory `<cwd>/.usora`; once the user relocates via `hub_config` (`hub_path`), that
+ * directory is used instead.
  *
  * @param {object} [config] - Loaded Hub config, if already available.
  * @returns {Promise<string>} Absolute Hub path.
  */
 async function resolveHome(config) {
-  const cfg = config || await loadConfig();
+  const cfg = config || (await loadConfig());
   return cfg.hub_path ? path.resolve(cfg.hub_path) : anchorHome;
 }
 
 /**
  * Process-scoped session id.
  *
- * Time-sortable and collision-resistant: a 48-bit millisecond timestamp plus
- * a 128-bit random salt. Used as the fallback `session_id` so repeated
- * captures within one MCP process merge into a single Activity.
+ * Time-sortable and collision-resistant: a 48-bit millisecond timestamp plus a 128-bit random salt. Used as the
+ * fallback `session_id` so repeated captures within one MCP process merge into a single Activity.
  *
  * @type {string}
  */
@@ -57,37 +55,43 @@ const processSessionId = `session-${Date.now().toString(16).padStart(12, "0")}-$
 
 /**
  * Sub-directories created under the Hub root.
+ *
  * @type {string[]}
  */
 const DIRS = ["activities", "candidates", "skills", "archive", "events"];
 
 /**
  * Valid values for `config.automation_policy`.
+ *
  * @type {string[]}
  */
 const AUTOMATION_POLICIES = ["auto_publish", "manual_approval", "auto_generate_manual_publish"];
 
 /**
  * Activity states eligible for archival by `hub_cleanup` (`generated` mode).
+ *
  * @type {string[]}
  */
 const ARCHIVABLE_STATES = ["PROCESSED", "USED", "ABSORBED"];
 
 /**
  * Current UTC timestamp as an ISO 8601 string.
+ *
  * @returns {string}
  */
 const now = () => new Date().toISOString();
 
 /**
  * Build a unique id from a type prefix and a random hex suffix.
+ *
  * @param {string} prefix - Human-readable type prefix (e.g. "activity").
- * @returns {string} e.g. `activity-520ac7c464`.
+ * @returns {string} E.g. `activity-520ac7c464`.
  */
-const newId = prefix => `${prefix}-${crypto.randomBytes(5).toString("hex")}`;
+const newId = (prefix) => `${prefix}-${crypto.randomBytes(5).toString("hex")}`;
 
 /**
  * Resolve a path inside the Hub root.
+ *
  * @param {string} dir - Sub-directory name.
  * @returns {Promise<string>} Absolute path within the Hub.
  */
@@ -97,19 +101,21 @@ async function dirPath(dir) {
 
 /**
  * Create every Hub sub-directory (idempotent).
+ *
  * @returns {Promise<void>}
  */
 async function ensure() {
   const home = await resolveHome();
-  await Promise.all(DIRS.map(dir => fs.mkdir(path.join(home, dir), { recursive: true })));
+  await Promise.all(DIRS.map((dir) => fs.mkdir(path.join(home, dir), { recursive: true })));
 }
 
 /**
  * Read and parse a JSON file, returning `fallback` when it is missing or invalid.
+ *
  * @template T
  * @param {string} file - Path to the JSON file.
- * @param {T} [fallback=null] - Value returned on read/parse failure.
- * @returns {Promise<T|null>}
+ * @param {T} [fallback=null] - Value returned on read/parse failure. Default is `null`
+ * @returns {Promise<T | null>}
  */
 async function readJson(file, fallback = null) {
   try {
@@ -121,8 +127,9 @@ async function readJson(file, fallback = null) {
 
 /**
  * Atomically write an object as pretty-printed JSON (write to temp + rename).
+ *
  * @param {string} file - Destination path.
- * @param {*} value - Serializable value.
+ * @param {any} value - Serializable value.
  * @returns {Promise<void>}
  */
 async function writeJson(file, value) {
@@ -133,8 +140,9 @@ async function writeJson(file, value) {
 
 /**
  * Persist a lifecycle event with a timestamp.
+ *
  * @param {string} type - Event type (e.g. "ActivityCreated").
- * @param {*} data - Event payload.
+ * @param {any} data - Event payload.
  * @returns {Promise<void>}
  */
 async function writeEvent(type, data) {
@@ -145,10 +153,10 @@ async function writeEvent(type, data) {
 /**
  * Load Hub configuration, applying defaults when it does not exist.
  *
- * Always read from the fixed `anchorHome` so the config is discoverable
- * regardless of where the user's data directory lives.
+ * Always read from the fixed `anchorHome` so the config is discoverable regardless of where the user's data directory
+ * lives.
  *
- * @returns {Promise<{maintainer: string, automation_policy: string, version: number, hub_path?: string}>}
+ * @returns {Promise<{ maintainer: string; automation_policy: string; version: number; hub_path?: string }>}
  */
 async function loadConfig() {
   return readJson(path.join(anchorHome, "config.json"), {
@@ -160,6 +168,7 @@ async function loadConfig() {
 
 /**
  * Persist Hub configuration, guaranteeing a numeric `version`.
+ *
  * @param {object} value - Config object to save.
  * @returns {Promise<object>} The saved config (with normalized `version`).
  */
@@ -172,7 +181,8 @@ async function saveConfig(value) {
 
 /**
  * Assert that a value is a non-empty string and return it.
- * @param {*} value - Value to validate.
+ *
+ * @param {any} value - Value to validate.
  * @param {string} field - Field name used in the error message.
  * @returns {string}
  * @throws {Error} When `value` is not a string.
@@ -185,10 +195,9 @@ function requireString(value, field) {
 }
 
 /**
- * Validate a name against a safe, filesystem-friendly format
- * (`letters, numbers, hyphens` only, up to 64 chars).
+ * Validate a name against a safe, filesystem-friendly format (`letters, numbers, hyphens` only, up to 64 chars).
  *
- * @param {*} value - Candidate name.
+ * @param {any} value - Candidate name.
  * @param {string} field - Field name used in the error message.
  * @returns {string} The validated name.
  * @throws {Error} When the name is not a string or fails the format check.
@@ -214,7 +223,7 @@ function isInside(parent, child) {
  * Find the Activity record (and its filename) for a given session id.
  *
  * @param {string} sessionId - Session id to look up.
- * @returns {Promise<{file: string, item: object}|null>} Match, or `null` if none.
+ * @returns {Promise<{ file: string; item: object } | null>} Match, or `null` if none.
  */
 async function findActivityBySession(sessionId) {
   const dir = await dirPath("activities");
@@ -228,9 +237,10 @@ async function findActivityBySession(sessionId) {
 
 /**
  * Merge two arrays into one de-duplicated array, preserving order.
- * @param {*[]|undefined} left - Base array.
- * @param {*[]|undefined} right - Additional values to append.
- * @returns {*[]} Unique values from `left` followed by new values from `right`.
+ *
+ * @param {any[] | undefined} left - Base array.
+ * @param {any[] | undefined} right - Additional values to append.
+ * @returns {any[]} Unique values from `left` followed by new values from `right`.
  */
 function mergeUnique(left, right) {
   return [...new Set([...(left || []), ...(right || [])])];
@@ -238,7 +248,8 @@ function mergeUnique(left, right) {
 
 /**
  * Clamp a user-supplied list limit to a small, predictable range.
- * @param {*} value - User-supplied limit.
+ *
+ * @param {any} value - User-supplied limit.
  * @returns {number} Integer between 1 and 100, defaulting to 20.
  */
 function listLimit(value) {
@@ -251,17 +262,17 @@ function listLimit(value) {
 
 /**
  * Tool arguments, as received from the MCP client.
- * @typedef {Object<string, *>} ToolArgs
+ *
+ * @typedef {Object<string, any>} ToolArgs
  */
 
 /**
  * `hub_init`: ensure storage exists and the config file is present.
  *
- * Never creates sample data. Uses the default directory `<cwd>/.usora` unless
- * the user has already relocated via `hub_config` (`hub_path`). Optionally
- * accepts `maintainer`/`automation_policy` to set during init.
+ * Never creates sample data. Uses the default directory `<cwd>/.usora` unless the user has already relocated via
+ * `hub_config` (`hub_path`). Optionally accepts `maintainer`/`automation_policy` to set during init.
  *
- * @param {ToolArgs} [args={}] - Optional `maintainer` and `automation_policy`.
+ * @param {ToolArgs} [args={}] - Optional `maintainer` and `automation_policy`. Default is `{}`
  * @returns {Promise<object>} The resolved Hub path and config path.
  */
 async function handleHubInit(args = {}) {
@@ -288,17 +299,13 @@ async function handleHubInit(args = {}) {
 }
 
 /**
- * `hub_config`: update the Maintainer, automation policy, and/or relocate the
- * data directory.
+ * `hub_config`: update the Maintainer, automation policy, and/or relocate the data directory.
  *
- * When `path` is supplied, the existing Hub data is MOVED to the new
- * directory: every existing sub-directory's contents are migrated, and the
- * old directory's contents are cleared. `path` may be absolute or relative to
- * the workspace.
+ * When `path` is supplied, the existing Hub data is MOVED to the new directory: every existing sub-directory's contents
+ * are migrated, and the old directory's contents are cleared. `path` may be absolute or relative to the workspace.
  *
  * @param {ToolArgs} args - May contain `path`, `maintainer`, `automation_policy`.
- * @returns {Promise<object>} The updated config (with `hub` and
- *   `moved_from` when relocating).
+ * @returns {Promise<object>} The updated config (with `hub` and `moved_from` when relocating).
  * @throws {Error} When `automation_policy` is not a valid value.
  */
 async function handleHubConfig(args) {
@@ -351,15 +358,18 @@ async function handleHubConfig(args) {
  * @returns {Promise<object>} Hub path, config, and per-collection counts.
  */
 async function handleHubStatus() {
-  const count = async dir => (await fs.readdir(await dirPath(dir))).length;
+  const count = async (dir) => (await fs.readdir(await dirPath(dir))).length;
   const activities = await count("activities");
   const candidates = await count("candidates");
   const skills = await count("skills");
   const nextAction =
-    activities === 0 ? "capture_activity" :
-    candidates === 0 ? "create_candidate" :
-    skills === 0 ? "create_skill" :
-    "review_or_cleanup";
+    activities === 0
+      ? "capture_activity"
+      : candidates === 0
+        ? "create_candidate"
+        : skills === 0
+          ? "create_skill"
+          : "review_or_cleanup";
   return {
     hub: await resolveHome(),
     config_path: path.join(anchorHome, "config.json"),
@@ -374,8 +384,7 @@ async function handleHubStatus() {
 /**
  * `hub_cleanup`: dispatch to `cleanAll` or `archiveGenerated` by mode.
  *
- * @param {ToolArgs} args - `mode` ("generated"|"all") and `confirm` (required
- *   when `mode` is "all").
+ * @param {ToolArgs} args - `mode` ("generated"|"all") and `confirm` (required when `mode` is "all").
  * @returns {Promise<object>} Cleanup result.
  * @throws {Error} On an invalid mode, or "all" without `confirm: true`.
  */
@@ -396,9 +405,8 @@ async function handleHubCleanup(args) {
 /**
  * Irreversibly delete every Hub record, Skill, archive, and event.
  *
- * The data directory and its sub-directories are recreated empty, and the
- * config file (including `hub_path`) is kept so the user can still discover
- * where their data lives after a cleanup/uninstall.
+ * The data directory and its sub-directories are recreated empty, and the config file (including `hub_path`) is kept so
+ * the user can still discover where their data lives after a cleanup/uninstall.
  *
  * @returns {Promise<object>} Per-collection deletion counts and the Hub path.
  */
@@ -412,7 +420,13 @@ async function cleanAll() {
     await fs.rm(target, { recursive: true, force: true });
     await fs.mkdir(target, { recursive: true });
   }
-  return { mode: "all", counts, hub: home, config_path: path.join(anchorHome, "config.json"), action: "deleted_all_hub_data" };
+  return {
+    mode: "all",
+    counts,
+    hub: home,
+    config_path: path.join(anchorHome, "config.json"),
+    action: "deleted_all_hub_data",
+  };
 }
 
 /**
@@ -439,8 +453,8 @@ async function archiveGenerated() {
 /**
  * `activity_capture`: create or merge one Activity per session.
  *
- * When `args.session_id` is absent, the process-scoped `processSessionId` is
- * used, so repeated calls within one MCP process merge into a single record.
+ * When `args.session_id` is absent, the process-scoped `processSessionId` is used, so repeated calls within one MCP
+ * process merge into a single record.
  *
  * @param {ToolArgs} args - Capture fields (see `activity_capture` tool schema).
  * @returns {Promise<object>} The Activity with an added `merged` flag.
@@ -491,7 +505,7 @@ async function handleActivityCapture(args) {
 /**
  * `activity_list`: list recent Activities without loading archives.
  *
- * @param {ToolArgs} [args={}] - Optional `limit` (default 20, max 100).
+ * @param {ToolArgs} [args={}] - Optional `limit` (default 20, max 100). Default is `{}`
  * @returns {Promise<object>} Count and recent Activities.
  */
 async function handleActivityList(args = {}) {
@@ -535,7 +549,7 @@ async function handleCandidateCreate(args) {
 /**
  * `candidate_list`: list recent Candidates.
  *
- * @param {ToolArgs} [args={}] - Optional `limit` (default 20, max 100).
+ * @param {ToolArgs} [args={}] - Optional `limit` (default 20, max 100). Default is `{}`
  * @returns {Promise<object>} Count and recent Candidates.
  */
 async function handleCandidateList(args = {}) {
@@ -611,8 +625,7 @@ async function handleSkillCreate(args) {
 /**
  * `skill_evaluate`: evaluate a Skill draft as pass or fail.
  *
- * @param {ToolArgs} args - `name`, `result` ("pass"|"fail"), optional
- *   `reviewer` and `notes`.
+ * @param {ToolArgs} args - `name`, `result` ("pass"|"fail"), optional `reviewer` and `notes`.
  * @returns {Promise<object>} The updated Skill metadata.
  * @throws {Error} When the Skill is missing or `result` is invalid.
  */
@@ -642,13 +655,11 @@ async function handleSkillEvaluate(args) {
 /**
  * `skill_publish`: publish an evaluated Skill, bumping its revision in place.
  *
- * Only the configured Maintainer may publish, and the Skill must have a
- * passing evaluation.
+ * Only the configured Maintainer may publish, and the Skill must have a passing evaluation.
  *
  * @param {ToolArgs} args - `name` and optional `actor` (defaults to "codex").
  * @returns {Promise<object>} The published Skill metadata.
- * @throws {Error} On a non-Maintainer actor, a missing Skill, or a
- *   non-evaluated/failing Skill.
+ * @throws {Error} On a non-Maintainer actor, a missing Skill, or a non-evaluated/failing Skill.
  */
 async function handleSkillPublish(args) {
   const config = await loadConfig();
@@ -694,7 +705,7 @@ async function handleSkillRead(args) {
 /**
  * `skill_list`: list Skill metadata without loading SKILL.md content.
  *
- * @param {ToolArgs} [args={}] - Optional `limit` (default 20, max 100).
+ * @param {ToolArgs} [args={}] - Optional `limit` (default 20, max 100). Default is `{}`
  * @returns {Promise<object>} Count and recent Skill metadata.
  */
 async function handleSkillList(args = {}) {
@@ -704,7 +715,7 @@ async function handleSkillList(args = {}) {
   for (const dir of await fs.readdir(skillsDir).catch(() => [])) {
     const meta = await readJson(path.join(skillsDir, dir, "skill.json"));
     if (!meta) continue;
-    const { content, ...summary } = meta;
+    const { content: _content, ...summary } = meta;
     items.push(summary);
   }
   items.sort((a, b) => (b.updated_at || b.created_at || "").localeCompare(a.updated_at || a.created_at || ""));
@@ -714,7 +725,7 @@ async function handleSkillList(args = {}) {
 /**
  * `event_list`: list recent lifecycle events.
  *
- * @param {ToolArgs} [args={}] - Optional `limit` (default 20, max 100).
+ * @param {ToolArgs} [args={}] - Optional `limit` (default 20, max 100). Default is `{}`
  * @returns {Promise<object>} Count and recent events.
  */
 async function handleEventList(args = {}) {
@@ -758,7 +769,7 @@ async function handleHubDoctor() {
   }
   checks.push({ name: "skill_metadata", ok: orphanSkills.length === 0, orphan_skills: orphanSkills });
   return {
-    ok: checks.every(check => check.ok),
+    ok: checks.every((check) => check.ok),
     hub: home,
     config_path: path.join(anchorHome, "config.json"),
     config,
@@ -768,10 +779,10 @@ async function handleHubDoctor() {
 }
 
 /**
- * `plugin_cache_cleanup`: list or delete old installed Usora plugin cache
- * versions, keeping the version this MCP server is currently running from.
+ * `plugin_cache_cleanup`: list or delete old installed Usora plugin cache versions, keeping the version this MCP server
+ * is currently running from.
  *
- * @param {ToolArgs} [args={}] - Pass `confirm: true` to delete old caches.
+ * @param {ToolArgs} [args={}] - Pass `confirm: true` to delete old caches. Default is `{}`
  * @returns {Promise<object>} Cleanup preview or deletion result.
  */
 async function handlePluginCacheCleanup(args = {}) {
@@ -783,7 +794,8 @@ async function handlePluginCacheCleanup(args = {}) {
     return {
       ok: false,
       action: "not_installed_cache",
-      message: "Usora is not running from the Codex installed plugin cache. Install or upgrade Usora first, then clean old caches.",
+      message:
+        "Usora is not running from the Codex installed plugin cache. Install or upgrade Usora first, then clean old caches.",
       plugin_root: pluginRoot,
       expected_cache_root: expectedRoot,
     };
@@ -832,6 +844,7 @@ async function handlePluginCacheCleanup(args = {}) {
 
 /**
  * Map of tool name → async handler function.
+ *
  * @type {Object<string, (args: ToolArgs) => Promise<object>>}
  */
 const HANDLERS = {
@@ -858,7 +871,7 @@ const HANDLERS = {
  * Ensure storage exists, then dispatch a tool call to its handler.
  *
  * @param {string} name - Tool name.
- * @param {ToolArgs} [args={}] - Tool arguments.
+ * @param {ToolArgs} [args={}] - Tool arguments. Default is `{}`
  * @returns {Promise<object>} The handler's result.
  * @throws {Error} When `name` does not map to a known tool.
  */
@@ -878,48 +891,81 @@ async function call(name, args = {}) {
  *
  * Each entry follows the MCP `Tool` shape: `{ name, description, inputSchema }`.
  *
- * @type {Array<{name: string, description: string, inputSchema: object}>}
+ * @type {{ name: string; description: string; inputSchema: object }[]}
  */
 const tools = [
   {
     name: "hub_init",
-    description: "Initialize the user's local Usora storage in the default directory (<cwd>/.usora) or the directory previously chosen via hub_config. Never create sample data. Optionally set maintainer/automation_policy.",
+    description:
+      "Initialize the user's local Usora storage in the default directory (<cwd>/.usora) or the directory previously chosen via hub_config. Never create sample data. Optionally set maintainer/automation_policy.",
     inputSchema: {
       type: "object",
       properties: {
         maintainer: { type: "string", description: "Optional Primary Maintainer to set during init (e.g. codex)." },
-        automation_policy: { type: "string", enum: AUTOMATION_POLICIES, description: "Optional automation policy to set during init." },
+        automation_policy: {
+          type: "string",
+          enum: AUTOMATION_POLICIES,
+          description: "Optional automation policy to set during init.",
+        },
       },
     },
   },
   {
     name: "hub_status",
-    description: "Inspect Hub counts and configuration without loading all Activities. Returns the resolved data directory (hub), config path, counts, and next_action lifecycle hint so the user knows where data lives and what to do next.",
+    description:
+      "Inspect Hub counts and configuration without loading all Activities. Returns the resolved data directory (hub), config path, counts, and next_action lifecycle hint so the user knows where data lives and what to do next.",
     inputSchema: { type: "object", properties: {} },
   },
   {
     name: "hub_doctor",
-    description: "Run a lightweight local Hub health check for required directories, counts, config, and missing Skill metadata.",
+    description:
+      "Run a lightweight local Hub health check for required directories, counts, config, and missing Skill metadata.",
     inputSchema: { type: "object", properties: {} },
   },
   {
     name: "hub_cleanup",
-    description: "Clean in two modes: generated archives processed Activities; all permanently deletes every Usora Hub record, Skill, archive, event, and config and requires confirm=true. It empties the data directory but keeps the Hub directory and config file so the user can review the path.",
-    inputSchema: { type: "object", properties: { mode: { type: "string", enum: ["generated", "all"] }, confirm: { type: "boolean" } } },
+    description:
+      "Clean in two modes: generated archives processed Activities; all permanently deletes every Usora Hub record, Skill, archive, event, and config and requires confirm=true. It empties the data directory but keeps the Hub directory and config file so the user can review the path.",
+    inputSchema: {
+      type: "object",
+      properties: { mode: { type: "string", enum: ["generated", "all"] }, confirm: { type: "boolean" } },
+    },
   },
   {
     name: "plugin_cache_cleanup",
-    description: "Preview or delete old installed Usora plugin cache versions under ~/.codex/plugins/cache/usora/usora, keeping the currently running plugin version. Defaults to dry run; pass confirm=true to delete.",
-    inputSchema: { type: "object", properties: { confirm: { type: "boolean", description: "Required true to delete old installed Usora plugin cache versions. Omit or false for dry run." } } },
+    description:
+      "Preview or delete old installed Usora plugin cache versions under ~/.codex/plugins/cache/usora/usora, keeping the currently running plugin version. Defaults to dry run; pass confirm=true to delete.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        confirm: {
+          type: "boolean",
+          description: "Required true to delete old installed Usora plugin cache versions. Omit or false for dry run.",
+        },
+      },
+    },
   },
   {
     name: "hub_config",
-    description: "Configure the Maintainer, automation policy, and/or relocate the data directory. Pass `path` to MOVE the existing Hub data to a new directory (migrates existing records and clears the old directory), applied immediately.",
-    inputSchema: { type: "object", properties: { path: { type: "string", description: "Optional new data directory (absolute or relative). Existing data is moved there and the old directory cleared." }, maintainer: { type: "string" }, automation_policy: { type: "string", enum: AUTOMATION_POLICIES } } },
+    description:
+      "Configure the Maintainer, automation policy, and/or relocate the data directory. Pass `path` to MOVE the existing Hub data to a new directory (migrates existing records and clears the old directory), applied immediately.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        path: {
+          type: "string",
+          description:
+            "Optional new data directory (absolute or relative). Existing data is moved there and the old directory cleared.",
+        },
+        maintainer: { type: "string" },
+        automation_policy: { type: "string", enum: AUTOMATION_POLICIES },
+      },
+    },
   },
   {
     name: "activity_capture",
-    description: "Create or update one Activity for the current MCP process. If session_id is supplied, repeated calls with the same value merge; otherwise the server uses its process-scoped session ID.",
+    description:
+      "Create or update one Activity for the current MCP process. If session_id is supplied, repeated calls with the same value merge; otherwise the server uses its process-scoped session ID.",
     inputSchema: {
       type: "object",
       required: ["task", "result"],
@@ -941,37 +987,83 @@ const tools = [
   {
     name: "activity_list",
     description: "List recent Activities from the active Hub without loading archives.",
-    inputSchema: { type: "object", properties: { limit: { type: "number", description: "Optional result limit, default 20 and max 100." } } },
+    inputSchema: {
+      type: "object",
+      properties: { limit: { type: "number", description: "Optional result limit, default 20 and max 100." } },
+    },
   },
   {
     name: "candidate_create",
     description: "Create a Candidate from an observed reusable pattern; do not create one for a one-off task.",
-    inputSchema: { type: "object", required: ["title", "summary"], properties: { title: { type: "string" }, summary: { type: "string" }, evidence: { type: "array", items: { type: "string" } }, source: { type: "string" } } },
+    inputSchema: {
+      type: "object",
+      required: ["title", "summary"],
+      properties: {
+        title: { type: "string" },
+        summary: { type: "string" },
+        evidence: { type: "array", items: { type: "string" } },
+        source: { type: "string" },
+      },
+    },
   },
   {
     name: "candidate_list",
     description: "List recent Candidates.",
-    inputSchema: { type: "object", properties: { limit: { type: "number", description: "Optional result limit, default 20 and max 100." } } },
+    inputSchema: {
+      type: "object",
+      properties: { limit: { type: "number", description: "Optional result limit, default 20 and max 100." } },
+    },
   },
   {
     name: "candidate_evaluate",
     description: "Evaluate a Candidate as pass or fail and record the reviewer.",
-    inputSchema: { type: "object", required: ["id", "result"], properties: { id: { type: "string" }, result: { type: "string", enum: ["pass", "fail"] }, reviewer: { type: "string" } } },
+    inputSchema: {
+      type: "object",
+      required: ["id", "result"],
+      properties: {
+        id: { type: "string" },
+        result: { type: "string", enum: ["pass", "fail"] },
+        reviewer: { type: "string" },
+      },
+    },
   },
   {
     name: "skill_create",
     description: "Create a Skill draft with SKILL.md content.",
-    inputSchema: { type: "object", required: ["name", "content"], properties: { name: { type: "string" }, content: { type: "string" }, description: { type: "string" }, candidate_id: { type: "string" } } },
+    inputSchema: {
+      type: "object",
+      required: ["name", "content"],
+      properties: {
+        name: { type: "string" },
+        content: { type: "string" },
+        description: { type: "string" },
+        candidate_id: { type: "string" },
+      },
+    },
   },
   {
     name: "skill_evaluate",
     description: "Evaluate a Skill draft as pass or fail.",
-    inputSchema: { type: "object", required: ["name", "result"], properties: { name: { type: "string" }, result: { type: "string", enum: ["pass", "fail"] }, reviewer: { type: "string" }, notes: { type: "string" } } },
+    inputSchema: {
+      type: "object",
+      required: ["name", "result"],
+      properties: {
+        name: { type: "string" },
+        result: { type: "string", enum: ["pass", "fail"] },
+        reviewer: { type: "string" },
+        notes: { type: "string" },
+      },
+    },
   },
   {
     name: "skill_publish",
-    description: "Publish an evaluated Skill as the configured Maintainer by updating the single current Skill in place.",
-    inputSchema: { type: "object", required: ["name"], properties: { name: { type: "string" }, actor: { type: "string" } } },
+    description:
+      "Publish an evaluated Skill as the configured Maintainer by updating the single current Skill in place.",
+    inputSchema: {
+      type: "object",
+      required: ["name"],
+      properties: { name: { type: "string" }, actor: { type: "string" } },
+    },
   },
   {
     name: "skill_read",
@@ -981,12 +1073,18 @@ const tools = [
   {
     name: "skill_list",
     description: "List recent Skill metadata without loading SKILL.md content.",
-    inputSchema: { type: "object", properties: { limit: { type: "number", description: "Optional result limit, default 20 and max 100." } } },
+    inputSchema: {
+      type: "object",
+      properties: { limit: { type: "number", description: "Optional result limit, default 20 and max 100." } },
+    },
   },
   {
     name: "event_list",
     description: "List recent lifecycle events.",
-    inputSchema: { type: "object", properties: { limit: { type: "number", description: "Optional result limit, default 20 and max 100." } } },
+    inputSchema: {
+      type: "object",
+      properties: { limit: { type: "number", description: "Optional result limit, default 20 and max 100." } },
+    },
   },
 ];
 
@@ -996,14 +1094,16 @@ const tools = [
 
 /**
  * A JSON-RPC request.
- * @typedef {{jsonrpc?: string, id?: (number|string), method: string, params?: object}} RpcRequest
+ *
+ * @typedef {{ jsonrpc?: string; id?: number | string; method: string; params?: object }} RpcRequest
  */
 
 /**
  * Build a JSON-RPC success response.
- * @param {(number|string|undefined)} id - Request id to echo back.
- * @param {*} value - Result payload.
- * @returns {{jsonrpc: string, id: *, result: *}}
+ *
+ * @param {number | string | undefined} id - Request id to echo back.
+ * @param {any} value - Result payload.
+ * @returns {{ jsonrpc: string; id: any; result: any }}
  */
 function jsonRpcResult(id, value) {
   return { jsonrpc: "2.0", id, result: value };
@@ -1011,9 +1111,10 @@ function jsonRpcResult(id, value) {
 
 /**
  * Build a successful `tools/call` response (MCP `content` envelope).
- * @param {(number|string|undefined)} id - Request id.
- * @param {*} value - Tool result, serialized as pretty-printed JSON text.
- * @returns {{jsonrpc: string, id: *, result: *}}
+ *
+ * @param {number | string | undefined} id - Request id.
+ * @param {any} value - Tool result, serialized as pretty-printed JSON text.
+ * @returns {{ jsonrpc: string; id: any; result: any }}
  */
 function toolCallResult(id, value) {
   return jsonRpcResult(id, { content: [{ type: "text", text: JSON.stringify(value, null, 2) }] });
@@ -1021,9 +1122,10 @@ function toolCallResult(id, value) {
 
 /**
  * Build a JSON-RPC error response (code `-32000`).
- * @param {(number|string|undefined)} id - Request id.
+ *
+ * @param {number | string | undefined} id - Request id.
  * @param {string} message - Error message.
- * @returns {{jsonrpc: string, id: *, error: {code: number, message: string}}}
+ * @returns {{ jsonrpc: string; id: any; error: { code: number; message: string } }}
  */
 function jsonRpcError(id, message) {
   return { jsonrpc: "2.0", id, error: { code: -32000, message } };
@@ -1031,6 +1133,7 @@ function jsonRpcError(id, message) {
 
 /**
  * Write a single JSON-RPC response line to stdout.
+ *
  * @param {object} line - Serializable response object.
  * @returns {void}
  */
@@ -1042,8 +1145,7 @@ function write(line) {
  * Handle a non-`tools/call` request (initialize, tools/list, etc.).
  *
  * @param {RpcRequest} req - Parsed request.
- * @returns {object|null} The response object, or `null` for notifications
- *   (requests without an `id`).
+ * @returns {object | null} The response object, or `null` for notifications (requests without an `id`).
  */
 function handleRequest(req) {
   switch (req.method) {
@@ -1063,16 +1165,17 @@ function handleRequest(req) {
   }
 }
 
-/** stdio line reader for incoming JSON-RPC messages. */
+/** Stdio line reader for incoming JSON-RPC messages. */
 const rl = readline.createInterface({ input: process.stdin, crlfDelay: Infinity });
 
 /**
  * Serializes request handling so concurrent lines are processed in order.
+ *
  * @type {Promise<void>}
  */
 let queue = Promise.resolve();
 
-rl.on("line", line => {
+rl.on("line", (line) => {
   queue = queue.then(async () => {
     let req;
     try {

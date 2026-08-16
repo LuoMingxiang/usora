@@ -16,11 +16,7 @@
     "developerName": "Veyra",
     "category": "Productivity",
     "websiteURL": "https://github.com/LuoMingxiang/usora",
-    "capabilities": [
-      "Local-first",
-      "Session memory",
-      "Skill evolution"
-    ],
+    "capabilities": ["Local-first", "Session memory", "Skill evolution"],
     "defaultPrompt": [
       "Initialize my Usora Skill Hub",
       "Capture this session into Usora",

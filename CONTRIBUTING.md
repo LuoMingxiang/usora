@@ -28,11 +28,11 @@
    ```
 
 3. 做出你的修改，并补充或更新相应的测试与文档。
-4. 提交时使用清晰、简洁的提交信息（可参考 [Conventional Commits](https://www.conventionalcommits.org/)）：
+4. 提交时使用 [Conventional Commits](https://www.conventionalcommits.org/) 风格；Husky 会在 `commit-msg` 阶段通过 commitlint 校验。
 
    ```text
    feat: add candidate deduplication
-   fix: handle missing session_id gracefully
+   fix(usora): handle missing session_id gracefully
    docs: clarify hub_config path semantics
    ```
 
@@ -52,7 +52,7 @@
 本项目为纯 Node.js（ESM）实现，无额外运行时依赖。在仓库根目录运行：
 
 ```bash
-node --test plugins/usora/scripts/usora-mcp.test.mjs
+npm run check
 ```
 
 请确保你的改动不会破坏现有测试，并为新功能补充测试。

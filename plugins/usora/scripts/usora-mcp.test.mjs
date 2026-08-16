@@ -7,34 +7,66 @@ import { spawn } from "node:child_process";
 
 /**
  * Spawn the MCP server, send the given requests, and return parsed responses.
+ *
  * @param {string} cwd - Working directory for the server process.
- * @param {Array<object>} requests - JSON-RPC requests.
- * @returns {Promise<Array<object>>}
+ * @param {object[]} requests - JSON-RPC requests.
+ * @returns {Promise<object[]>}
  */
 async function run(cwd, requests) {
-  const child = spawn(process.execPath, [path.resolve("plugins/usora/scripts/usora-mcp.mjs")], { cwd, stdio: ["pipe", "pipe", "inherit"] });
+  const child = spawn(process.execPath, [path.resolve("plugins/usora/scripts/usora-mcp.mjs")], {
+    cwd,
+    stdio: ["pipe", "pipe", "inherit"],
+  });
   const output = await new Promise((resolve, reject) => {
     let text = "";
-    child.stdout.on("data", chunk => { text += chunk; });
+    child.stdout.on("data", (chunk) => {
+      text += chunk;
+    });
     child.once("error", reject);
-    child.once("close", code => code === 0 ? resolve(text) : reject(Error(`server exited ${code}`)));
+    child.once("close", (code) => (code === 0 ? resolve(text) : reject(Error(`server exited ${code}`))));
     child.stdin.end(requests.map(JSON.stringify).join("\n") + "\n");
   });
   return output.trim().split("\n").map(JSON.parse);
 }
 
-const initialize = { jsonrpc: "2.0", id: 1, method: "initialize", params: { protocolVersion: "2024-11-05", capabilities: {}, clientInfo: { name: "test", version: "1" } } };
+const initialize = {
+  jsonrpc: "2.0",
+  id: 1,
+  method: "initialize",
+  params: { protocolVersion: "2024-11-05", capabilities: {}, clientInfo: { name: "test", version: "1" } },
+};
 
-test("hub_init uses the default .usora directory and merges activities", async t => {
+test("hub_init uses the default .usora directory and merges activities", async (t) => {
   const cwd = await mkdtemp(path.join(os.tmpdir(), "usora-mcp-"));
   t.after(() => rm(cwd, { recursive: true, force: true }));
 
   const requests = [
     initialize,
     { jsonrpc: "2.0", id: 2, method: "tools/call", params: { name: "hub_init", arguments: {} } },
-    { jsonrpc: "2.0", id: 3, method: "tools/call", params: { name: "activity_capture", arguments: { session_id: "test-session", task: "test", result: "created", key_points: ["created"] } } },
-    { jsonrpc: "2.0", id: 4, method: "tools/call", params: { name: "activity_capture", arguments: { session_id: "test-session", task: "test", result: "updated", key_points: ["updated"] } } },
-    { jsonrpc: "2.0", id: 5, method: "tools/call", params: { name: "skill_create", arguments: { name: "../escape", content: "# invalid" } } }
+    {
+      jsonrpc: "2.0",
+      id: 3,
+      method: "tools/call",
+      params: {
+        name: "activity_capture",
+        arguments: { session_id: "test-session", task: "test", result: "created", key_points: ["created"] },
+      },
+    },
+    {
+      jsonrpc: "2.0",
+      id: 4,
+      method: "tools/call",
+      params: {
+        name: "activity_capture",
+        arguments: { session_id: "test-session", task: "test", result: "updated", key_points: ["updated"] },
+      },
+    },
+    {
+      jsonrpc: "2.0",
+      id: 5,
+      method: "tools/call",
+      params: { name: "skill_create", arguments: { name: "../escape", content: "# invalid" } },
+    },
   ];
   const responses = await run(cwd, requests);
 
@@ -51,7 +83,7 @@ test("hub_init uses the default .usora directory and merges activities", async t
   assert.equal(activity.updates.length, 2);
 });
 
-test("hub_config with path moves data to the new directory and clears the old one", async t => {
+test("hub_config with path moves data to the new directory and clears the old one", async (t) => {
   const cwd = await mkdtemp(path.join(os.tmpdir(), "usora-mcp-"));
   t.after(() => rm(cwd, { recursive: true, force: true }));
 
@@ -59,9 +91,14 @@ test("hub_config with path moves data to the new directory and clears the old on
   const requests = [
     initialize,
     { jsonrpc: "2.0", id: 2, method: "tools/call", params: { name: "hub_init", arguments: {} } },
-    { jsonrpc: "2.0", id: 3, method: "tools/call", params: { name: "activity_capture", arguments: { session_id: "s1", task: "t", result: "r", key_points: ["k1"] } } },
+    {
+      jsonrpc: "2.0",
+      id: 3,
+      method: "tools/call",
+      params: { name: "activity_capture", arguments: { session_id: "s1", task: "t", result: "r", key_points: ["k1"] } },
+    },
     { jsonrpc: "2.0", id: 4, method: "tools/call", params: { name: "hub_config", arguments: { path: newDir } } },
-    { jsonrpc: "2.0", id: 5, method: "tools/call", params: { name: "hub_status", arguments: {} } }
+    { jsonrpc: "2.0", id: 5, method: "tools/call", params: { name: "hub_status", arguments: {} } },
   ];
   const responses = await run(cwd, requests);
 
@@ -87,7 +124,7 @@ test("hub_config with path moves data to the new directory and clears the old on
   await access(path.join(cwd, ".usora", "config.json"));
 });
 
-test("hub_status suggests the next lifecycle action from counts", async t => {
+test("hub_status suggests the next lifecycle action from counts", async (t) => {
   const cwd = await mkdtemp(path.join(os.tmpdir(), "usora-mcp-"));
   t.after(() => rm(cwd, { recursive: true, force: true }));
 
@@ -95,12 +132,30 @@ test("hub_status suggests the next lifecycle action from counts", async t => {
     initialize,
     { jsonrpc: "2.0", id: 2, method: "tools/call", params: { name: "hub_init", arguments: {} } },
     { jsonrpc: "2.0", id: 3, method: "tools/call", params: { name: "hub_status", arguments: {} } },
-    { jsonrpc: "2.0", id: 4, method: "tools/call", params: { name: "activity_capture", arguments: { session_id: "s1", task: "t", result: "r" } } },
+    {
+      jsonrpc: "2.0",
+      id: 4,
+      method: "tools/call",
+      params: { name: "activity_capture", arguments: { session_id: "s1", task: "t", result: "r" } },
+    },
     { jsonrpc: "2.0", id: 5, method: "tools/call", params: { name: "hub_status", arguments: {} } },
-    { jsonrpc: "2.0", id: 6, method: "tools/call", params: { name: "candidate_create", arguments: { title: "Reusable pattern", summary: "A pattern worth reviewing." } } },
+    {
+      jsonrpc: "2.0",
+      id: 6,
+      method: "tools/call",
+      params: {
+        name: "candidate_create",
+        arguments: { title: "Reusable pattern", summary: "A pattern worth reviewing." },
+      },
+    },
     { jsonrpc: "2.0", id: 7, method: "tools/call", params: { name: "hub_status", arguments: {} } },
-    { jsonrpc: "2.0", id: 8, method: "tools/call", params: { name: "skill_create", arguments: { name: "reusable-pattern", content: "# Reusable Pattern" } } },
-    { jsonrpc: "2.0", id: 9, method: "tools/call", params: { name: "hub_status", arguments: {} } }
+    {
+      jsonrpc: "2.0",
+      id: 8,
+      method: "tools/call",
+      params: { name: "skill_create", arguments: { name: "reusable-pattern", content: "# Reusable Pattern" } },
+    },
+    { jsonrpc: "2.0", id: 9, method: "tools/call", params: { name: "hub_status", arguments: {} } },
   ];
   const responses = await run(cwd, requests);
 
@@ -110,15 +165,28 @@ test("hub_status suggests the next lifecycle action from counts", async t => {
   assert.equal(JSON.parse(responses[8].result.content[0].text).next_action, "review_or_cleanup");
 });
 
-test("skill_list returns recent Skill metadata without content", async t => {
+test("skill_list returns recent Skill metadata without content", async (t) => {
   const cwd = await mkdtemp(path.join(os.tmpdir(), "usora-mcp-"));
   t.after(() => rm(cwd, { recursive: true, force: true }));
 
   const requests = [
     initialize,
-    { jsonrpc: "2.0", id: 2, method: "tools/call", params: { name: "skill_create", arguments: { name: "first-skill", content: "# First", description: "First test skill" } } },
-    { jsonrpc: "2.0", id: 3, method: "tools/call", params: { name: "skill_create", arguments: { name: "second-skill", content: "# Second" } } },
-    { jsonrpc: "2.0", id: 4, method: "tools/call", params: { name: "skill_list", arguments: { limit: 1 } } }
+    {
+      jsonrpc: "2.0",
+      id: 2,
+      method: "tools/call",
+      params: {
+        name: "skill_create",
+        arguments: { name: "first-skill", content: "# First", description: "First test skill" },
+      },
+    },
+    {
+      jsonrpc: "2.0",
+      id: 3,
+      method: "tools/call",
+      params: { name: "skill_create", arguments: { name: "second-skill", content: "# Second" } },
+    },
+    { jsonrpc: "2.0", id: 4, method: "tools/call", params: { name: "skill_list", arguments: { limit: 1 } } },
   ];
   const responses = await run(cwd, requests);
 
@@ -129,21 +197,39 @@ test("skill_list returns recent Skill metadata without content", async t => {
   assert.equal(list.skills[0].content, undefined);
 });
 
-test("read-side tools complete the Hub lifecycle view", async t => {
+test("read-side tools complete the Hub lifecycle view", async (t) => {
   const cwd = await mkdtemp(path.join(os.tmpdir(), "usora-mcp-"));
   t.after(() => rm(cwd, { recursive: true, force: true }));
 
   const requests = [
     initialize,
     { jsonrpc: "2.0", id: 2, method: "tools/call", params: { name: "hub_init", arguments: {} } },
-    { jsonrpc: "2.0", id: 3, method: "tools/call", params: { name: "activity_capture", arguments: { session_id: "s1", task: "Build docs", result: "captured" } } },
-    { jsonrpc: "2.0", id: 4, method: "tools/call", params: { name: "candidate_create", arguments: { title: "Docs loop", summary: "Reusable docs improvement loop." } } },
-    { jsonrpc: "2.0", id: 5, method: "tools/call", params: { name: "skill_create", arguments: { name: "docs-loop", content: "# Docs Loop" } } },
+    {
+      jsonrpc: "2.0",
+      id: 3,
+      method: "tools/call",
+      params: { name: "activity_capture", arguments: { session_id: "s1", task: "Build docs", result: "captured" } },
+    },
+    {
+      jsonrpc: "2.0",
+      id: 4,
+      method: "tools/call",
+      params: {
+        name: "candidate_create",
+        arguments: { title: "Docs loop", summary: "Reusable docs improvement loop." },
+      },
+    },
+    {
+      jsonrpc: "2.0",
+      id: 5,
+      method: "tools/call",
+      params: { name: "skill_create", arguments: { name: "docs-loop", content: "# Docs Loop" } },
+    },
     { jsonrpc: "2.0", id: 6, method: "tools/call", params: { name: "activity_list", arguments: {} } },
     { jsonrpc: "2.0", id: 7, method: "tools/call", params: { name: "candidate_list", arguments: {} } },
     { jsonrpc: "2.0", id: 8, method: "tools/call", params: { name: "skill_read", arguments: { name: "docs-loop" } } },
     { jsonrpc: "2.0", id: 9, method: "tools/call", params: { name: "event_list", arguments: { limit: 2 } } },
-    { jsonrpc: "2.0", id: 10, method: "tools/call", params: { name: "hub_doctor", arguments: {} } }
+    { jsonrpc: "2.0", id: 10, method: "tools/call", params: { name: "hub_doctor", arguments: {} } },
   ];
   const responses = await run(cwd, requests);
 
@@ -171,17 +257,17 @@ test("read-side tools complete the Hub lifecycle view", async t => {
   assert.equal(doctor.counts.skills, 1);
 });
 
-test("plugin_cache_cleanup is exposed and safe outside installed cache", async t => {
+test("plugin_cache_cleanup is exposed and safe outside installed cache", async (t) => {
   const cwd = await mkdtemp(path.join(os.tmpdir(), "usora-mcp-"));
   t.after(() => rm(cwd, { recursive: true, force: true }));
 
   const responses = await run(cwd, [
     initialize,
     { jsonrpc: "2.0", id: 2, method: "tools/list", params: {} },
-    { jsonrpc: "2.0", id: 3, method: "tools/call", params: { name: "plugin_cache_cleanup", arguments: {} } }
+    { jsonrpc: "2.0", id: 3, method: "tools/call", params: { name: "plugin_cache_cleanup", arguments: {} } },
   ]);
 
-  const toolNames = responses[1].result.tools.map(tool => tool.name);
+  const toolNames = responses[1].result.tools.map((tool) => tool.name);
   assert.ok(toolNames.includes("plugin_cache_cleanup"));
 
   const cleanup = JSON.parse(responses[2].result.content[0].text);

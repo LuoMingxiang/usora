@@ -14,7 +14,7 @@
 
 # Usora 插件
 
-Usora 是一个 Codex 插件，用来把日常 AI 工作沉淀为个人能力层。Usora 由 *usus*（practice, usage, experience）和 *aura*（invisible field of influence）组成，意为由累积实践形成的 capability field。它把有价值的 AI 工作记录为 Activities，把可复用模式提升为 Candidates，并帮助配置好的 Maintainer 发布 Skills。
+Usora 是一个 Codex 插件，用来把日常 AI 工作沉淀为个人能力层。Usora 由 _usus_（practice, usage, experience）和 _aura_（invisible field of influence）组成，意为由累积实践形成的 capability field。它把有价值的 AI 工作记录为 Activities，把可复用模式提升为 Candidates，并帮助配置好的 Maintainer 发布 Skills。
 
 <p align="center">
   <img src="assets/origin.png" alt="Usora 名称来源：usus 加 aura" width="720">
@@ -166,7 +166,6 @@ Codex 会把插件安装到本地插件缓存，并加载已安装副本，而�
 
 1. 在本地完成插件改动。
 2. 选择发布版本：
-
    - `patch`：修复、文档、文案、元数据、小型兼容改进。
    - `minor`：新的兼容 MVP 能力，或可见工作流改进。
    - `major`：破坏 storage、tool 或 Skill contract 的变更。MVP 阶段 Usora 通常应保持在 `0.x`。

@@ -14,7 +14,7 @@
 
 # Usora
 
-Usora 是一个本地优先的 Codex 插件，也是 AI 时代的个人能力层。它的名字来自 *usus*（实践、使用、经验）与 *aura*（不可见的影响场）：由长期实践累积出来的能力场。Usora 会把有价值的会话上下文记录为 Activity，从重复模式中生成 Candidate，再由 Maintainer 评估并发布为可复用的 Skill，而不是把项目记忆交给云端服务。
+Usora 是一个本地优先的 Codex 插件，也是 AI 时代的个人能力层。它的名字来自 _usus_（实践、使用、经验）与 _aura_（不可见的影响场）：由长期实践累积出来的能力场。Usora 会把有价值的会话上下文记录为 Activity，从重复模式中生成 Candidate，再由 Maintainer 评估并发布为可复用的 Skill，而不是把项目记忆交给云端服务。
 
 <p align="center">
   <img src="plugins/usora/assets/origin_zh.png" alt="Usora 名称由来：usus 加 aura" width="720">

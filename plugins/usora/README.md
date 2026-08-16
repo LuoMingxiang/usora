@@ -14,7 +14,7 @@
 
 # Usora Plugin
 
-Usora is a Codex plugin for building a personal capability layer from everyday AI work. The name combines *usus* (practice, usage, experience) with *aura* (an invisible field of influence): the capability field created by accumulated practice. It records useful AI work as Activities, promotes reusable patterns into Candidates, and helps a configured Maintainer publish Skills.
+Usora is a Codex plugin for building a personal capability layer from everyday AI work. The name combines _usus_ (practice, usage, experience) with _aura_ (an invisible field of influence): the capability field created by accumulated practice. It records useful AI work as Activities, promotes reusable patterns into Candidates, and helps a configured Maintainer publish Skills.
 
 <p align="center">
   <img src="assets/origin.png" alt="Usora name origin: usus plus aura" width="720">
@@ -167,7 +167,6 @@ If a new Usora build is not visible after pulling or pushing changes, use this r
 
 1. Finish the plugin change locally.
 2. Choose the release version:
-
    - `patch`: fixes, docs, copy, metadata, small compatible improvements.
    - `minor`: new compatible MVP capability or visible workflow improvement.
    - `major`: breaking storage, tool, or Skill contract change. Usora should usually stay in `0.x` during MVP.
