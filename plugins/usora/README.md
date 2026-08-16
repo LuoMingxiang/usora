@@ -130,7 +130,7 @@ For local development, use the release helper instead of hand-editing the versio
 ./scripts/release-usora-plugin.ps1
 ```
 
-Add `-Commit -Push` to update the cachebuster, validate, test, commit, and push in one run.
+The helper uses PowerShell to update the cachebuster, validates the plugin manifest, and runs the Node MCP tests. Add `-Commit -Push` to update, validate, test, commit, and push in one run.
 
 Codex handles plugin removal. Use `Uninstall plugin` in the `/plugins` browser.
 
