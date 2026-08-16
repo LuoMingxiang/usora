@@ -120,18 +120,36 @@ Codex installs plugins into its local plugin cache and loads the installed copy,
 If a new Usora build is not visible after pulling or pushing changes, use this release loop:
 
 1. Finish the plugin change locally.
-2. Run the release helper from the repo root:
+2. Choose the release version:
+
+   - `patch`: fixes, docs, copy, metadata, small compatible improvements.
+   - `minor`: new compatible MVP capability or visible workflow improvement.
+   - `major`: breaking storage, tool, or Skill contract change. Usora should usually stay in `0.x` during MVP.
+
+3. Run the release helper from the repo root:
 
    ```text
    ./scripts/release-usora-plugin.ps1
    ```
 
-   The helper updates the Codex cachebuster suffix in `.codex-plugin/plugin.json`, validates the plugin manifest, and runs the Node MCP tests.
+   The helper bumps the plugin SemVer patch version by default, validates the plugin manifest, and runs the Node MCP tests.
 
-3. Review the diff.
-4. Commit and push the plugin changes.
-5. Open `/plugins`, find Usora, and upgrade or reinstall it.
-6. Refresh or restart Codex and open a new task if older MCP tools still appear.
+   Use `-Bump minor` or `-Bump major` when needed:
+
+   ```text
+   ./scripts/release-usora-plugin.ps1 -Bump minor
+   ```
+
+   To set an exact version:
+
+   ```text
+   ./scripts/release-usora-plugin.ps1 -Version 0.2.0
+   ```
+
+4. Review the diff.
+5. Commit and push the plugin changes.
+6. Open `/plugins`, find Usora, and upgrade or reinstall it.
+7. Refresh or restart Codex and open a new task if older MCP tools still appear.
 
 To do the release commit and push in one run:
 
@@ -139,7 +157,7 @@ To do the release commit and push in one run:
 ./scripts/release-usora-plugin.ps1 -Commit -Push
 ```
 
-Use this after reviewing or when the change is already ready to publish. It updates the cachebuster, validates, tests, commits `plugin.json` and this README, then pushes.
+Use this after reviewing or when the change is already ready to publish. It bumps the patch version, validates, tests, commits `plugins/usora` and the release helper, then pushes. Add `-Bump minor` or `-Version 0.2.0` before `-Commit -Push` for larger releases.
 
 Codex handles plugin removal. Use `Uninstall plugin` in the `/plugins` browser.
 
