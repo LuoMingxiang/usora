@@ -113,13 +113,36 @@ Next useful action: <next_action label>
 
 If the host does not provide a stable `session_id`, Usora generates a process-scoped ID with a time-ordered prefix and 128-bit random salt so repeated captures in one MCP process update one Activity.
 
-## Uninstalling
+## Upgrading and Uninstalling
 
-Codex handles plugin removal. Use `Uninstall plugin` in the `/plugins` browser, or remove the marketplace entry with:
+Codex installs plugins into its local plugin cache and loads the installed copy, not the live source directory. For Usora, the marketplace entry points at GitHub `master`, so local changes only become installable after they are committed and pushed.
+
+If a new Usora build is not visible after pulling or pushing changes, use this release loop:
+
+1. Update the Codex cachebuster suffix in `.codex-plugin/plugin.json`.
+2. Commit and push the plugin changes.
+3. Upgrade or reinstall Usora from the `/plugins` browser.
+4. Refresh or restart Codex and open a new task if older MCP tools still appear.
+
+For local development, use the plugin helper instead of hand-editing the version:
 
 ```text
-codex plugin marketplace remove <name>
+python C:/Users/Ming/.codex/skills/.system/plugin-creator/scripts/update_plugin_cachebuster.py D:/Usora/plugins/usora
 ```
+
+Codex handles plugin removal. Use `Uninstall plugin` in the `/plugins` browser.
+
+Because Usora includes a local MCP server, Codex may ask you to disable Usora before uninstalling it. Disabling first removes Usora's tools from the callable set before the cached plugin bundle is removed. Pure Skill-only plugins may be able to uninstall directly.
+
+From a terminal, remove the installed plugin with:
+
+```text
+codex plugin remove usora@usora
+```
+
+`codex plugin marketplace remove <marketplace-name>` removes a configured marketplace source. It is not the normal per-plugin uninstall path.
+
+After upgrading or uninstalling an MCP-backed plugin, refresh or restart Codex and open a new task if older tools still appear.
 
 Uninstalling the plugin does **not** remove local Usora data.
 
