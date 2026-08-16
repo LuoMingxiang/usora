@@ -124,11 +124,13 @@ If a new Usora build is not visible after pulling or pushing changes, use this r
 3. Upgrade or reinstall Usora from the `/plugins` browser.
 4. Refresh or restart Codex and open a new task if older MCP tools still appear.
 
-For local development, use the plugin helper instead of hand-editing the version:
+For local development, use the release helper instead of hand-editing the version:
 
 ```text
-python C:/Users/Ming/.codex/skills/.system/plugin-creator/scripts/update_plugin_cachebuster.py D:/Usora/plugins/usora
+./scripts/release-usora-plugin.ps1
 ```
+
+Add `-Commit -Push` to update the cachebuster, validate, test, commit, and push in one run.
 
 Codex handles plugin removal. Use `Uninstall plugin` in the `/plugins` browser.
 
