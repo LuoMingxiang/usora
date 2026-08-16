@@ -20,8 +20,8 @@
     ],
     "defaultPrompt": [
       "Initialize my Skill Hub",
-      "Capture this session",
-      "Show my recent Skills"
+      "Show Usora status",
+      "Capture this session"
     ],
     "composerIcon": "./assets/logo.png",
     "logo": "./assets/logo.png"
