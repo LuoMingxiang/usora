@@ -19,6 +19,7 @@ Maintain one Activity per AI session. After substantive progress, call `activity
 - “Check my Skill Hub health” → MCP tool `hub_doctor`
 - “Clean up generated Activities” → MCP tool `hub_cleanup` with `mode: generated`
 - “Clean everything” → MCP tool `hub_cleanup` with `mode: all, confirm: true` (deletes all Hub data but keeps the data directory and config)
+- “Clean old Usora plugin cache” → MCP tool `plugin_cache_cleanup` (dry run by default; pass `confirm: true` to delete old installed plugin versions)
 - “Capture this task” → MCP tool `activity_capture`
 - “Show recent Activities” → MCP tool `activity_list`
 - “Create a Candidate” → MCP tool `candidate_create`

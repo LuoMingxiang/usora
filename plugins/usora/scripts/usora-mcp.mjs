@@ -3,6 +3,8 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import readline from "node:readline";
 import crypto from "node:crypto";
+import os from "node:os";
+import { fileURLToPath } from "node:url";
 
 /**
  * Usora MCP server.
@@ -197,6 +199,11 @@ function safeName(value, field) {
     throw Error(`${field} must contain only letters, numbers, and hyphens`);
   }
   return value;
+}
+
+function isInside(parent, child) {
+  const rel = path.relative(parent, child);
+  return rel && !rel.startsWith("..") && !path.isAbsolute(rel);
 }
 
 // ---------------------------------------------------------------------------
@@ -761,6 +768,69 @@ async function handleHubDoctor() {
 }
 
 /**
+ * `plugin_cache_cleanup`: list or delete old installed Usora plugin cache
+ * versions, keeping the version this MCP server is currently running from.
+ *
+ * @param {ToolArgs} [args={}] - Pass `confirm: true` to delete old caches.
+ * @returns {Promise<object>} Cleanup preview or deletion result.
+ */
+async function handlePluginCacheCleanup(args = {}) {
+  const pluginRoot = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
+  const cacheRoot = path.dirname(pluginRoot);
+  const expectedRoot = path.join(os.homedir(), ".codex", "plugins", "cache", "usora", "usora");
+
+  if (path.resolve(cacheRoot).toLowerCase() !== path.resolve(expectedRoot).toLowerCase()) {
+    return {
+      ok: false,
+      action: "not_installed_cache",
+      message: "Usora is not running from the Codex installed plugin cache. Install or upgrade Usora first, then clean old caches.",
+      plugin_root: pluginRoot,
+      expected_cache_root: expectedRoot,
+    };
+  }
+
+  const currentVersion = path.basename(pluginRoot);
+  const oldCaches = [];
+  for (const entry of await fs.readdir(cacheRoot, { withFileTypes: true }).catch(() => [])) {
+    if (!entry.isDirectory() || entry.name === currentVersion) continue;
+    const fullPath = path.join(cacheRoot, entry.name);
+    if (!isInside(cacheRoot, fullPath)) {
+      throw Error(`Refusing to inspect path outside Usora plugin cache: ${fullPath}`);
+    }
+    oldCaches.push({ version: entry.name, path: fullPath });
+  }
+
+  if (args.confirm !== true) {
+    return {
+      ok: true,
+      dry_run: true,
+      action: "preview_old_plugin_caches",
+      current_version: currentVersion,
+      cache_root: cacheRoot,
+      old_caches: oldCaches,
+      deleted: 0,
+    };
+  }
+
+  for (const cache of oldCaches) {
+    if (!isInside(cacheRoot, cache.path)) {
+      throw Error(`Refusing to delete path outside Usora plugin cache: ${cache.path}`);
+    }
+    await fs.rm(cache.path, { recursive: true, force: true });
+  }
+
+  return {
+    ok: true,
+    dry_run: false,
+    action: "deleted_old_plugin_caches",
+    current_version: currentVersion,
+    cache_root: cacheRoot,
+    old_caches: oldCaches,
+    deleted: oldCaches.length,
+  };
+}
+
+/**
  * Map of tool name → async handler function.
  * @type {Object<string, (args: ToolArgs) => Promise<object>>}
  */
@@ -770,6 +840,7 @@ const HANDLERS = {
   hub_status: handleHubStatus,
   hub_doctor: handleHubDoctor,
   hub_cleanup: handleHubCleanup,
+  plugin_cache_cleanup: handlePluginCacheCleanup,
   activity_capture: handleActivityCapture,
   activity_list: handleActivityList,
   candidate_create: handleCandidateCreate,
@@ -835,6 +906,11 @@ const tools = [
     name: "hub_cleanup",
     description: "Clean in two modes: generated archives processed Activities; all permanently deletes every Usora Hub record, Skill, archive, event, and config and requires confirm=true. It empties the data directory but keeps the Hub directory and config file so the user can review the path.",
     inputSchema: { type: "object", properties: { mode: { type: "string", enum: ["generated", "all"] }, confirm: { type: "boolean" } } },
+  },
+  {
+    name: "plugin_cache_cleanup",
+    description: "Preview or delete old installed Usora plugin cache versions under ~/.codex/plugins/cache/usora/usora, keeping the currently running plugin version. Defaults to dry run; pass confirm=true to delete.",
+    inputSchema: { type: "object", properties: { confirm: { type: "boolean", description: "Required true to delete old installed Usora plugin cache versions. Omit or false for dry run." } } },
   },
   {
     name: "hub_config",

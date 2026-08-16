@@ -40,6 +40,7 @@ Activity -> Candidate -> Skill Draft -> Evaluation -> Publish
 - 查看近期 Activities、Candidates、Skills 和生命周期事件。
 - 按名称读取一个 Skill。
 - 检查本地 Hub 健康状态。
+- 预览或删除旧版本 Usora 插件安装缓存。
 - 归档已处理 Activities。
 
 ## 快速开始
@@ -62,6 +63,7 @@ Show recent Skills
 Show this Skill
 Show recent Usora events
 Check my Skill Hub health
+Clean old Usora plugin cache
 ```
 
 60 秒首次体验可以从 `Initialize my Usora` 和 `Show Usora status` 开始。你应该看到本地 Hub 路径、Activity/Candidate/Skill 数量，以及下一步建议。
@@ -149,7 +151,15 @@ Codex 会把插件安装到本地插件缓存，并加载已安装副本，而�
 5. Commit 并 push 插件变更。
 6. 打开 `/plugins`，找到 Usora，然后 upgrade 或 reinstall。
 7. 如果旧 MCP tools 仍然出现，刷新或重启 Codex，并打开一个新 task。
-8. 新版本安装成功后，如有需要清理旧 Usora cache 目录：
+8. 新版本安装成功后，如有需要，通过 Usora MCP tool 清理旧 Usora cache 目录：
+
+   ```text
+   Clean old Usora plugin cache
+   ```
+
+   这个 tool 默认是 dry run。只有当它列出的旧版本符合预期时，再确认删除。
+
+   开发者也可以使用本地 helper：
 
    ```text
    ./scripts/cleanup-usora-plugin-cache.ps1

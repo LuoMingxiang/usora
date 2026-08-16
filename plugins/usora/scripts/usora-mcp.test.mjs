@@ -170,3 +170,21 @@ test("read-side tools complete the Hub lifecycle view", async t => {
   assert.equal(doctor.counts.candidates, 1);
   assert.equal(doctor.counts.skills, 1);
 });
+
+test("plugin_cache_cleanup is exposed and safe outside installed cache", async t => {
+  const cwd = await mkdtemp(path.join(os.tmpdir(), "usora-mcp-"));
+  t.after(() => rm(cwd, { recursive: true, force: true }));
+
+  const responses = await run(cwd, [
+    initialize,
+    { jsonrpc: "2.0", id: 2, method: "tools/list", params: {} },
+    { jsonrpc: "2.0", id: 3, method: "tools/call", params: { name: "plugin_cache_cleanup", arguments: {} } }
+  ]);
+
+  const toolNames = responses[1].result.tools.map(tool => tool.name);
+  assert.ok(toolNames.includes("plugin_cache_cleanup"));
+
+  const cleanup = JSON.parse(responses[2].result.content[0].text);
+  assert.equal(cleanup.ok, false);
+  assert.equal(cleanup.action, "not_installed_cache");
+});

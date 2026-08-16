@@ -40,6 +40,7 @@ Activity -> Candidate -> Skill Draft -> Evaluation -> Publish
 - List recent Activities, Candidates, Skills, and lifecycle events.
 - Read one Skill by name.
 - Check local Hub health.
+- Preview or delete old installed Usora plugin cache versions.
 - Archive processed Activities.
 
 ## Quick Start
@@ -62,6 +63,7 @@ Show recent Skills
 Show this Skill
 Show recent Usora events
 Check my Skill Hub health
+Clean old Usora plugin cache
 ```
 
 For a 60-second first run, start with `Initialize my Usora` and `Show Usora status`. You should see the local Hub path, Activity/Candidate/Skill counts, and a next useful action.
@@ -150,7 +152,15 @@ If a new Usora build is not visible after pulling or pushing changes, use this r
 5. Commit and push the plugin changes.
 6. Open `/plugins`, find Usora, and upgrade or reinstall it.
 7. Refresh or restart Codex and open a new task if older MCP tools still appear.
-8. After the new version is installed, clean old Usora cache directories if needed:
+8. After the new version is installed, clean old Usora cache directories if needed through the Usora MCP tool:
+
+   ```text
+   Clean old Usora plugin cache
+   ```
+
+   The tool defaults to a dry run. Confirm deletion only after it lists the old versions you expect.
+
+   Developers can also use the local helper:
 
    ```text
    ./scripts/cleanup-usora-plugin-cache.ps1
