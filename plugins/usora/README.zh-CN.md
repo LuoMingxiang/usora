@@ -149,6 +149,14 @@ Codex 会把插件安装到本地插件缓存，并加载已安装副本，而�
 5. Commit 并 push 插件变更。
 6. 打开 `/plugins`，找到 Usora，然后 upgrade 或 reinstall。
 7. 如果旧 MCP tools 仍然出现，刷新或重启 Codex，并打开一个新 task。
+8. 新版本安装成功后，如有需要清理旧 Usora cache 目录：
+
+   ```text
+   ./scripts/cleanup-usora-plugin-cache.ps1
+   ./scripts/cleanup-usora-plugin-cache.ps1 -Apply
+   ```
+
+   第一条命令是 dry run。带 `-Apply` 的命令会删除旧的 `~/.codex/plugins/cache/usora/usora/<version>` 目录，并保留当前发布版本。
 
 一键完成发布 commit 和 push：
 

@@ -150,6 +150,14 @@ If a new Usora build is not visible after pulling or pushing changes, use this r
 5. Commit and push the plugin changes.
 6. Open `/plugins`, find Usora, and upgrade or reinstall it.
 7. Refresh or restart Codex and open a new task if older MCP tools still appear.
+8. After the new version is installed, clean old Usora cache directories if needed:
+
+   ```text
+   ./scripts/cleanup-usora-plugin-cache.ps1
+   ./scripts/cleanup-usora-plugin-cache.ps1 -Apply
+   ```
+
+   The first command is a dry run. The `-Apply` command removes old `~/.codex/plugins/cache/usora/usora/<version>` directories and keeps the currently released version.
 
 To do the release commit and push in one run:
 
