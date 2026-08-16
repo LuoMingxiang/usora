@@ -47,6 +47,8 @@ Activity -> Candidate -> Skill Draft -> Evaluation -> Publish
 
 Use the Usora MCP tools through Codex. No Python, database, or separate CLI installation is required.
 
+Codex shows up to three `defaultPrompt` entries in the plugin UI. Usora uses those slots for the first-run loop: initialize the Hub, capture the current session, and clean old plugin cache after upgrades.
+
 Ask Codex:
 
 ```text

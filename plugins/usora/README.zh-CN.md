@@ -47,6 +47,8 @@ Activity -> Candidate -> Skill Draft -> Evaluation -> Publish
 
 通过 Codex 使用 Usora MCP tools。无需安装 Python、数据库或独立 CLI。
 
+Codex 插件 UI 最多展示三条 `defaultPrompt`。Usora 会把这三个位置用于首次闭环：初始化 Hub、捕获当前 session，以及升级后清理旧插件缓存。
+
 可以这样问 Codex：
 
 ```text
