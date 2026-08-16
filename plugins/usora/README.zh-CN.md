@@ -49,26 +49,68 @@ Activity -> Candidate -> Skill Draft -> Evaluation -> Publish
 
 Codex 插件 UI 最多展示三条 `defaultPrompt`。Usora 会把这三个位置用于首次闭环：初始化 Hub、捕获当前 session，以及升级后清理旧插件缓存。
 
-可以这样问 Codex：
+60 秒首次体验可以从这些句子开始：
 
 ```text
 Initialize my Usora
 Show Usora status
 Capture this session
-Show recent Activities
+```
+
+你应该看到本地 Hub 路径、Activity/Candidate/Skill 数量，以及下一步建议。
+
+## Prompt Gallery
+
+初始化与状态：
+
+```text
+Initialize my Usora
+Initialize my Usora Skill Hub
+Show Usora status
+Show my Skill Hub status
 Where is my Usora data?
 Move my Usora data to <path>
+Check my Skill Hub health
+```
+
+Activity 捕获：
+
+```text
+Capture this session
+Capture this session into Usora
+Capture this task
+Record this work as a Usora Activity
+Show recent Activities
+```
+
+Candidate 评审：
+
+```text
 Show recent Candidates
+Create a Candidate
+Create a Candidate from this reusable pattern
+Evaluate this Candidate
+```
+
+Skill 生命周期：
+
+```text
 Create a Skill draft
+Evaluate this Skill
+Publish this Skill
 Evaluate and publish this Skill
 Show recent Skills
 Show this Skill
-Show recent Usora events
-Check my Skill Hub health
-Clean old Usora plugin cache
 ```
 
-60 秒首次体验可以从 `Initialize my Usora` 和 `Show Usora status` 开始。你应该看到本地 Hub 路径、Activity/Candidate/Skill 数量，以及下一步建议。
+维护：
+
+```text
+Show recent Usora events
+Clean up generated Activities
+Clean old Usora plugin cache
+Clean everything
+```
 
 ## 数据
 

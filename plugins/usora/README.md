@@ -49,26 +49,68 @@ Use the Usora MCP tools through Codex. No Python, database, or separate CLI inst
 
 Codex shows up to three `defaultPrompt` entries in the plugin UI. Usora uses those slots for the first-run loop: initialize the Hub, capture the current session, and clean old plugin cache after upgrades.
 
-Ask Codex:
+For a 60-second first run, start with:
 
 ```text
 Initialize my Usora
 Show Usora status
 Capture this session
-Show recent Activities
+```
+
+You should see the local Hub path, Activity/Candidate/Skill counts, and a next useful action.
+
+## Prompt Gallery
+
+Setup and status:
+
+```text
+Initialize my Usora
+Initialize my Usora Skill Hub
+Show Usora status
+Show my Skill Hub status
 Where is my Usora data?
 Move my Usora data to <path>
+Check my Skill Hub health
+```
+
+Activity capture:
+
+```text
+Capture this session
+Capture this session into Usora
+Capture this task
+Record this work as a Usora Activity
+Show recent Activities
+```
+
+Candidate review:
+
+```text
 Show recent Candidates
+Create a Candidate
+Create a Candidate from this reusable pattern
+Evaluate this Candidate
+```
+
+Skill lifecycle:
+
+```text
 Create a Skill draft
+Evaluate this Skill
+Publish this Skill
 Evaluate and publish this Skill
 Show recent Skills
 Show this Skill
-Show recent Usora events
-Check my Skill Hub health
-Clean old Usora plugin cache
 ```
 
-For a 60-second first run, start with `Initialize my Usora` and `Show Usora status`. You should see the local Hub path, Activity/Candidate/Skill counts, and a next useful action.
+Maintenance:
+
+```text
+Show recent Usora events
+Clean up generated Activities
+Clean old Usora plugin cache
+Clean everything
+```
 
 ## Data
 
