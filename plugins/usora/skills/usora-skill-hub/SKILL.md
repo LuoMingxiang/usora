@@ -24,6 +24,7 @@ Maintain one Activity per AI session. After substantive progress, call `activity
 - “Publish this Skill” → MCP tool `skill_publish`
 - “Create a Skill draft” → MCP tool `skill_create`
 - “Evaluate this Skill” → MCP tool `skill_evaluate`
+- “Show recent Skills” → MCP tool `skill_list`
 - “Capture this task” → Usora MCP tool `activity_capture`
 
 ## Initialization

@@ -620,6 +620,26 @@ async function handleSkillPublish(args) {
 }
 
 /**
+ * `skill_list`: list Skill metadata without loading SKILL.md content.
+ *
+ * @param {ToolArgs} [args={}] - Optional `limit` (default 20, max 100).
+ * @returns {Promise<object>} Count and recent Skill metadata.
+ */
+async function handleSkillList(args = {}) {
+  const limit = Math.min(Math.max(Number(args.limit) || 20, 1), 100);
+  const skillsDir = await dirPath("skills");
+  const items = [];
+  for (const dir of await fs.readdir(skillsDir).catch(() => [])) {
+    const meta = await readJson(path.join(skillsDir, dir, "skill.json"));
+    if (!meta) continue;
+    const { content, ...summary } = meta;
+    items.push(summary);
+  }
+  items.sort((a, b) => (b.updated_at || b.created_at || "").localeCompare(a.updated_at || a.created_at || ""));
+  return { count: items.length, skills: items.slice(0, limit) };
+}
+
+/**
  * Map of tool name → async handler function.
  * @type {Object<string, (args: ToolArgs) => Promise<object>>}
  */
@@ -634,6 +654,7 @@ const HANDLERS = {
   skill_create: handleSkillCreate,
   skill_evaluate: handleSkillEvaluate,
   skill_publish: handleSkillPublish,
+  skill_list: handleSkillList,
 };
 
 /**
@@ -734,6 +755,11 @@ const tools = [
     name: "skill_publish",
     description: "Publish an evaluated Skill as the configured Maintainer by updating the single current Skill in place.",
     inputSchema: { type: "object", required: ["name"], properties: { name: { type: "string" }, actor: { type: "string" } } },
+  },
+  {
+    name: "skill_list",
+    description: "List recent Skill metadata without loading SKILL.md content.",
+    inputSchema: { type: "object", properties: { limit: { type: "number", description: "Optional result limit, default 20 and max 100." } } },
   },
 ];
 

@@ -109,3 +109,22 @@ test("hub_status suggests the next lifecycle action from counts", async t => {
   assert.equal(JSON.parse(responses[6].result.content[0].text).next_action, "create_skill");
   assert.equal(JSON.parse(responses[8].result.content[0].text).next_action, "review_or_cleanup");
 });
+
+test("skill_list returns recent Skill metadata without content", async t => {
+  const cwd = await mkdtemp(path.join(os.tmpdir(), "usora-mcp-"));
+  t.after(() => rm(cwd, { recursive: true, force: true }));
+
+  const requests = [
+    initialize,
+    { jsonrpc: "2.0", id: 2, method: "tools/call", params: { name: "skill_create", arguments: { name: "first-skill", content: "# First", description: "First test skill" } } },
+    { jsonrpc: "2.0", id: 3, method: "tools/call", params: { name: "skill_create", arguments: { name: "second-skill", content: "# Second" } } },
+    { jsonrpc: "2.0", id: 4, method: "tools/call", params: { name: "skill_list", arguments: { limit: 1 } } }
+  ];
+  const responses = await run(cwd, requests);
+
+  const list = JSON.parse(responses[3].result.content[0].text);
+  assert.equal(list.count, 2);
+  assert.equal(list.skills.length, 1);
+  assert.equal(list.skills[0].name, "second-skill");
+  assert.equal(list.skills[0].content, undefined);
+});
