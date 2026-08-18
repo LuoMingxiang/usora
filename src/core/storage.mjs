@@ -1,6 +1,8 @@
 import fs from "node:fs/promises";
+import os from "node:os";
 import path from "node:path";
 import crypto from "node:crypto";
+import { fileURLToPath } from "node:url";
 
 // ---------------------------------------------------------------------------
 // Storage primitives
@@ -15,11 +17,18 @@ import crypto from "node:crypto";
  *
  * @type {string}
  */
+const runtimePluginRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
+const isCodeBuddyInstall = runtimePluginRoot
+  .toLowerCase()
+  .includes(path.join(".codebuddy", "plugins", "marketplaces").toLowerCase());
+
 export const anchorHome = process.env.CODEBUDDY_PLUGIN_DATA
   ? path.resolve(process.env.CODEBUDDY_PLUGIN_DATA, ".usora")
   : process.env.PLUGIN_DATA
     ? path.resolve(process.env.PLUGIN_DATA, ".usora")
-    : path.resolve(process.cwd(), ".usora");
+    : process.env.CODEBUDDY_PLUGIN_ROOT || isCodeBuddyInstall
+      ? path.join(os.homedir(), ".codebuddy", "plugins", "data", "usora", ".usora")
+      : path.resolve(process.cwd(), ".usora");
 
 /**
  * Resolve the absolute path to the local data Hub.

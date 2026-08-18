@@ -15,11 +15,14 @@ if (-not $CurrentVersion) {
 }
 
 $CacheRoots = @{
-  codex = Join-Path $env:USERPROFILE ".codex/plugins/cache/usora/usora"
-  codebuddy = Join-Path $env:USERPROFILE ".codebuddy/plugins/cache/usora/usora"
+  codex = @(Join-Path $env:USERPROFILE ".codex/plugins/cache/usora/usora")
+  codebuddy = @(
+    (Join-Path $env:USERPROFILE ".codebuddy/plugins/cache/usora/usora"),
+    (Join-Path $env:USERPROFILE ".codebuddy/plugins/marketplaces/https___github_com_LuoMingxiang_usora")
+  )
 }
 
-function Clear-UsoraCache($Name, $CacheRoot) {
+function Clear-UsoraCacheRoot($Name, $CacheRoot) {
   if (-not (Test-Path $CacheRoot)) {
     Write-Host "No Usora $Name plugin cache found: $CacheRoot"
     return
@@ -31,13 +34,7 @@ function Clear-UsoraCache($Name, $CacheRoot) {
     throw "Refusing to clean unexpected $Name cache root: $ResolvedCacheRoot"
   }
 
-  $CurrentCache = Join-Path $ResolvedCacheRoot $CurrentVersion
-  if (-not (Test-Path $CurrentCache)) {
-    Write-Host "Current version $CurrentVersion is not installed in $Name cache yet: $CurrentCache"
-    return
-  }
-
-  $OldCaches = @(Get-ChildItem $ResolvedCacheRoot -Directory | Where-Object { $_.Name -ne $CurrentVersion })
+  $OldCaches = @(Get-ChildItem $ResolvedCacheRoot -Directory | Where-Object { $_.Name -match '^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$' -and $_.Name -ne $CurrentVersion })
   if (-not $OldCaches) {
     Write-Host "No old Usora $Name plugin caches to clean."
     return
@@ -61,6 +58,12 @@ function Clear-UsoraCache($Name, $CacheRoot) {
   }
 
   Write-Host "Removed $($OldCaches.Count) old Usora $Name plugin cache(s). Kept $CurrentVersion."
+}
+
+function Clear-UsoraCache($Name, $CacheRoots) {
+  foreach ($CacheRoot in $CacheRoots) {
+    Clear-UsoraCacheRoot $Name $CacheRoot
+  }
 }
 
 $Targets = if ($HostName -eq "all") { @("codex", "codebuddy") } else { @($HostName) }

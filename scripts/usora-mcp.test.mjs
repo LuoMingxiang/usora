@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdtemp, readFile, readdir, rm, access } from "node:fs/promises";
+import { mkdtemp, readFile, readdir, rm, access, mkdir, cp } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import test from "node:test";
@@ -100,6 +100,62 @@ test("hub_init uses host plugin data when CodeBuddy provides it", async (t) => {
   const init = JSON.parse(responses[1].result.content[0].text);
   assert.equal(init.hub, path.join(pluginData, ".usora"));
   await access(path.join(pluginData, ".usora", "config.json"));
+  await assert.rejects(access(path.join(cwd, ".usora")));
+});
+
+test("hub_init avoids the project when only CodeBuddy plugin root is provided", async (t) => {
+  const cwd = await mkdtemp(path.join(os.tmpdir(), "usora-mcp-cwd-"));
+  const pluginRoot = await mkdtemp(path.join(os.tmpdir(), "usora-mcp-root-"));
+  const dataRoot = path.join(os.homedir(), ".codebuddy", "plugins", "data", "usora", ".usora");
+  t.after(() => rm(cwd, { recursive: true, force: true }));
+  t.after(() => rm(pluginRoot, { recursive: true, force: true }));
+  t.after(() => rm(dataRoot, { recursive: true, force: true }));
+
+  const responses = await run(
+    cwd,
+    [initialize, { jsonrpc: "2.0", id: 2, method: "tools/call", params: { name: "hub_init", arguments: {} } }],
+    { CODEBUDDY_PLUGIN_ROOT: pluginRoot, CODEBUDDY_PLUGIN_DATA: "" },
+  );
+
+  const init = JSON.parse(responses[1].result.content[0].text);
+  assert.equal(init.hub, dataRoot);
+  await assert.rejects(access(path.join(cwd, ".usora")));
+});
+
+test("hub_init detects CodeBuddy marketplace installs without env vars", async (t) => {
+  const cwd = await mkdtemp(path.join(os.tmpdir(), "usora-mcp-cwd-"));
+  const marketplaceRoot = path.join(os.homedir(), ".codebuddy", "plugins", "marketplaces", "usora-test");
+  const dataRoot = path.join(os.homedir(), ".codebuddy", "plugins", "data", "usora", ".usora");
+  await rm(marketplaceRoot, { recursive: true, force: true });
+  await mkdir(path.join(marketplaceRoot, "scripts"), { recursive: true });
+  await mkdir(path.join(marketplaceRoot, "src"), { recursive: true });
+  await cp(path.resolve("scripts/usora-mcp.mjs"), path.join(marketplaceRoot, "scripts", "usora-mcp.mjs"));
+  await cp(path.resolve("src"), path.join(marketplaceRoot, "src"), { recursive: true });
+  t.after(() => rm(cwd, { recursive: true, force: true }));
+  t.after(() => rm(marketplaceRoot, { recursive: true, force: true }));
+  t.after(() => rm(dataRoot, { recursive: true, force: true }));
+
+  const child = spawn(process.execPath, [path.join(marketplaceRoot, "scripts", "usora-mcp.mjs")], {
+    cwd,
+    stdio: ["pipe", "pipe", "inherit"],
+  });
+  const output = await new Promise((resolve, reject) => {
+    let text = "";
+    child.stdout.on("data", (chunk) => {
+      text += chunk;
+    });
+    child.once("error", reject);
+    child.once("close", (code) => (code === 0 ? resolve(text) : reject(Error(`server exited ${code}`))));
+    child.stdin.end(
+      [initialize, { jsonrpc: "2.0", id: 2, method: "tools/call", params: { name: "hub_init", arguments: {} } }]
+        .map(JSON.stringify)
+        .join("\n") + "\n",
+    );
+  });
+
+  const responses = output.trim().split("\n").map(JSON.parse);
+  const init = JSON.parse(responses[1].result.content[0].text);
+  assert.equal(init.hub, dataRoot);
   await assert.rejects(access(path.join(cwd, ".usora")));
 });
 
