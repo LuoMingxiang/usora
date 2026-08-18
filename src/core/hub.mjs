@@ -96,7 +96,7 @@ export async function handleHubConfig(args) {
  * @returns {Promise<object>} Hub path, config, and per-collection counts.
  */
 export async function handleHubStatus() {
-  const count = async (dir) => (await fs.readdir(await dirPath(dir))).length;
+  const count = async (dir) => (await fs.readdir(await dirPath(dir)).catch(() => [])).length;
   const activities = await count("activities");
   const candidates = await count("candidates");
   const skills = await count("skills");

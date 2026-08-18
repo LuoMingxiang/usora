@@ -11,7 +11,7 @@ Maintain one Activity per AI session. After substantive progress, call `activity
 
 ## Natural-language mapping
 
-- “Initialize my Skill Hub” → MCP tool `hub_init` (creates the Hub under the default `<cwd>/.usora`, or the previously relocated directory)
+- “Initialize my Skill Hub” → MCP tool `hub_init` (creates the Hub under the stable host data directory, local fallback `<cwd>/.usora`, or the previously relocated directory)
 - “Configure my Maintainer or automation policy” → MCP tool `hub_config`
 - “Move/relocate my Usora data to `<path>`” → MCP tool `hub_config` with `path` (moves existing data and clears the old directory)
 - “Show my Skill Hub status” → MCP tool `hub_status`, then present the canonical status summary below
@@ -35,7 +35,7 @@ Maintain one Activity per AI session. After substantive progress, call `activity
 
 ## Initialization
 
-Initialization is simple: call `hub_init` (no `path`). It creates the Hub under the default directory `<cwd>/.usora`, or under the directory the user previously relocated to. Never create sample data. Optionally pass `maintainer`/`automation_policy` to set them at the same time.
+Initialization is simple: call `hub_init` (no `path`). It creates the Hub under the stable host data directory (`~/.codex/plugins/data/usora/.usora` or `~/.codebuddy/plugins/data/usora/.usora`), under local fallback `<cwd>/.usora`, or under the directory the user previously relocated to. Never create sample data. Optionally pass `maintainer`/`automation_policy` to set them at the same time.
 
 ## Status summary
 
@@ -91,6 +91,6 @@ Record task, context, key_points, approach, result, technologies, outcome, sourc
 
 ## Sync behavior
 
-Use MCP tools for initialization, Activity capture, Candidate review, and publication. Initialization uses the default `<cwd>/.usora` directory (or the directory the user relocated to); the `USORA_HOME` environment variable is not used. Initialization never creates sample data.
+Use MCP tools for initialization, Activity capture, Candidate review, and publication. Initialization uses the stable host data directory (or the directory the user relocated to); local/manual MCP runs fall back to `<cwd>/.usora`. The `USORA_HOME` environment variable is not used. Initialization never creates sample data.
 
 Candidates can be explicitly evaluated before publication. Publishing updates the single current Skill in place and records its `revision`, Maintainer, and publication time; do not create version directories.

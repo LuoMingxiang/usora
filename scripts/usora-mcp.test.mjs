@@ -332,6 +332,23 @@ test("hub_status suggests the next lifecycle action from counts", async (t) => {
   assert.equal(JSON.parse(responses[8].result.content[0].text).next_action, "review_or_cleanup");
 });
 
+test("hub_status works before explicit hub_init", async (t) => {
+  const cwd = await mkdtemp(path.join(os.tmpdir(), "usora-mcp-"));
+  t.after(() => rm(cwd, { recursive: true, force: true }));
+
+  const responses = await run(cwd, [
+    initialize,
+    { jsonrpc: "2.0", id: 2, method: "tools/call", params: { name: "hub_status", arguments: {} } },
+  ]);
+
+  const status = JSON.parse(responses[1].result.content[0].text);
+  assert.equal(status.hub, path.join(cwd, ".usora"));
+  assert.equal(status.activities, 0);
+  assert.equal(status.candidates, 0);
+  assert.equal(status.skills, 0);
+  assert.equal(status.next_action, "capture_activity");
+});
+
 test("skill_list returns recent Skill metadata without content", async (t) => {
   const cwd = await mkdtemp(path.join(os.tmpdir(), "usora-mcp-"));
   t.after(() => rm(cwd, { recursive: true, force: true }));
