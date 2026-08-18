@@ -75,6 +75,9 @@ test("hub_init uses the default .usora directory and merges activities", async (
   const init = JSON.parse(responses[1].result.content[0].text);
   assert.equal(init.hub, path.join(cwd, ".usora"));
   assert.equal(init.initialized, true);
+  for (const dir of ["activities", "candidates", "skills", "archive", "events"]) {
+    await access(path.join(cwd, ".usora", dir));
+  }
 
   assert.match(responses[4].error.message, /letters, numbers, and hyphens/);
 

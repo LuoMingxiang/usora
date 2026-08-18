@@ -26,6 +26,7 @@ export async function handleHubInit(args = {}) {
   await saveConfig(config);
   const home = await resolveHome(config);
   await fs.mkdir(home, { recursive: true });
+  await Promise.all(DIRS.map((dir) => fs.mkdir(path.join(home, dir), { recursive: true })));
   return {
     initialized: true,
     hub: home,
