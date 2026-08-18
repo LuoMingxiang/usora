@@ -74,6 +74,7 @@ test("hub_init uses the default .usora directory and merges activities", async (
 
   const init = JSON.parse(responses[1].result.content[0].text);
   assert.equal(init.hub, path.join(cwd, ".usora"));
+  assert.equal(init.data_path, path.join(cwd, ".usora"));
   assert.equal(init.initialized, true);
   for (const dir of ["activities", "candidates", "skills", "archive", "events"]) {
     await access(path.join(cwd, ".usora", dir));
@@ -102,6 +103,7 @@ test("hub_init uses host plugin data when CodeBuddy provides it", async (t) => {
 
   const init = JSON.parse(responses[1].result.content[0].text);
   assert.equal(init.hub, path.join(pluginData, ".usora"));
+  assert.equal(init.data_path, path.join(pluginData, ".usora"));
   await access(path.join(pluginData, ".usora", "config.json"));
   await assert.rejects(access(path.join(cwd, ".usora")));
 });
@@ -123,6 +125,7 @@ test("hub_init avoids the project when only CodeBuddy plugin root is provided", 
 
   const init = JSON.parse(responses[1].result.content[0].text);
   assert.equal(init.hub, dataRoot);
+  assert.equal(init.data_path, dataRoot);
   await assert.rejects(access(path.join(cwd, ".usora")));
 });
 
@@ -161,6 +164,7 @@ test("hub_init detects CodeBuddy marketplace installs without env vars", async (
   const responses = output.trim().split("\n").map(JSON.parse);
   const init = JSON.parse(responses[1].result.content[0].text);
   assert.equal(init.hub, dataRoot);
+  assert.equal(init.data_path, dataRoot);
   await assert.rejects(access(path.join(cwd, ".usora")));
 });
 
@@ -198,6 +202,7 @@ test("hub_init detects Codex cache installs without env vars", async (t) => {
   const responses = output.trim().split("\n").map(JSON.parse);
   const init = JSON.parse(responses[1].result.content[0].text);
   assert.equal(init.hub, dataRoot);
+  assert.equal(init.data_path, dataRoot);
   await assert.rejects(access(path.join(pluginRoot, ".usora")));
 });
 
@@ -246,6 +251,7 @@ test("hub_init migrates legacy plugin-local data into stable host data", async (
   const responses = output.trim().split("\n").map(JSON.parse);
   const status = JSON.parse(responses[2].result.content[0].text);
   assert.equal(status.hub, dataRoot);
+  assert.equal(status.data_path, dataRoot);
   const activity = JSON.parse(await readFile(path.join(dataRoot, "activities", "activity-legacy.json"), "utf8"));
   assert.equal(activity.result, "kept");
 });
@@ -284,6 +290,7 @@ test("hub_config with path moves data to the new directory and clears the old on
   // hub_status must report the new location.
   const status = JSON.parse(responses[4].result.content[0].text);
   assert.equal(status.hub, newDir);
+  assert.equal(status.data_path, newDir);
   assert.equal(status.activities, 1);
   assert.equal(status.next_action, "create_candidate");
 
@@ -343,10 +350,30 @@ test("hub_status works before explicit hub_init", async (t) => {
 
   const status = JSON.parse(responses[1].result.content[0].text);
   assert.equal(status.hub, path.join(cwd, ".usora"));
+  assert.equal(status.data_path, path.join(cwd, ".usora"));
   assert.equal(status.activities, 0);
   assert.equal(status.candidates, 0);
   assert.equal(status.skills, 0);
   assert.equal(status.next_action, "capture_activity");
+});
+
+test("hub_config returns data_path without relocation", async (t) => {
+  const cwd = await mkdtemp(path.join(os.tmpdir(), "usora-mcp-"));
+  t.after(() => rm(cwd, { recursive: true, force: true }));
+
+  const responses = await run(cwd, [
+    initialize,
+    { jsonrpc: "2.0", id: 2, method: "tools/call", params: { name: "hub_init", arguments: {} } },
+    {
+      jsonrpc: "2.0",
+      id: 3,
+      method: "tools/call",
+      params: { name: "hub_config", arguments: { maintainer: "owner" } },
+    },
+  ]);
+
+  const configOnly = JSON.parse(responses[2].result.content[0].text);
+  assert.equal(configOnly.data_path, path.join(cwd, ".usora"));
 });
 
 test("skill_list returns recent Skill metadata without content", async (t) => {
@@ -436,6 +463,7 @@ test("read-side tools complete the Hub lifecycle view", async (t) => {
 
   const doctor = JSON.parse(responses[9].result.content[0].text);
   assert.equal(doctor.ok, true);
+  assert.equal(doctor.data_path, path.join(cwd, ".usora"));
   assert.equal(doctor.counts.activities, 1);
   assert.equal(doctor.counts.candidates, 1);
   assert.equal(doctor.counts.skills, 1);

@@ -30,6 +30,7 @@ export async function handleHubInit(args = {}) {
   return {
     initialized: true,
     hub: home,
+    data_path: home,
     config_path: path.join(anchorHome, "config.json"),
     maintainer: config.maintainer,
     automation_policy: config.automation_policy,
@@ -83,11 +84,17 @@ export async function handleHubConfig(args) {
     return {
       ...saved,
       hub: newHome,
+      data_path: newHome,
       moved_from: movedFrom,
       config_path: path.join(anchorHome, "config.json"),
     };
   }
-  return saved;
+  return {
+    ...saved,
+    hub: await resolveHome(saved),
+    data_path: await resolveHome(saved),
+    config_path: path.join(anchorHome, "config.json"),
+  };
 }
 
 /**
@@ -96,6 +103,8 @@ export async function handleHubConfig(args) {
  * @returns {Promise<object>} Hub path, config, and per-collection counts.
  */
 export async function handleHubStatus() {
+  const config = await loadConfig();
+  const home = await resolveHome(config);
   const count = async (dir) => (await fs.readdir(await dirPath(dir)).catch(() => [])).length;
   const activities = await count("activities");
   const candidates = await count("candidates");
@@ -109,9 +118,10 @@ export async function handleHubStatus() {
           ? "create_skill"
           : "review_or_cleanup";
   return {
-    hub: await resolveHome(),
+    hub: home,
+    data_path: home,
     config_path: path.join(anchorHome, "config.json"),
-    config: await loadConfig(),
+    config,
     activities,
     candidates,
     skills,
@@ -162,6 +172,7 @@ async function cleanAll() {
     mode: "all",
     counts,
     hub: home,
+    data_path: home,
     config_path: path.join(anchorHome, "config.json"),
     action: "deleted_all_hub_data",
   };
@@ -218,6 +229,7 @@ export async function handleHubDoctor() {
   return {
     ok: checks.every((check) => check.ok),
     hub: home,
+    data_path: home,
     config_path: path.join(anchorHome, "config.json"),
     config,
     counts,

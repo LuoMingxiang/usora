@@ -168,7 +168,7 @@ The default data directory is stable across plugin upgrades: `~/.codex/plugins/d
 
 To move data elsewhere, call `hub_config` with a `path` argument, either absolute or relative to the workspace. Usora moves existing records into the new directory, clears the old record folders, and persists the new location in `config.json` as `hub_path`.
 
-`hub_status` reports both the resolved `hub` directory and `config_path`.
+`hub_status` reports the resolved `hub` directory, explicit `data_path`, and `config_path`.
 It also returns `next_action`, a small lifecycle hint:
 
 ```text
@@ -184,6 +184,7 @@ A human-readable status summary should keep this order:
 Usora Hub
 Status: initialized
 Data: <hub>
+Data path: <data_path>
 Config: <config_path>
 Maintainer: <config.maintainer>
 Policy: <config.automation_policy>

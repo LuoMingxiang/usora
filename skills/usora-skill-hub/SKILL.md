@@ -15,7 +15,7 @@ Maintain one Activity per AI session. After substantive progress, call `activity
 - “Configure my Maintainer or automation policy” → MCP tool `hub_config`
 - “Move/relocate my Usora data to `<path>`” → MCP tool `hub_config` with `path` (moves existing data and clears the old directory)
 - “Show my Skill Hub status” → MCP tool `hub_status`, then present the canonical status summary below
-- “Where is my Usora data stored?” → MCP tool `hub_status`, then tell the user the `hub` and `config_path` fields
+- “Where is my Usora data stored?” → MCP tool `hub_status`, then tell the user the `data_path`, `hub`, and `config_path` fields
 - “Check my Skill Hub health” → MCP tool `hub_doctor`
 - “Clean up generated Activities” → MCP tool `hub_cleanup` with `mode: generated`
 - “Clean everything” → MCP tool `hub_cleanup` with `mode: all, confirm: true` (deletes all Hub data but keeps the data directory and config)
@@ -45,6 +45,7 @@ When reporting `hub_status`, use this stable human-readable order:
 Usora Hub
 Status: initialized
 Data: <hub>
+Data path: <data_path>
 Config: <config_path>
 Maintainer: <config.maintainer>
 Policy: <config.automation_policy>
@@ -73,13 +74,13 @@ If the installed MCP server does not return `next_action` yet, infer it from cou
 
 ## Relocating data
 
-When the user wants to move their data to a different directory, call `hub_config` with `path` set to the new directory (absolute or relative to the workspace). This MOVES all existing records (activities, candidates, skills, archive, events) into the new directory and clears the old directory, then persists the new location in `config.hub_path`. Confirm back the `hub`, `moved_from`, and `config_path` from the result. The `USORA_HOME` environment variable is not used.
+When the user wants to move their data to a different directory, call `hub_config` with `path` set to the new directory (absolute or relative to the workspace). This MOVES all existing records (activities, candidates, skills, archive, events) into the new directory and clears the old directory, then persists the new location in `config.hub_path`. Confirm back the `data_path`, `hub`, `moved_from`, and `config_path` from the result. The `USORA_HOME` environment variable is not used.
 
 ## Uninstalling / cleanup behavior
 
 The plugin host (e.g. Codex) removes the plugin itself; Usora does not delete data on uninstall. To help the user fully clean up:
 
-1. Call `hub_status` and tell the user where their data lives (`hub`) and where the config file is (`config_path`).
+1. Call `hub_status` and tell the user where their data lives (`data_path`/`hub`) and where the config file is (`config_path`).
 2. On request, clear the data with `hub_cleanup` `mode: all, confirm: true` — this empties all records/Skills/events but keeps the data directory and config, so the path remains discoverable.
 3. Inform the user that the (now empty) data directory itself can be removed manually if they no longer want it.
 

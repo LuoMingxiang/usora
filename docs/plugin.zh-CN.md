@@ -168,7 +168,7 @@ Capture this session into Usora
 
 如需移动数据，调用 `hub_config` 并传入 `path`，可以是绝对路径，也可以是相对 workspace 的路径。Usora 会把已有记录移动到新目录，清理旧记录文件夹，并把新位置以 `hub_path` 写入 `config.json`。
 
-`hub_status` 会返回解析后的 `hub` 目录和 `config_path`。它也会返回 `next_action`，作为轻量生命周期提示：
+`hub_status` 会返回解析后的 `hub` 目录、明确的 `data_path` 和 `config_path`。它也会返回 `next_action`，作为轻量生命周期提示：
 
 ```text
 capture_activity -> Capture this session
@@ -183,6 +183,7 @@ review_or_cleanup -> Review Skills or clean processed Activities
 Usora Hub
 Status: initialized
 Data: <hub>
+Data path: <data_path>
 Config: <config_path>
 Maintainer: <config.maintainer>
 Policy: <config.automation_policy>

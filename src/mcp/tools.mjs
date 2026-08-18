@@ -20,7 +20,7 @@ export const tools = [
   {
     name: "hub_status",
     description:
-      "Inspect Hub counts and configuration without loading all Activities. Returns the resolved data directory (hub), config path, counts, and next_action lifecycle hint so the user knows where data lives and what to do next.",
+      "Inspect Hub counts and configuration without loading all Activities. Returns the resolved Hub directory, explicit data_path, config path, counts, and next_action lifecycle hint so the user knows where data lives and what to do next.",
     inputSchema: { type: "object", properties: {} },
   },
   {
