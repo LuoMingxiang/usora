@@ -134,7 +134,9 @@ During local development, test the plugin directly:
 codebuddy --plugin-dir .
 ```
 
-CodeBuddy loads Usora from the root-level `.codebuddy-plugin/plugin.json`, which declares `skills` and `mcpServers: "./.codebuddy-plugin/mcp.json"`. That MCP config uses `${CODEBUDDY_PLUGIN_ROOT}` so the VS Code extension does not resolve `scripts/usora-mcp.mjs` relative to the VS Code install directory. After loading, try:
+Codex loads Usora through `.codex-plugin/plugin.json`, which declares `mcpServers: "./.codex-plugin/mcp.json"`. That MCP config uses `${PLUGIN_ROOT}`.
+
+CodeBuddy loads Usora through `.codebuddy-plugin/plugin.json`, which declares `skills` and `mcpServers: "./.codebuddy-plugin/mcp.json"`. That MCP config uses `${CODEBUDDY_PLUGIN_ROOT}` so the VS Code extension does not resolve `scripts/usora-mcp.mjs` relative to the VS Code install directory. After loading, try:
 
 ```text
 Show Usora status

@@ -8,14 +8,14 @@
   "description": "Usora plugins for AI agent hosts.",
   "metadata": {
     "description": "A local-first personal capability layer that turns real AI work into reusable, evolving Skills.",
-    "version": "0.3.3"
+    "version": "0.3.4"
   },
   "plugins": [
     {
       "name": "usora",
       "source": ".",
       "description": "Turn AI work practice into a local-first reusable Skill Hub.",
-      "version": "0.3.3",
+      "version": "0.3.4",
       "author": {
         "name": "Veyra"
       },

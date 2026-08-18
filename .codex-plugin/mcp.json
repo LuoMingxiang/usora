@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "usora": {
+      "command": "node",
+      "args": ["${PLUGIN_ROOT}/scripts/usora-mcp.mjs"]
+    }
+  }
+}

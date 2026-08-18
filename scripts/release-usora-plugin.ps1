@@ -93,7 +93,7 @@ $Plugin.version = $NewVersion
 Write-Json $CodeBuddyMarketplacePath $CodeBuddyMarketplace
 Write-Host "Synced version: $CodeBuddyMarketplacePath"
 
-npx prettier --write .codex-plugin/plugin.json .codebuddy-plugin/plugin.json .codebuddy-plugin/marketplace.json .codebuddy-plugin/mcp.json package.json
+npx prettier --write .codex-plugin/plugin.json .codex-plugin/mcp.json .codebuddy-plugin/plugin.json .codebuddy-plugin/marketplace.json .codebuddy-plugin/mcp.json package.json
 Write-Host "Updated plugin version: $OldVersion -> $NewVersion"
 npm run validate
 npm test

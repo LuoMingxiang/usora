@@ -134,7 +134,9 @@ codebuddy plugin install usora@usora
 codebuddy --plugin-dir .
 ```
 
-CodeBuddy 会从根目录的 `.codebuddy-plugin/plugin.json` 加载 Usora；其中显式声明了 `skills` 和 `mcpServers: "./.codebuddy-plugin/mcp.json"`。这个 MCP 配置使用 `${CODEBUDDY_PLUGIN_ROOT}`，避免 VS Code 插件把 `scripts/usora-mcp.mjs` 解析到 VS Code 安装目录。加载后可以试：
+Codex 会通过 `.codex-plugin/plugin.json` 加载 Usora；其中显式声明 `mcpServers: "./.codex-plugin/mcp.json"`，这个 MCP 配置使用 `${PLUGIN_ROOT}`。
+
+CodeBuddy 会通过 `.codebuddy-plugin/plugin.json` 加载 Usora；其中显式声明 `skills` 和 `mcpServers: "./.codebuddy-plugin/mcp.json"`。这个 MCP 配置使用 `${CODEBUDDY_PLUGIN_ROOT}`，避免 VS Code 插件把 `scripts/usora-mcp.mjs` 解析到 VS Code 安装目录。加载后可以试：
 
 ```text
 Show Usora status
