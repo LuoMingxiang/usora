@@ -7,16 +7,15 @@ codex plugin marketplace add https://github.com/LuoMingxiang/usora.git
 codex plugin add usora@usora
 ```
 
-Usora 通过 `.codex-plugin/plugin.json` 加载，并指向 `.codex-plugin/mcp.json`。
+Usora 通过 `.codex-plugin/plugin.json` 加载，并指向根目录 `.mcp.json`。
 MCP 配置使用：
 
 ```json
 {
-  "mcpServers": {
-    "usora": {
-      "command": "node",
-      "args": ["${PLUGIN_ROOT}/scripts/usora-mcp.mjs"]
-    }
+  "usora": {
+    "command": "node",
+    "args": ["scripts/usora-mcp.mjs"],
+    "cwd": "."
   }
 }
 ```

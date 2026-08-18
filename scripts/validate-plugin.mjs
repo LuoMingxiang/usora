@@ -28,7 +28,6 @@ const portable = await json("plugin.json");
 const pkg = await json("package.json");
 const marketplaceTemplate = await json("common/marketplace.json");
 const mcp = await json(".mcp.json");
-const codexMcp = await json(".codex-plugin/mcp.json");
 const codebuddyMcp = await json(".codebuddy-plugin/mcp.json");
 
 assert.equal(codex.name, "usora");
@@ -46,7 +45,7 @@ assert.equal(portable.author.name, "Veyra");
 assert.equal(marketplaceTemplate.owner.name, "Veyra");
 
 await exists(codex.skills);
-assert.equal(codex.mcpServers, "./.codex-plugin/mcp.json");
+assert.equal(codex.mcpServers, "./.mcp.json");
 await exists(codex.mcpServers);
 
 assert.deepEqual(codebuddy.skills, ["./skills/usora-skill-hub"]);
@@ -54,16 +53,14 @@ assert.equal(codebuddy.mcpServers, "./.codebuddy-plugin/mcp.json");
 assert.equal(codebuddy.commands, undefined);
 await exists(codebuddy.skills[0]);
 await exists(codebuddy.mcpServers);
+await assert.rejects(access(path.join(root, ".codex-plugin/mcp.json")));
 
-assert.equal(mcp.mcpServers.usora.command, "node");
-assert.deepEqual(mcp.mcpServers.usora.args, ["scripts/usora-mcp.mjs"]);
-assert.equal(mcp.mcpServers.usora.cwd, ".");
+assert.equal(mcp.usora.command, "node");
+assert.deepEqual(mcp.usora.args, ["scripts/usora-mcp.mjs"]);
+assert.equal(mcp.usora.cwd, ".");
 await exists("scripts/usora-mcp.mjs");
 await exists("src/mcp/server.mjs");
 assert.match(await readFile(path.join(root, "scripts/usora-mcp.mjs"), "utf8"), /src\/mcp\/server\.mjs/);
-
-assert.equal(codexMcp.mcpServers.usora.command, "node");
-assert.deepEqual(codexMcp.mcpServers.usora.args, ["${PLUGIN_ROOT}/scripts/usora-mcp.mjs"]);
 
 assert.equal(codebuddyMcp.mcpServers.usora.command, "node");
 assert.deepEqual(codebuddyMcp.mcpServers.usora.args, ["${CODEBUDDY_PLUGIN_ROOT}/scripts/usora-mcp.mjs"]);

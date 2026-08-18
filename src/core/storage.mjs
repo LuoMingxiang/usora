@@ -9,18 +9,23 @@ import crypto from "node:crypto";
 /**
  * Anchor directory that always holds `config.json`.
  *
- * This must be a _fixed_ location so the config can be found before it has told us where the user wants their data. It
- * is `<cwd>/.usora`, which is also the default data directory until the user relocates it.
+ * This must be a _fixed_ location so the config can be found before it has told us where the user wants their data.
+ * Host-provided plugin data directories keep Usora out of the user's project; local development falls back to
+ * `<cwd>/.usora`.
  *
  * @type {string}
  */
-export const anchorHome = path.resolve(process.cwd(), ".usora");
+export const anchorHome = process.env.CODEBUDDY_PLUGIN_DATA
+  ? path.resolve(process.env.CODEBUDDY_PLUGIN_DATA, ".usora")
+  : process.env.PLUGIN_DATA
+    ? path.resolve(process.env.PLUGIN_DATA, ".usora")
+    : path.resolve(process.cwd(), ".usora");
 
 /**
  * Resolve the absolute path to the local data Hub.
  *
- * Defaults to the anchor directory `<cwd>/.usora`; once the user relocates via `hub_config` (`hub_path`), that
- * directory is used instead.
+ * Defaults to the anchor directory; once the user relocates via `hub_config` (`hub_path`), that directory is used
+ * instead.
  *
  * @param {object} [config] - Loaded Hub config, if already available.
  * @returns {Promise<string>} Absolute Hub path.

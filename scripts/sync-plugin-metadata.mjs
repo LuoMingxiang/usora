@@ -42,7 +42,7 @@ await writeJson(".codex-plugin/plugin.json", {
   homepage: manifest.homepage,
   repository: manifest.repository,
   skills: "./skills/",
-  mcpServers: "./.codex-plugin/mcp.json",
+  mcpServers: "./.mcp.json",
   interface: manifest.interface,
 });
 

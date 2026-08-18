@@ -79,7 +79,7 @@ if ($Version) {
 Set-Version $PortableManifestPath $NewVersion
 
 node scripts/plugin.mjs sync
-npx prettier --write plugin.json common/marketplace.json marketplace.json .agents/plugins/marketplace.json .codex-plugin/plugin.json .codex-plugin/mcp.json .codebuddy-plugin/plugin.json .codebuddy-plugin/marketplace.json .codebuddy-plugin/mcp.json package.json
+npx prettier --write plugin.json common/marketplace.json marketplace.json .agents/plugins/marketplace.json .mcp.json .codex-plugin/plugin.json .codebuddy-plugin/plugin.json .codebuddy-plugin/marketplace.json .codebuddy-plugin/mcp.json package.json
 Write-Host "Updated plugin version: $OldVersion -> $NewVersion"
 npm run validate
 npm test

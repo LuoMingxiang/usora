@@ -5,7 +5,7 @@ Usora follows a single canonical plugin payload with thin host adapters.
 | Host           | Manifest                        | Marketplace                          | MCP config                   |
 | :------------- | :------------------------------ | :----------------------------------- | :--------------------------- |
 | Community/root | `plugin.json`                   | `marketplace.json`                   | `.mcp.json`                  |
-| Codex          | `.codex-plugin/plugin.json`     | `.agents/plugins/marketplace.json`   | `.codex-plugin/mcp.json`     |
+| Codex          | `.codex-plugin/plugin.json`     | `.agents/plugins/marketplace.json`   | `.mcp.json`                  |
 | CodeBuddy      | `.codebuddy-plugin/plugin.json` | `.codebuddy-plugin/marketplace.json` | `.codebuddy-plugin/mcp.json` |
 
 ## Source of Truth

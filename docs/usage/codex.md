@@ -7,16 +7,15 @@ codex plugin marketplace add https://github.com/LuoMingxiang/usora.git
 codex plugin add usora@usora
 ```
 
-Usora is loaded through `.codex-plugin/plugin.json`, which points to `.codex-plugin/mcp.json`.
+Usora is loaded through `.codex-plugin/plugin.json`, which points to the root `.mcp.json`.
 The MCP config starts:
 
 ```json
 {
-  "mcpServers": {
-    "usora": {
-      "command": "node",
-      "args": ["${PLUGIN_ROOT}/scripts/usora-mcp.mjs"]
-    }
+  "usora": {
+    "command": "node",
+    "args": ["scripts/usora-mcp.mjs"],
+    "cwd": "."
   }
 }
 ```

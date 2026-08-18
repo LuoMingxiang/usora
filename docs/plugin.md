@@ -139,7 +139,7 @@ During local development, test the plugin directly:
 codebuddy --plugin-dir .
 ```
 
-Codex loads Usora through `.codex-plugin/plugin.json`, which declares `mcpServers: "./.codex-plugin/mcp.json"`. That MCP config uses `${PLUGIN_ROOT}`.
+Codex loads Usora through `.codex-plugin/plugin.json`, which declares `mcpServers: "./.mcp.json"`. Keep `.mcp.json` at the plugin root so Codex resolves the bundled MCP server from the installed plugin.
 
 CodeBuddy loads Usora through `.codebuddy-plugin/plugin.json`, which declares `skills` and `mcpServers: "./.codebuddy-plugin/mcp.json"`. That MCP config uses `${CODEBUDDY_PLUGIN_ROOT}` so the VS Code extension does not resolve `scripts/usora-mcp.mjs` relative to the VS Code install directory. After loading, try:
 
@@ -164,7 +164,7 @@ Manual MCP fallback for hosts that support MCP but not plugin marketplaces:
 
 ## Data
 
-The default data directory is `<cwd>/.usora`. The `USORA_HOME` environment variable is not supported.
+The default data directory is the host plugin data directory when `CODEBUDDY_PLUGIN_DATA` or `PLUGIN_DATA` is available. Local/manual MCP runs fall back to `<cwd>/.usora`. The `USORA_HOME` environment variable is not supported.
 
 To move data elsewhere, call `hub_config` with a `path` argument, either absolute or relative to the workspace. Usora moves existing records into the new directory, clears the old record folders, and persists the new location in `config.json` as `hub_path`.
 
@@ -204,7 +204,7 @@ Next useful action: <next_action label>
 ├── archive/
 └── events/
 
-<cwd>/.usora/config.json   # config file
+<anchor>/config.json       # config file
 ```
 
 If the host does not provide a stable `session_id`, Usora generates a process-scoped ID with a time-ordered prefix and 128-bit random salt so repeated captures in one MCP process update one Activity.

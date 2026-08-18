@@ -139,7 +139,7 @@ codebuddy plugin install usora@usora
 codebuddy --plugin-dir .
 ```
 
-Codex 会通过 `.codex-plugin/plugin.json` 加载 Usora；其中显式声明 `mcpServers: "./.codex-plugin/mcp.json"`，这个 MCP 配置使用 `${PLUGIN_ROOT}`。
+Codex 会通过 `.codex-plugin/plugin.json` 加载 Usora；其中显式声明 `mcpServers: "./.mcp.json"`。`.mcp.json` 保持在插件根目录，让 Codex 从已安装插件中解析 bundled MCP server。
 
 CodeBuddy 会通过 `.codebuddy-plugin/plugin.json` 加载 Usora；其中显式声明 `skills` 和 `mcpServers: "./.codebuddy-plugin/mcp.json"`。这个 MCP 配置使用 `${CODEBUDDY_PLUGIN_ROOT}`，避免 VS Code 插件把 `scripts/usora-mcp.mjs` 解析到 VS Code 安装目录。加载后可以试：
 
@@ -164,7 +164,7 @@ Capture this session into Usora
 
 ## 数据
 
-默认数据目录是 `<cwd>/.usora`。目前不支持 `USORA_HOME` 环境变量。
+默认数据目录会优先使用宿主提供的插件数据目录：`CODEBUDDY_PLUGIN_DATA` 或 `PLUGIN_DATA`。本地/手动 MCP 运行时 fallback 到 `<cwd>/.usora`。目前不支持 `USORA_HOME` 环境变量。
 
 如需移动数据，调用 `hub_config` 并传入 `path`，可以是绝对路径，也可以是相对 workspace 的路径。Usora 会把已有记录移动到新目录，清理旧记录文件夹，并把新位置以 `hub_path` 写入 `config.json`。
 
@@ -203,7 +203,7 @@ Next useful action: <next_action label>
 ├── archive/
 └── events/
 
-<cwd>/.usora/config.json   # config file
+<anchor>/config.json       # config file
 ```
 
 如果宿主没有提供稳定的 `session_id`，Usora 会生成一个进程级 ID，包含时间有序前缀和 128-bit 随机盐。这样同一个 MCP 进程里的重复 capture 会更新同一条 Activity。

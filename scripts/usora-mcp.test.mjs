@@ -10,11 +10,13 @@ import { spawn } from "node:child_process";
  *
  * @param {string} cwd - Working directory for the server process.
  * @param {object[]} requests - JSON-RPC requests.
+ * @param {Record<string, string>} [env] - Extra environment variables.
  * @returns {Promise<object[]>}
  */
-async function run(cwd, requests) {
+async function run(cwd, requests, env = {}) {
   const child = spawn(process.execPath, [path.resolve("scripts/usora-mcp.mjs")], {
     cwd,
+    env: { ...process.env, ...env },
     stdio: ["pipe", "pipe", "inherit"],
   });
   const output = await new Promise((resolve, reject) => {
@@ -81,6 +83,24 @@ test("hub_init uses the default .usora directory and merges activities", async (
   assert.equal(activity.result, "updated");
   assert.deepEqual(activity.key_points, ["created", "updated"]);
   assert.equal(activity.updates.length, 2);
+});
+
+test("hub_init uses host plugin data when CodeBuddy provides it", async (t) => {
+  const cwd = await mkdtemp(path.join(os.tmpdir(), "usora-mcp-cwd-"));
+  const pluginData = await mkdtemp(path.join(os.tmpdir(), "usora-mcp-data-"));
+  t.after(() => rm(cwd, { recursive: true, force: true }));
+  t.after(() => rm(pluginData, { recursive: true, force: true }));
+
+  const responses = await run(
+    cwd,
+    [initialize, { jsonrpc: "2.0", id: 2, method: "tools/call", params: { name: "hub_init", arguments: {} } }],
+    { CODEBUDDY_PLUGIN_DATA: pluginData },
+  );
+
+  const init = JSON.parse(responses[1].result.content[0].text);
+  assert.equal(init.hub, path.join(pluginData, ".usora"));
+  await access(path.join(pluginData, ".usora", "config.json"));
+  await assert.rejects(access(path.join(cwd, ".usora")));
 });
 
 test("hub_config with path moves data to the new directory and clears the old one", async (t) => {

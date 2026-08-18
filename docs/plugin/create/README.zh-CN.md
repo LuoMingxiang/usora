@@ -5,7 +5,7 @@ Usora 采用一个 canonical plugin payload，加上薄宿主适配层。
 | 宿主           | Manifest                        | Marketplace                          | MCP 配置                     |
 | :------------- | :------------------------------ | :----------------------------------- | :--------------------------- |
 | Community/root | `plugin.json`                   | `marketplace.json`                   | `.mcp.json`                  |
-| Codex          | `.codex-plugin/plugin.json`     | `.agents/plugins/marketplace.json`   | `.codex-plugin/mcp.json`     |
+| Codex          | `.codex-plugin/plugin.json`     | `.agents/plugins/marketplace.json`   | `.mcp.json`                  |
 | CodeBuddy      | `.codebuddy-plugin/plugin.json` | `.codebuddy-plugin/marketplace.json` | `.codebuddy-plugin/mcp.json` |
 
 ## 单一事实源

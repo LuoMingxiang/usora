@@ -4,7 +4,7 @@ export const tools = [
   {
     name: "hub_init",
     description:
-      "Initialize the user's local Usora storage in the default directory (<cwd>/.usora) or the directory previously chosen via hub_config. Never create sample data. Optionally set maintainer/automation_policy.",
+      "Initialize the user's local Usora storage in the host plugin data directory, local fallback directory (<cwd>/.usora), or the directory previously chosen via hub_config. Never create sample data. Optionally set maintainer/automation_policy.",
     inputSchema: {
       type: "object",
       properties: {

@@ -1,9 +1,7 @@
 {
-  "mcpServers": {
-    "usora": {
-      "command": "node",
-      "args": ["scripts/usora-mcp.mjs"],
-      "cwd": "."
-    }
+  "usora": {
+    "command": "node",
+    "args": ["scripts/usora-mcp.mjs"],
+    "cwd": "."
   }
 }
