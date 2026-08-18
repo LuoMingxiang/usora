@@ -134,11 +134,11 @@ During local development, test the plugin directly:
 codebuddy --plugin-dir .
 ```
 
-CodeBuddy loads Usora from the root-level `.codebuddy-plugin/plugin.json`, `skills/`, `commands/`, and `.mcp.json`. After loading, try:
+CodeBuddy loads Usora from the root-level `.codebuddy-plugin/plugin.json`, which declares `skills` and `mcpServers: "./.mcp.json"`. After loading, try:
 
 ```text
-/usora:hub status
-/usora:hub capture this session
+Show Usora status
+Capture this session into Usora
 ```
 
 Manual MCP fallback for hosts that support MCP but not plugin marketplaces:

@@ -134,11 +134,11 @@ codebuddy plugin install usora@usora
 codebuddy --plugin-dir .
 ```
 
-CodeBuddy 会从根目录的 `.codebuddy-plugin/plugin.json`、`skills/`、`commands/` 和 `.mcp.json` 加载 Usora。加载后可以试：
+CodeBuddy 会从根目录的 `.codebuddy-plugin/plugin.json` 加载 Usora；其中显式声明了 `skills` 和 `mcpServers: "./.mcp.json"`。加载后可以试：
 
 ```text
-/usora:hub status
-/usora:hub capture this session
+Show Usora status
+Capture this session into Usora
 ```
 
 如果宿主支持 MCP 但不支持插件市场，可以手动配置 MCP：

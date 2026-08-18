@@ -1,6 +1,6 @@
 {
   "name": "usora",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "description": "A local-first personal capability layer that turns real AI work into reusable, evolving Skills.",
   "author": {
     "name": "Veyra",
@@ -11,6 +11,6 @@
   "license": "MIT",
   "keywords": ["personal-skill-hub", "mcp", "skills", "local-first", "ai-capability"],
   "category": "Productivity",
-  "commands": ["./commands/hub.md"],
-  "skills": ["./skills/usora-skill-hub"]
+  "skills": ["./skills/usora-skill-hub"],
+  "mcpServers": "./.mcp.json"
 }
