@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="plugins/usora/assets/usora.png" alt="Usora" width="520">
+  <img src="assets/usora.png" alt="Usora" width="520">
 </p>
 
 <p align="center">
@@ -8,16 +8,16 @@
 
 <p align="center">
   <a href="README.md">English</a> ·
-  <a href="plugins/usora/README.md">插件说明</a> ·
+  <a href="docs/plugin.zh-CN.md">插件说明</a> ·
   <a href="CONTRIBUTING.md">参与贡献</a>
 </p>
 
 # Usora
 
-Usora 是一个本地优先的 Codex 插件，也是 AI 时代的个人能力层。它的名字来自 _usus_（实践、使用、经验）与 _aura_（不可见的影响场）：由长期实践累积出来的能力场。Usora 会把有价值的会话上下文记录为 Activity，从重复模式中生成 Candidate，再由 Maintainer 评估并发布为可复用的 Skill，而不是把项目记忆交给云端服务。
+Usora 是一个本地优先插件，也是 AI 时代的个人能力层。目前提供 Codex 和 CodeBuddy 原生适配。它的名字来自 _usus_（实践、使用、经验）与 _aura_（不可见的影响场）：由长期实践累积出来的能力场。Usora 会把有价值的会话上下文记录为 Activity，从重复模式中生成 Candidate，再由 Maintainer 评估并发布为可复用的 Skill，而不是把项目记忆交给云端服务。
 
 <p align="center">
-  <img src="plugins/usora/assets/origin_zh.png" alt="Usora 名称由来：usus 加 aura" width="720">
+  <img src="assets/origin_zh.png" alt="Usora 名称由来：usus 加 aura" width="720">
 </p>
 
 ```text
@@ -25,7 +25,7 @@ Activity -> Candidate -> Skill Draft -> Evaluation -> Publish
 ```
 
 <p align="center">
-  <img src="plugins/usora/assets/work_zh.png" alt="Usora 如何把 AI 工作转化为可复用 Skill" width="720">
+  <img src="assets/work_zh.png" alt="Usora 如何把 AI 工作转化为可复用 Skill" width="720">
 </p>
 
 ## 为什么需要 Usora？
@@ -50,7 +50,7 @@ AI 助手常常会反复解决同一类本地工作流问题，但真正有价�
 
 ## 快速开始
 
-从 Codex 插件市场安装 `Usora` 后，可以直接对 Codex 说：
+从 Codex 或 CodeBuddy 插件市场安装 `Usora` 后，可以直接对 AI agent 说：
 
 ```text
 初始化我的 Usora
@@ -61,7 +61,34 @@ AI 助手常常会反复解决同一类本地工作流问题，但真正有价�
 
 默认情况下，Usora 会在 `<cwd>/.usora` 创建 Hub。之后如果想迁移数据目录，可以让 Codex 把 Usora 数据移到新的路径；插件会迁移已有记录，并把新位置保存到 `.usora/config.json`。
 
-更详细的插件使用、数据结构和清理说明见 [插件说明](plugins/usora/README.md)。
+更详细的插件使用、数据结构和清理说明见 [插件说明](docs/plugin.zh-CN.md)。
+
+## 仓库组织
+
+Usora 对齐社区插件组织方式：一个 canonical plugin payload，加上薄宿主适配层。
+
+```text
+plugin.json                            # community plugin entry
+skills/                                # canonical Skill instructions
+.mcp.json                              # shared MCP server entry
+.codex-plugin/                         # Codex adapter
+.codebuddy-plugin/                     # CodeBuddy adapter and marketplace metadata
+.agents/plugins/marketplace.json       # Codex-style marketplace metadata
+```
+
+### Codex
+
+```powershell
+codex plugin marketplace add https://github.com/LuoMingxiang/usora.git
+codex plugin add usora@usora
+```
+
+### CodeBuddy
+
+```powershell
+codebuddy plugin marketplace add https://github.com/LuoMingxiang/usora.git
+codebuddy plugin install usora@usora
+```
 
 ## MVP 边界
 

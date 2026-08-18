@@ -9,8 +9,11 @@ param(
 $ErrorActionPreference = "Stop"
 
 $Root = Resolve-Path (Join-Path $PSScriptRoot "..")
-$Plugin = Join-Path $Root "plugins/usora"
+$Plugin = $Root
 $ManifestPath = Join-Path $Plugin ".codex-plugin/plugin.json"
+$CodeBuddyManifestPath = Join-Path $Plugin ".codebuddy-plugin/plugin.json"
+$CodeBuddyMarketplacePath = Join-Path $Root ".codebuddy-plugin/marketplace.json"
+$PackagePath = Join-Path $Root "package.json"
 
 $RawManifest = Get-Content -Raw $ManifestPath
 $VersionMatch = [regex]::Match($RawManifest, '("version"\s*:\s*")([^"]+)(")')
@@ -61,6 +64,25 @@ $Manifest = $UpdatedManifest | ConvertFrom-Json
 
 Write-Host "Updated plugin version: $OldVersion -> $NewVersion"
 
+foreach ($VersionFile in @($CodeBuddyManifestPath, $PackagePath)) {
+  if (Test-Path $VersionFile) {
+    $Raw = Get-Content -Raw $VersionFile
+    $Match = [regex]::Match($Raw, '("version"\s*:\s*")([^"]+)(")')
+    if ($Match.Success) {
+      $Updated = $Raw.Substring(0, $Match.Groups[2].Index) + $NewVersion + $Raw.Substring($Match.Groups[2].Index + $Match.Groups[2].Length)
+      [System.IO.File]::WriteAllText($VersionFile, $Updated, [System.Text.UTF8Encoding]::new($false))
+      Write-Host "Synced version: $VersionFile"
+    }
+  }
+}
+
+if (Test-Path $CodeBuddyMarketplacePath) {
+  $Raw = Get-Content -Raw $CodeBuddyMarketplacePath
+  $Updated = [regex]::Replace($Raw, '("name"\s*:\s*"usora"[\s\S]*?"version"\s*:\s*")([^"]+)(")', "`${1}$NewVersion`${3}", 1)
+  [System.IO.File]::WriteAllText($CodeBuddyMarketplacePath, $Updated, [System.Text.UTF8Encoding]::new($false))
+  Write-Host "Synced version: $CodeBuddyMarketplacePath"
+}
+
 if (-not $Manifest.name) {
   throw "plugin.json must include name"
 }
@@ -77,11 +99,22 @@ if ($Manifest.mcpServers -and -not (Test-Path (Join-Path $Plugin $Manifest.mcpSe
   throw "plugin.json mcpServers path does not exist: $($Manifest.mcpServers)"
 }
 
+if ((Test-Path $CodeBuddyManifestPath) -and (Test-Path $CodeBuddyMarketplacePath)) {
+  $CodeBuddyManifest = Get-Content -Raw $CodeBuddyManifestPath | ConvertFrom-Json
+  $CodeBuddyMarketplace = Get-Content -Raw $CodeBuddyMarketplacePath | ConvertFrom-Json
+  if ($CodeBuddyManifest.version -ne $Manifest.version) {
+    throw "CodeBuddy plugin version does not match Codex manifest version"
+  }
+  if ($CodeBuddyMarketplace.plugins[0].version -ne $Manifest.version) {
+    throw "CodeBuddy marketplace version does not match Codex manifest version"
+  }
+}
+
 Write-Host "Plugin manifest validation passed: $ManifestPath"
 node --test (Join-Path $Plugin "scripts/usora-mcp.test.mjs")
 
 if ($Commit) {
-  git -C $Root add $Plugin (Join-Path $Root "scripts/release-usora-plugin.ps1")
+  git -C $Root add .agents .codebuddy-plugin .codex-plugin .mcp.json assets CODEBUDDY.md docs marketplace.json package.json plugin.json README.md README.zh-CN.md scripts skills
   git -C $Root commit -m "Release Usora plugin $NewVersion"
 }
 

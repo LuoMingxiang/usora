@@ -1,15 +1,15 @@
 {
   "name": "usora",
-  "version": "0.2.2",
+  "version": "0.3.0",
   "private": true,
   "type": "module",
   "scripts": {
     "check": "npm run format:check && npm run lint && npm test && npm run validate",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "lint": "oxlint --deny-warnings . && node --check plugins/usora/scripts/usora-mcp.mjs && node --check plugins/usora/scripts/usora-mcp.test.mjs && node --check scripts/validate-plugin.mjs && node --check commitlint.config.cjs",
+    "lint": "oxlint --deny-warnings . && node --check scripts/usora-mcp.mjs && node --check scripts/usora-mcp.test.mjs && node --check scripts/validate-plugin.mjs && node --check commitlint.config.cjs",
     "prepare": "husky",
-    "test": "node --test plugins/usora/scripts/usora-mcp.test.mjs",
+    "test": "node --test scripts/usora-mcp.test.mjs",
     "validate": "node scripts/validate-plugin.mjs"
   },
   "devDependencies": {

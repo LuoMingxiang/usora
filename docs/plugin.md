@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/logo.png" alt="Usora logo" width="120">
+  <img src="../assets/logo.png" alt="Usora logo" width="120">
 </p>
 
 <p align="center">
@@ -8,16 +8,16 @@
 </p>
 
 <p align="center">
-  <a href="../../README.md">Project README</a> ·
+  <a href="../README.md">Project README</a> ·
   <a href="README.zh-CN.md">中文</a>
 </p>
 
 # Usora Plugin
 
-Usora is a Codex plugin for building a personal capability layer from everyday AI work. The name combines _usus_ (practice, usage, experience) with _aura_ (an invisible field of influence): the capability field created by accumulated practice. It records useful AI work as Activities, promotes reusable patterns into Candidates, and helps a configured Maintainer publish Skills.
+Usora is a Codex and CodeBuddy plugin for building a personal capability layer from everyday AI work. The name combines _usus_ (practice, usage, experience) with _aura_ (an invisible field of influence): the capability field created by accumulated practice. It records useful AI work as Activities, promotes reusable patterns into Candidates, and helps a configured Maintainer publish Skills.
 
 <p align="center">
-  <img src="assets/origin.png" alt="Usora name origin: usus plus aura" width="720">
+  <img src="../assets/origin.png" alt="Usora name origin: usus plus aura" width="720">
 </p>
 
 ## Core Flow
@@ -27,7 +27,7 @@ Activity -> Candidate -> Skill Draft -> Evaluation -> Publish
 ```
 
 <p align="center">
-  <img src="assets/work.png" alt="How Usora turns AI work into reusable skills" width="720">
+  <img src="../assets/work.png" alt="How Usora turns AI work into reusable skills" width="720">
 </p>
 
 ## Capabilities
@@ -45,7 +45,7 @@ Activity -> Candidate -> Skill Draft -> Evaluation -> Publish
 
 ## Quick Start
 
-Use the Usora MCP tools through Codex. No Python, database, or separate CLI installation is required.
+Use the Usora MCP tools through Codex or CodeBuddy. No Python, database, or separate CLI installation is required.
 
 Codex shows up to three `defaultPrompt` entries in the plugin UI. Usora uses those slots for the first-run loop: initialize the Hub, capture the current session, and clean old plugin cache after upgrades.
 
@@ -112,6 +112,36 @@ Clean old Usora plugin cache
 Clean everything
 ```
 
+## Installation
+
+Codex:
+
+```powershell
+codex plugin marketplace add https://github.com/LuoMingxiang/usora.git
+codex plugin add usora@usora
+```
+
+CodeBuddy:
+
+```powershell
+codebuddy plugin marketplace add https://github.com/LuoMingxiang/usora.git
+codebuddy plugin install usora@usora
+```
+
+Manual MCP fallback for hosts that support MCP but not plugin marketplaces:
+
+```json
+{
+  "mcpServers": {
+    "usora": {
+      "command": "node",
+      "args": ["scripts/usora-mcp.mjs"],
+      "cwd": "/absolute/path/to/usora"
+    }
+  }
+}
+```
+
 ## Data
 
 The default data directory is `<cwd>/.usora`. The `USORA_HOME` environment variable is not supported.
@@ -161,7 +191,7 @@ If the host does not provide a stable `session_id`, Usora generates a process-sc
 
 ## Upgrading and Uninstalling
 
-Codex installs plugins into its local plugin cache and loads the installed copy, not the live source directory. For Usora, the marketplace entry points at GitHub `master`, so local changes only become installable after they are committed and pushed.
+Codex and CodeBuddy install plugins into their local plugin caches and load the installed copy, not the live source directory. For Usora, the marketplace entry points at GitHub `master`, so local changes only become installable after they are committed and pushed.
 
 If a new Usora build is not visible after pulling or pushing changes, use this release loop:
 
@@ -218,7 +248,7 @@ To do the release commit and push in one run:
 ./scripts/release-usora-plugin.ps1 -Commit -Push
 ```
 
-Use this after reviewing or when the change is already ready to publish. It bumps the patch version, validates, tests, commits `plugins/usora` and the release helper, then pushes. Add `-Bump minor` or `-Version 0.2.0` before `-Commit -Push` for larger releases.
+Use this after reviewing or when the change is already ready to publish. It bumps the patch version, validates, tests, commits the plugin metadata/runtime files and the release helper, then pushes. Add `-Bump minor` or `-Version 0.2.0` before `-Commit -Push` for larger releases.
 
 Codex handles plugin removal. Use `Uninstall plugin` in the `/plugins` browser.
 

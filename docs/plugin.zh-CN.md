@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/logo.png" alt="Usora logo" width="120">
+  <img src="../assets/logo.png" alt="Usora logo" width="120">
 </p>
 
 <p align="center">
@@ -9,15 +9,15 @@
 
 <p align="center">
   <a href="README.md">English</a> ·
-  <a href="../../README.zh-CN.md">项目 README</a>
+  <a href="../README.zh-CN.md">项目 README</a>
 </p>
 
 # Usora 插件
 
-Usora 是一个 Codex 插件，用来把日常 AI 工作沉淀为个人能力层。Usora 由 _usus_（practice, usage, experience）和 _aura_（invisible field of influence）组成，意为由累积实践形成的 capability field。它把有价值的 AI 工作记录为 Activities，把可复用模式提升为 Candidates，并帮助配置好的 Maintainer 发布 Skills。
+Usora 是一个 Codex 和 CodeBuddy 插件，用来把日常 AI 工作沉淀为个人能力层。Usora 由 _usus_（practice, usage, experience）和 _aura_（invisible field of influence）组成，意为由累积实践形成的 capability field。它把有价值的 AI 工作记录为 Activities，把可复用模式提升为 Candidates，并帮助配置好的 Maintainer 发布 Skills。
 
 <p align="center">
-  <img src="assets/origin.png" alt="Usora 名称来源：usus 加 aura" width="720">
+  <img src="../assets/origin.png" alt="Usora 名称来源：usus 加 aura" width="720">
 </p>
 
 ## 核心流程
@@ -27,7 +27,7 @@ Activity -> Candidate -> Skill Draft -> Evaluation -> Publish
 ```
 
 <p align="center">
-  <img src="assets/work.png" alt="Usora 如何把 AI 工作转化为可复用 Skills" width="720">
+  <img src="../assets/work.png" alt="Usora 如何把 AI 工作转化为可复用 Skills" width="720">
 </p>
 
 ## 能力
@@ -45,7 +45,7 @@ Activity -> Candidate -> Skill Draft -> Evaluation -> Publish
 
 ## 快速开始
 
-通过 Codex 使用 Usora MCP tools。无需安装 Python、数据库或独立 CLI。
+通过 Codex 或 CodeBuddy 使用 Usora MCP tools。无需安装 Python、数据库或独立 CLI。
 
 Codex 插件 UI 最多展示三条 `defaultPrompt`。Usora 会把这三个位置用于首次闭环：初始化 Hub、捕获当前 session，以及升级后清理旧插件缓存。
 
@@ -112,6 +112,36 @@ Clean old Usora plugin cache
 Clean everything
 ```
 
+## 安装
+
+Codex:
+
+```powershell
+codex plugin marketplace add https://github.com/LuoMingxiang/usora.git
+codex plugin add usora@usora
+```
+
+CodeBuddy:
+
+```powershell
+codebuddy plugin marketplace add https://github.com/LuoMingxiang/usora.git
+codebuddy plugin install usora@usora
+```
+
+如果宿主支持 MCP 但不支持插件市场，可以手动配置 MCP：
+
+```json
+{
+  "mcpServers": {
+    "usora": {
+      "command": "node",
+      "args": ["scripts/usora-mcp.mjs"],
+      "cwd": "/absolute/path/to/usora"
+    }
+  }
+}
+```
+
 ## 数据
 
 默认数据目录是 `<cwd>/.usora`。目前不支持 `USORA_HOME` 环境变量。
@@ -160,7 +190,7 @@ Next useful action: <next_action label>
 
 ## 升级与卸载
 
-Codex 会把插件安装到本地插件缓存，并加载已安装副本，而不是实时读取源码目录。Usora 的 marketplace entry 指向 GitHub `master`，所以本地变更必须 commit 并 push 后，才会成为可安装版本。
+Codex 和 CodeBuddy 会把插件安装到本地插件缓存，并加载已安装副本，而不是实时读取源码目录。Usora 的 marketplace entry 指向 GitHub `master`，所以本地变更必须 commit 并 push 后，才会成为可安装版本。
 
 如果 pull 或 push 后看不到新的 Usora build，按这个发布流程走：
 
@@ -217,7 +247,7 @@ Codex 会把插件安装到本地插件缓存，并加载已安装副本，而�
 ./scripts/release-usora-plugin.ps1 -Commit -Push
 ```
 
-在已经 review 或确认变更可发布时使用它。它会 bump patch 版本、校验、测试、提交 `plugins/usora` 和 release helper，然后 push。较大版本可以在 `-Commit -Push` 前加 `-Bump minor` 或 `-Version 0.2.0`。
+在已经 review 或确认变更可发布时使用它。它会 bump patch 版本、校验、测试、提交插件元数据、runtime 文件和 release helper，然后 push。较大版本可以在 `-Commit -Push` 前加 `-Bump minor` 或 `-Version 0.2.0`。
 
 Codex 负责插件移除。可以在 `/plugins` browser 中使用 `Uninstall plugin`。
 

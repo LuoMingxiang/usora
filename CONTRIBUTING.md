@@ -41,10 +41,10 @@
 
 ## 开发约定
 
-- 插件核心逻辑位于 `plugins/usora/`。
-  - MCP 服务实现：`plugins/usora/scripts/usora-mcp.mjs`
-  - 测试：`plugins/usora/scripts/usora-mcp.test.mjs`
-- 插件行为规范（自然语言到工具的映射）：`plugins/usora/skills/usora-skill-hub/SKILL.md`
+- 插件核心逻辑位于仓库根目录。
+  - MCP 服务实现：`scripts/usora-mcp.mjs`
+  - 测试：`scripts/usora-mcp.test.mjs`
+- 插件行为规范（自然语言到工具的映射）：`skills/usora-skill-hub/SKILL.md`
 - 插件市场清单：根目录 `marketplace.json`
 
 ### 运行测试

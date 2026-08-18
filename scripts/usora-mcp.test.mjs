@@ -13,7 +13,7 @@ import { spawn } from "node:child_process";
  * @returns {Promise<object[]>}
  */
 async function run(cwd, requests) {
-  const child = spawn(process.execPath, [path.resolve("plugins/usora/scripts/usora-mcp.mjs")], {
+  const child = spawn(process.execPath, [path.resolve("scripts/usora-mcp.mjs")], {
     cwd,
     stdio: ["pipe", "pipe", "inherit"],
   });

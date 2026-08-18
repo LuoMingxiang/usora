@@ -5,7 +5,7 @@ param(
 $ErrorActionPreference = "Stop"
 
 $Root = Resolve-Path (Join-Path $PSScriptRoot "..")
-$ManifestPath = Join-Path $Root "plugins/usora/.codex-plugin/plugin.json"
+$ManifestPath = Join-Path $Root ".codex-plugin/plugin.json"
 $Manifest = Get-Content -Raw $ManifestPath | ConvertFrom-Json
 $CurrentVersion = $Manifest.version
 $CacheRoot = Join-Path $env:USERPROFILE ".codex/plugins/cache/usora/usora"

@@ -788,20 +788,25 @@ async function handleHubDoctor() {
 async function handlePluginCacheCleanup(args = {}) {
   const pluginRoot = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
   const cacheRoot = path.dirname(pluginRoot);
-  const expectedRoot = path.join(os.homedir(), ".codex", "plugins", "cache", "usora", "usora");
+  const currentVersion = path.basename(pluginRoot);
+  const home = path.resolve(os.homedir()).toLowerCase();
+  const normalizedPluginRoot = path.resolve(pluginRoot).toLowerCase();
+  const isKnownHostCache =
+    normalizedPluginRoot.startsWith(home) &&
+    (normalizedPluginRoot.includes(`${path.sep}.codex${path.sep}`) ||
+      normalizedPluginRoot.includes(`${path.sep}.codebuddy${path.sep}`)) &&
+    /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/.test(currentVersion);
 
-  if (path.resolve(cacheRoot).toLowerCase() !== path.resolve(expectedRoot).toLowerCase()) {
+  if (!isKnownHostCache) {
     return {
       ok: false,
       action: "not_installed_cache",
       message:
-        "Usora is not running from the Codex installed plugin cache. Install or upgrade Usora first, then clean old caches.",
+        "Usora is not running from a versioned Codex or CodeBuddy installed plugin cache. Install or upgrade Usora first, then clean old caches.",
       plugin_root: pluginRoot,
-      expected_cache_root: expectedRoot,
     };
   }
 
-  const currentVersion = path.basename(pluginRoot);
   const oldCaches = [];
   for (const entry of await fs.readdir(cacheRoot, { withFileTypes: true }).catch(() => [])) {
     if (!entry.isDirectory() || entry.name === currentVersion) continue;
@@ -934,7 +939,7 @@ const tools = [
   {
     name: "plugin_cache_cleanup",
     description:
-      "Preview or delete old installed Usora plugin cache versions under ~/.codex/plugins/cache/usora/usora, keeping the currently running plugin version. Defaults to dry run; pass confirm=true to delete.",
+      "Preview or delete old installed Usora plugin cache versions, keeping the currently running plugin version. Defaults to dry run; pass confirm=true to delete.",
     inputSchema: {
       type: "object",
       properties: {

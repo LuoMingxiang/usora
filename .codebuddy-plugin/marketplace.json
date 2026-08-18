@@ -1,0 +1,20 @@
+{
+  "name": "usora",
+  "owner": {
+    "name": "Veyra",
+    "url": "https://github.com/LuoMingxiang"
+  },
+  "description": "Usora plugins for AI agent hosts.",
+  "plugins": [
+    {
+      "name": "usora",
+      "source": ".",
+      "description": "Turn AI work practice into a local-first reusable Skill Hub.",
+      "version": "0.3.0",
+      "author": {
+        "name": "Veyra"
+      },
+      "category": "productivity"
+    }
+  ]
+}

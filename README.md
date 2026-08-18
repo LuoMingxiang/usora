@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="plugins/usora/assets/usora.png" alt="Usora" width="520">
+  <img src="assets/usora.png" alt="Usora" width="520">
 </p>
 
 <p align="center">
@@ -8,16 +8,16 @@
 
 <p align="center">
   <a href="README.zh-CN.md">中文</a> ·
-  <a href="plugins/usora/README.md">Plugin guide</a> ·
+  <a href="docs/plugin.md">Plugin guide</a> ·
   <a href="CONTRIBUTING.md">Contributing</a>
 </p>
 
 # Usora
 
-Usora is a local-first Codex plugin and personal capability layer for the AI era. The name combines _usus_ (practice, usage, experience) with _aura_ (an invisible field of influence): the capability field created by accumulated practice. It captures useful session context as Activities, turns repeated patterns into Candidates, and lets a Maintainer evaluate and publish reusable Skills without sending your project memory to a hosted service.
+Usora is a local-first plugin and personal capability layer for the AI era. It currently ships native adapters for Codex and CodeBuddy. The name combines _usus_ (practice, usage, experience) with _aura_ (an invisible field of influence): the capability field created by accumulated practice. It captures useful session context as Activities, turns repeated patterns into Candidates, and lets a Maintainer evaluate and publish reusable Skills without sending your project memory to a hosted service.
 
 <p align="center">
-  <img src="plugins/usora/assets/origin.png" alt="Usora name origin: usus plus aura" width="720">
+  <img src="assets/origin.png" alt="Usora name origin: usus plus aura" width="720">
 </p>
 
 ```text
@@ -25,7 +25,7 @@ Activity -> Candidate -> Skill Draft -> Evaluation -> Publish
 ```
 
 <p align="center">
-  <img src="plugins/usora/assets/work.png" alt="How Usora turns AI work into reusable skills" width="720">
+  <img src="assets/work.png" alt="How Usora turns AI work into reusable skills" width="720">
 </p>
 
 ## Why Usora?
@@ -50,7 +50,7 @@ AI assistants often solve the same local workflow problems again and again, but 
 
 ## Quick Start
 
-Install `Usora` from the Codex plugin marketplace, then ask Codex:
+Install `Usora` from the Codex or CodeBuddy plugin marketplace, then ask your agent:
 
 ```text
 Initialize my Usora
@@ -61,7 +61,34 @@ In the first minute, success means you can see the local Hub path, record counts
 
 By default, Usora creates its Hub at `<cwd>/.usora`. To move the data later, ask Codex to move Usora data to another path; the plugin migrates existing records and saves the new location in `.usora/config.json`.
 
-For plugin-specific usage, storage layout, and cleanup details, see the [plugin guide](plugins/usora/README.md).
+For plugin-specific usage, storage layout, and cleanup details, see the [plugin guide](docs/plugin.md).
+
+## Repository Layout
+
+Usora follows the community plugin layout: one canonical plugin payload plus thin host adapters.
+
+```text
+plugin.json                            # community plugin entry
+skills/                                # canonical Skill instructions
+.mcp.json                              # shared MCP server entry
+.codex-plugin/                         # Codex adapter
+.codebuddy-plugin/                     # CodeBuddy adapter and marketplace metadata
+.agents/plugins/marketplace.json       # Codex-style marketplace metadata
+```
+
+### Codex
+
+```powershell
+codex plugin marketplace add https://github.com/LuoMingxiang/usora.git
+codex plugin add usora@usora
+```
+
+### CodeBuddy
+
+```powershell
+codebuddy plugin marketplace add https://github.com/LuoMingxiang/usora.git
+codebuddy plugin install usora@usora
+```
 
 ## MVP Boundary
 

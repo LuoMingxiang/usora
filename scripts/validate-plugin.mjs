@@ -3,9 +3,13 @@ import { access, readFile } from "node:fs/promises";
 import path from "node:path";
 
 const root = process.cwd();
-const plugin = path.join(root, "plugins", "usora");
+const plugin = root;
 const manifestPath = path.join(plugin, ".codex-plugin", "plugin.json");
 const manifest = JSON.parse(await readFile(manifestPath, "utf8"));
+const portableManifestPath = path.join(plugin, "plugin.json");
+const codebuddyManifestPath = path.join(plugin, ".codebuddy-plugin", "plugin.json");
+const codebuddyMarketplacePath = path.join(root, ".codebuddy-plugin", "marketplace.json");
+const agentsMarketplacePath = path.join(root, ".agents", "plugins", "marketplace.json");
 
 assert.equal(manifest.name, "usora");
 assert.match(manifest.version, /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/);
@@ -16,8 +20,17 @@ for (const field of ["skills", "mcpServers"]) {
   }
 }
 
-for (const entry of ["package.json", "package-lock.json", "node_modules", ".github"]) {
-  await assert.rejects(access(path.join(plugin, entry)), undefined, `Dev-only path must stay out of plugin: ${entry}`);
-}
+const codebuddyManifest = JSON.parse(await readFile(codebuddyManifestPath, "utf8"));
+const codebuddyMarketplace = JSON.parse(await readFile(codebuddyMarketplacePath, "utf8"));
+const portableManifest = JSON.parse(await readFile(portableManifestPath, "utf8"));
+const agentsMarketplace = JSON.parse(await readFile(agentsMarketplacePath, "utf8"));
+assert.equal(portableManifest.name, manifest.name);
+assert.equal(codebuddyManifest.name, manifest.name);
+assert.equal(codebuddyManifest.version, manifest.version);
+assert.equal(codebuddyMarketplace.plugins[0].name, manifest.name);
+assert.equal(codebuddyMarketplace.plugins[0].version, manifest.version);
+await access(path.join(root, codebuddyMarketplace.plugins[0].source));
+assert.equal(agentsMarketplace.plugins[0].name, manifest.name);
+assert.equal(agentsMarketplace.plugins[0].source.url, "https://github.com/LuoMingxiang/usora.git");
 
 console.log(`Plugin manifest OK: ${path.relative(root, manifestPath)}`);

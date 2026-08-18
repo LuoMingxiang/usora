@@ -9,8 +9,7 @@
       "source": {
         "source": "url",
         "url": "https://github.com/LuoMingxiang/usora.git",
-        "ref": "master",
-        "path": "plugins/usora"
+        "ref": "master"
       },
       "policy": {
         "installation": "AVAILABLE",
