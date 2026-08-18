@@ -114,6 +114,11 @@ Clean everything
 
 ## 安装
 
+宿主使用指南：
+
+- [Codex 使用指南](usage/codex.zh-CN.md)
+- [CodeBuddy 使用指南](usage/codebuddy.zh-CN.md)
+
 Codex:
 
 ```powershell
@@ -221,7 +226,7 @@ Codex 和 CodeBuddy 会把插件安装到本地插件缓存，并加载已安装
    ./scripts/release-usora-plugin.ps1
    ```
 
-   默认会 bump plugin SemVer patch 版本，校验 plugin manifest，并运行 Node MCP 测试。
+   默认会 bump 根目录 `plugin.json` 的 SemVer patch 版本，运行 `npm run sync`，校验 plugin manifests，并运行 Node MCP 测试。
 
    需要时可以使用 `-Bump minor` 或 `-Bump major`：
 

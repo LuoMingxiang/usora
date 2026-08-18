@@ -1,0 +1,9 @@
+{
+  "name": "usora",
+  "displayName": "Usora Plugin Marketplace",
+  "owner": {
+    "name": "Veyra",
+    "url": "https://github.com/LuoMingxiang"
+  },
+  "description": "Usora plugins for AI agent hosts."
+}

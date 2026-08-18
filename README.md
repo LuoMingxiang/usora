@@ -9,6 +9,7 @@
 <p align="center">
   <a href="README.zh-CN.md">中文</a> ·
   <a href="docs/plugin.md">Plugin guide</a> ·
+  <a href="docs/usage/README.md">Usage guides</a> ·
   <a href="CONTRIBUTING.md">Contributing</a>
 </p>
 
@@ -76,7 +77,10 @@ scripts/usora-mcp.mjs                  # thin MCP entrypoint
 .codex-plugin/                         # Codex adapter
 .codebuddy-plugin/                     # CodeBuddy adapter and marketplace metadata
 .agents/plugins/marketplace.json       # Codex-style marketplace metadata
+common/marketplace.json                # marketplace metadata template
 ```
+
+Run `npm run sync` after editing `plugin.json`. Run `npm run doctor` before release.
 
 ### Codex
 
@@ -85,12 +89,16 @@ codex plugin marketplace add https://github.com/LuoMingxiang/usora.git
 codex plugin add usora@usora
 ```
 
+See [Codex usage](docs/usage/codex.md).
+
 ### CodeBuddy
 
 ```powershell
 codebuddy plugin marketplace add https://github.com/LuoMingxiang/usora.git
 codebuddy plugin install usora@usora
 ```
+
+See [CodeBuddy usage](docs/usage/codebuddy.md).
 
 ## MVP Boundary
 

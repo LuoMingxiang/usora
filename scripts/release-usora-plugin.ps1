@@ -59,15 +59,12 @@ function Set-Version($Path, $Version) {
   Write-Host "Synced version: $Path"
 }
 
-$CodexManifestPath = Join-Path $Root ".codex-plugin/plugin.json"
-$CodeBuddyManifestPath = Join-Path $Root ".codebuddy-plugin/plugin.json"
-$CodeBuddyMarketplacePath = Join-Path $Root ".codebuddy-plugin/marketplace.json"
-$PackagePath = Join-Path $Root "package.json"
+$PortableManifestPath = Join-Path $Root "plugin.json"
 
-$CodexManifest = Read-Json $CodexManifestPath
-$OldVersion = $CodexManifest.version
+$PortableManifest = Read-Json $PortableManifestPath
+$OldVersion = $PortableManifest.version
 if (-not $OldVersion) {
-  throw "$CodexManifestPath must include version"
+  throw "$PortableManifestPath must include version"
 }
 
 if ($Version) {
@@ -79,28 +76,17 @@ if ($Version) {
   $NewVersion = Next-Version $OldVersion $Bump
 }
 
-Set-Version $CodexManifestPath $NewVersion
-Set-Version $CodeBuddyManifestPath $NewVersion
-Set-Version $PackagePath $NewVersion
+Set-Version $PortableManifestPath $NewVersion
 
-$CodeBuddyMarketplace = Read-Json $CodeBuddyMarketplacePath
-$CodeBuddyMarketplace.metadata.version = $NewVersion
-$Plugin = $CodeBuddyMarketplace.plugins | Where-Object { $_.name -eq "usora" } | Select-Object -First 1
-if (-not $Plugin) {
-  throw "$CodeBuddyMarketplacePath must include the usora plugin"
-}
-$Plugin.version = $NewVersion
-Write-Json $CodeBuddyMarketplacePath $CodeBuddyMarketplace
-Write-Host "Synced version: $CodeBuddyMarketplacePath"
-
-npx prettier --write .codex-plugin/plugin.json .codex-plugin/mcp.json .codebuddy-plugin/plugin.json .codebuddy-plugin/marketplace.json .codebuddy-plugin/mcp.json package.json
+node scripts/plugin.mjs sync
+npx prettier --write plugin.json common/marketplace.json marketplace.json .agents/plugins/marketplace.json .codex-plugin/plugin.json .codex-plugin/mcp.json .codebuddy-plugin/plugin.json .codebuddy-plugin/marketplace.json .codebuddy-plugin/mcp.json package.json
 Write-Host "Updated plugin version: $OldVersion -> $NewVersion"
 npm run validate
 npm test
 
 if ($Commit) {
-  git -C $Root add .agents .codebuddy-plugin .codex-plugin .mcp.json assets CODEBUDDY.md docs marketplace.json package.json plugin.json README.md README.zh-CN.md scripts skills src
-  git -C $Root commit -m "Release Usora plugin $NewVersion"
+  git -C $Root add .agents .codebuddy-plugin .codex-plugin .mcp.json assets CODEBUDDY.md common docs marketplace.json package.json plugin.json README.md README.zh-CN.md scripts skills src
+  git -C $Root commit -m "chore: release usora plugin $NewVersion"
 }
 
 if ($Push) {

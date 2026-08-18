@@ -114,6 +114,11 @@ Clean everything
 
 ## Installation
 
+Host-specific guides:
+
+- [Codex usage](usage/codex.md)
+- [CodeBuddy usage](usage/codebuddy.md)
+
 Codex:
 
 ```powershell
@@ -222,7 +227,7 @@ If a new Usora build is not visible after pulling or pushing changes, use this r
    ./scripts/release-usora-plugin.ps1
    ```
 
-   The helper bumps the plugin SemVer patch version by default, validates the plugin manifest, and runs the Node MCP tests.
+   The helper bumps the root `plugin.json` SemVer patch version by default, runs `npm run sync`, validates the plugin manifests, and runs the Node MCP tests.
 
    Use `-Bump minor` or `-Bump major` when needed:
 

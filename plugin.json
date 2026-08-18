@@ -1,3 +1,32 @@
 {
-  "name": "usora"
+  "name": "usora",
+  "version": "0.3.6",
+  "description": "A local-first personal capability layer that turns real AI work into reusable, evolving Skills.",
+  "author": {
+    "name": "Veyra",
+    "url": "https://github.com/LuoMingxiang"
+  },
+  "homepage": "https://github.com/LuoMingxiang/usora",
+  "repository": "https://github.com/LuoMingxiang/usora",
+  "license": "MIT",
+  "keywords": ["personal-skill-hub", "mcp", "skills", "local-first", "ai-capability"],
+  "category": "Productivity",
+  "skills": ["./skills/usora-skill-hub"],
+  "mcpServers": "./.mcp.json",
+  "interface": {
+    "displayName": "Usora",
+    "shortDescription": "Turn practice into reusable AI capability.",
+    "longDescription": "Usora is a local-first personal capability layer for the AI era. It turns accumulated practice into Activities, Candidates, and evolving Skills that help multiple AI agents reuse one user-owned capability library.",
+    "developerName": "Veyra",
+    "category": "Productivity",
+    "websiteURL": "https://github.com/LuoMingxiang/usora",
+    "capabilities": ["Local-first", "Session memory", "Skill evolution"],
+    "defaultPrompt": [
+      "Initialize my Usora Skill Hub",
+      "Capture this session into Usora",
+      "Clean old Usora plugin cache"
+    ],
+    "composerIcon": "./assets/logo.png",
+    "logo": "./assets/logo.png"
+  }
 }

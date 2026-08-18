@@ -26,6 +26,7 @@ const agentsMarketplace = await json(".agents/plugins/marketplace.json");
 const rootMarketplace = await json("marketplace.json");
 const portable = await json("plugin.json");
 const pkg = await json("package.json");
+const marketplaceTemplate = await json("common/marketplace.json");
 const mcp = await json(".mcp.json");
 const codexMcp = await json(".codex-plugin/mcp.json");
 const codebuddyMcp = await json(".codebuddy-plugin/mcp.json");
@@ -36,6 +37,13 @@ assert.equal(codebuddy.name, codex.name);
 assert.equal(codebuddy.version, codex.version);
 assert.equal(pkg.version, codex.version);
 assert.equal(portable.name, codex.name);
+assert.equal(portable.version, codex.version);
+assert.equal(portable.repository, "https://github.com/LuoMingxiang/usora");
+assert.equal(portable.homepage, "https://github.com/LuoMingxiang/usora");
+assert.deepEqual(portable.skills, ["./skills/usora-skill-hub"]);
+assert.equal(portable.mcpServers, "./.mcp.json");
+assert.equal(portable.author.name, "Veyra");
+assert.equal(marketplaceTemplate.owner.name, "Veyra");
 
 await exists(codex.skills);
 assert.equal(codex.mcpServers, "./.codex-plugin/mcp.json");
@@ -62,9 +70,11 @@ assert.deepEqual(codebuddyMcp.mcpServers.usora.args, ["${CODEBUDDY_PLUGIN_ROOT}/
 
 assert.equal(codebuddyMarketplace.displayName, "Usora Plugin Marketplace");
 assert.equal(codebuddyMarketplace.metadata.version, codex.version);
+assert.equal(codebuddyMarketplace.owner.name, "Veyra");
 const codebuddyEntry = pluginEntry(codebuddyMarketplace);
 assert.equal(codebuddyEntry.version, codex.version);
 assert.equal(codebuddyEntry.source, ".");
+assert.equal(codebuddyEntry.author.name, "Veyra");
 await exists(codebuddyEntry.source);
 
 for (const marketplace of [agentsMarketplace, rootMarketplace]) {
@@ -75,4 +85,4 @@ for (const marketplace of [agentsMarketplace, rootMarketplace]) {
   assert.equal(entry.source.path, undefined);
 }
 
-console.log("Plugin manifests OK: Codex + CodeBuddy + marketplaces");
+console.log("Usora doctor OK: canonical manifest + Codex + CodeBuddy + marketplaces");
