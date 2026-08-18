@@ -128,6 +128,19 @@ codebuddy plugin marketplace add https://github.com/LuoMingxiang/usora.git
 codebuddy plugin install usora@usora
 ```
 
+During local development, test the plugin directly:
+
+```powershell
+codebuddy --plugin-dir .
+```
+
+CodeBuddy loads Usora from the root-level `.codebuddy-plugin/plugin.json`, `skills/`, `commands/`, and `.mcp.json`. After loading, try:
+
+```text
+/usora:hub status
+/usora:hub capture this session
+```
+
 Manual MCP fallback for hosts that support MCP but not plugin marketplaces:
 
 ```json

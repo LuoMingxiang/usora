@@ -27,6 +27,14 @@ const agentsMarketplace = JSON.parse(await readFile(agentsMarketplacePath, "utf8
 assert.equal(portableManifest.name, manifest.name);
 assert.equal(codebuddyManifest.name, manifest.name);
 assert.equal(codebuddyManifest.version, manifest.version);
+assert.equal(codebuddyMarketplace.displayName, "Usora Plugin Marketplace");
+assert.equal(codebuddyMarketplace.metadata.version, manifest.version);
+for (const field of ["commands", "skills"]) {
+  assert.ok(Array.isArray(codebuddyManifest[field]), `CodeBuddy manifest must declare ${field}`);
+  for (const entry of codebuddyManifest[field]) {
+    await access(path.join(root, entry));
+  }
+}
 assert.equal(codebuddyMarketplace.plugins[0].name, manifest.name);
 assert.equal(codebuddyMarketplace.plugins[0].version, manifest.version);
 await access(path.join(root, codebuddyMarketplace.plugins[0].source));

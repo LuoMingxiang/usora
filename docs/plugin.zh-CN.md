@@ -128,6 +128,19 @@ codebuddy plugin marketplace add https://github.com/LuoMingxiang/usora.git
 codebuddy plugin install usora@usora
 ```
 
+本地开发时可以直接加载插件：
+
+```powershell
+codebuddy --plugin-dir .
+```
+
+CodeBuddy 会从根目录的 `.codebuddy-plugin/plugin.json`、`skills/`、`commands/` 和 `.mcp.json` 加载 Usora。加载后可以试：
+
+```text
+/usora:hub status
+/usora:hub capture this session
+```
+
 如果宿主支持 MCP 但不支持插件市场，可以手动配置 MCP：
 
 ```json

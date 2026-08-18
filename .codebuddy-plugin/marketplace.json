@@ -1,20 +1,26 @@
 {
   "name": "usora",
+  "displayName": "Usora Plugin Marketplace",
   "owner": {
     "name": "Veyra",
     "url": "https://github.com/LuoMingxiang"
   },
   "description": "Usora plugins for AI agent hosts.",
+  "metadata": {
+    "description": "A local-first personal capability layer that turns real AI work into reusable, evolving Skills.",
+    "version": "0.3.1"
+  },
   "plugins": [
     {
       "name": "usora",
       "source": ".",
       "description": "Turn AI work practice into a local-first reusable Skill Hub.",
-      "version": "0.3.0",
+      "version": "0.3.1",
       "author": {
         "name": "Veyra"
       },
-      "category": "productivity"
+      "license": "MIT",
+      "keywords": ["personal-skill-hub", "mcp", "skills", "local-first", "ai-capability"]
     }
   ]
 }
