@@ -233,6 +233,18 @@ codex plugin remove usora@usora
 
 升级或卸载带 MCP 的插件后，如果旧 tools 仍然出现，刷新或重启 Codex，并打开一个新 task。
 
+### 升级排查
+
+如果插件 UI 提示 upgrade failed，但版本号已经变化，优先把它视为 UI/reload 的局部失败，而不是 Usora 安装损坏。检查这些信号：
+
+```text
+~/.codex/plugins/cache/usora/usora/<new-version> exists
+插件详情页显示 <new-version>
+新 task 能看到预期的 Usora tools
+```
+
+如果这些都成立，说明安装已经成功，失败步骤大概率是 Codex 刷新已启用 MCP server 或当前 task tool schema。打开新 task 后，如旧版本仍在，再运行 `Clean old Usora plugin cache`。
+
 卸载插件**不会**删除本地 Usora 数据。
 
 清理数据：

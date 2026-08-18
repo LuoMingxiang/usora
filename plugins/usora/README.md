@@ -234,6 +234,18 @@ codex plugin remove usora@usora
 
 After upgrading or uninstalling an MCP-backed plugin, refresh or restart Codex and open a new task if older tools still appear.
 
+### Upgrade Troubleshooting
+
+If the plugin UI says upgrade failed but the version changed, treat it as a partial UI/reload failure rather than a broken Usora install. Check these signals:
+
+```text
+~/.codex/plugins/cache/usora/usora/<new-version> exists
+The plugin details page shows <new-version>
+A new task can see the expected Usora tools
+```
+
+When those are true, the install succeeded and the failed step was likely Codex refreshing the enabled MCP server or current task tool schema. Open a new task, then run `Clean old Usora plugin cache` if old versions remain.
+
 Uninstalling the plugin does **not** remove local Usora data.
 
 To clean data:
