@@ -70,6 +70,8 @@ Usora follows the community plugin layout: one canonical plugin payload plus thi
 ```text
 plugin.json                            # community plugin entry
 skills/                                # canonical Skill instructions
+src/                                   # MCP runtime modules
+scripts/usora-mcp.mjs                  # thin MCP entrypoint
 .mcp.json                              # shared MCP server entry
 .codex-plugin/                         # Codex adapter
 .codebuddy-plugin/                     # CodeBuddy adapter and marketplace metadata

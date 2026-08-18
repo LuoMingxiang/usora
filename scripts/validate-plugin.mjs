@@ -51,6 +51,8 @@ assert.equal(mcp.mcpServers.usora.command, "node");
 assert.deepEqual(mcp.mcpServers.usora.args, ["scripts/usora-mcp.mjs"]);
 assert.equal(mcp.mcpServers.usora.cwd, ".");
 await exists("scripts/usora-mcp.mjs");
+await exists("src/mcp/server.mjs");
+assert.match(await readFile(path.join(root, "scripts/usora-mcp.mjs"), "utf8"), /src\/mcp\/server\.mjs/);
 
 assert.equal(codexMcp.mcpServers.usora.command, "node");
 assert.deepEqual(codexMcp.mcpServers.usora.args, ["${PLUGIN_ROOT}/scripts/usora-mcp.mjs"]);

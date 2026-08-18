@@ -99,7 +99,7 @@ npm run validate
 npm test
 
 if ($Commit) {
-  git -C $Root add .agents .codebuddy-plugin .codex-plugin .mcp.json assets CODEBUDDY.md docs marketplace.json package.json plugin.json README.md README.zh-CN.md scripts skills
+  git -C $Root add .agents .codebuddy-plugin .codex-plugin .mcp.json assets CODEBUDDY.md docs marketplace.json package.json plugin.json README.md README.zh-CN.md scripts skills src
   git -C $Root commit -m "Release Usora plugin $NewVersion"
 }
 

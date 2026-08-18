@@ -70,6 +70,8 @@ Usora 对齐社区插件组织方式：一个 canonical plugin payload，加上�
 ```text
 plugin.json                            # community plugin entry
 skills/                                # canonical Skill instructions
+src/                                   # MCP runtime modules
+scripts/usora-mcp.mjs                  # thin MCP entrypoint
 .mcp.json                              # shared MCP server entry
 .codex-plugin/                         # Codex adapter
 .codebuddy-plugin/                     # CodeBuddy adapter and marketplace metadata

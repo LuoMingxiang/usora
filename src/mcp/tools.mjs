@@ -1,0 +1,196 @@
+import { AUTOMATION_POLICIES } from "../core/storage.mjs";
+
+export const tools = [
+  {
+    name: "hub_init",
+    description:
+      "Initialize the user's local Usora storage in the default directory (<cwd>/.usora) or the directory previously chosen via hub_config. Never create sample data. Optionally set maintainer/automation_policy.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        maintainer: { type: "string", description: "Optional Primary Maintainer to set during init (e.g. codex)." },
+        automation_policy: {
+          type: "string",
+          enum: AUTOMATION_POLICIES,
+          description: "Optional automation policy to set during init.",
+        },
+      },
+    },
+  },
+  {
+    name: "hub_status",
+    description:
+      "Inspect Hub counts and configuration without loading all Activities. Returns the resolved data directory (hub), config path, counts, and next_action lifecycle hint so the user knows where data lives and what to do next.",
+    inputSchema: { type: "object", properties: {} },
+  },
+  {
+    name: "hub_doctor",
+    description:
+      "Run a lightweight local Hub health check for required directories, counts, config, and missing Skill metadata.",
+    inputSchema: { type: "object", properties: {} },
+  },
+  {
+    name: "hub_cleanup",
+    description:
+      "Clean in two modes: generated archives processed Activities; all permanently deletes every Usora Hub record, Skill, archive, event, and config and requires confirm=true. It empties the data directory but keeps the Hub directory and config file so the user can review the path.",
+    inputSchema: {
+      type: "object",
+      properties: { mode: { type: "string", enum: ["generated", "all"] }, confirm: { type: "boolean" } },
+    },
+  },
+  {
+    name: "plugin_cache_cleanup",
+    description:
+      "Preview or delete old installed Usora plugin cache versions, keeping the currently running plugin version. Defaults to dry run; pass confirm=true to delete.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        confirm: {
+          type: "boolean",
+          description: "Required true to delete old installed Usora plugin cache versions. Omit or false for dry run.",
+        },
+      },
+    },
+  },
+  {
+    name: "hub_config",
+    description:
+      "Configure the Maintainer, automation policy, and/or relocate the data directory. Pass `path` to MOVE the existing Hub data to a new directory (migrates existing records and clears the old directory), applied immediately.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        path: {
+          type: "string",
+          description:
+            "Optional new data directory (absolute or relative). Existing data is moved there and the old directory cleared.",
+        },
+        maintainer: { type: "string" },
+        automation_policy: { type: "string", enum: AUTOMATION_POLICIES },
+      },
+    },
+  },
+  {
+    name: "activity_capture",
+    description:
+      "Create or update one Activity for the current MCP process. If session_id is supplied, repeated calls with the same value merge; otherwise the server uses its process-scoped session ID.",
+    inputSchema: {
+      type: "object",
+      required: ["task", "result"],
+      properties: {
+        session_id: { type: "string" },
+        task: { type: "string" },
+        summary: { type: "string" },
+        result: { type: "string" },
+        key_points: { type: "array", items: { type: "string" } },
+        context: { type: "string" },
+        approach: { type: "array", items: { type: "string" } },
+        technologies: { type: "array", items: { type: "string" } },
+        outcome: { type: "string" },
+        source: { type: "string" },
+        project: { type: "string" },
+      },
+    },
+  },
+  {
+    name: "activity_list",
+    description: "List recent Activities from the active Hub without loading archives.",
+    inputSchema: {
+      type: "object",
+      properties: { limit: { type: "number", description: "Optional result limit, default 20 and max 100." } },
+    },
+  },
+  {
+    name: "candidate_create",
+    description: "Create a Candidate from an observed reusable pattern; do not create one for a one-off task.",
+    inputSchema: {
+      type: "object",
+      required: ["title", "summary"],
+      properties: {
+        title: { type: "string" },
+        summary: { type: "string" },
+        evidence: { type: "array", items: { type: "string" } },
+        source: { type: "string" },
+      },
+    },
+  },
+  {
+    name: "candidate_list",
+    description: "List recent Candidates.",
+    inputSchema: {
+      type: "object",
+      properties: { limit: { type: "number", description: "Optional result limit, default 20 and max 100." } },
+    },
+  },
+  {
+    name: "candidate_evaluate",
+    description: "Evaluate a Candidate as pass or fail and record the reviewer.",
+    inputSchema: {
+      type: "object",
+      required: ["id", "result"],
+      properties: {
+        id: { type: "string" },
+        result: { type: "string", enum: ["pass", "fail"] },
+        reviewer: { type: "string" },
+      },
+    },
+  },
+  {
+    name: "skill_create",
+    description: "Create a Skill draft with SKILL.md content.",
+    inputSchema: {
+      type: "object",
+      required: ["name", "content"],
+      properties: {
+        name: { type: "string" },
+        content: { type: "string" },
+        description: { type: "string" },
+        candidate_id: { type: "string" },
+      },
+    },
+  },
+  {
+    name: "skill_evaluate",
+    description: "Evaluate a Skill draft as pass or fail.",
+    inputSchema: {
+      type: "object",
+      required: ["name", "result"],
+      properties: {
+        name: { type: "string" },
+        result: { type: "string", enum: ["pass", "fail"] },
+        reviewer: { type: "string" },
+        notes: { type: "string" },
+      },
+    },
+  },
+  {
+    name: "skill_publish",
+    description:
+      "Publish an evaluated Skill as the configured Maintainer by updating the single current Skill in place.",
+    inputSchema: {
+      type: "object",
+      required: ["name"],
+      properties: { name: { type: "string" }, actor: { type: "string" } },
+    },
+  },
+  {
+    name: "skill_read",
+    description: "Read one Skill's metadata and SKILL.md content by name.",
+    inputSchema: { type: "object", required: ["name"], properties: { name: { type: "string" } } },
+  },
+  {
+    name: "skill_list",
+    description: "List recent Skill metadata without loading SKILL.md content.",
+    inputSchema: {
+      type: "object",
+      properties: { limit: { type: "number", description: "Optional result limit, default 20 and max 100." } },
+    },
+  },
+  {
+    name: "event_list",
+    description: "List recent lifecycle events.",
+    inputSchema: {
+      type: "object",
+      properties: { limit: { type: "number", description: "Optional result limit, default 20 and max 100." } },
+    },
+  },
+];

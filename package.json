@@ -1,13 +1,13 @@
 {
   "name": "usora",
-  "version": "0.3.4",
+  "version": "0.3.5",
   "private": true,
   "type": "module",
   "scripts": {
     "check": "npm run format:check && npm run lint && npm test && npm run validate",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "lint": "oxlint --deny-warnings . && node --check scripts/usora-mcp.mjs && node --check scripts/usora-mcp.test.mjs && node --check scripts/validate-plugin.mjs && node --check commitlint.config.cjs",
+    "lint": "oxlint --deny-warnings . && node --check scripts/usora-mcp.mjs && node --check scripts/usora-mcp.test.mjs && node --check scripts/validate-plugin.mjs && node --check src/core/activities.mjs && node --check src/core/cache.mjs && node --check src/core/candidates.mjs && node --check src/core/events.mjs && node --check src/core/hub.mjs && node --check src/core/skills.mjs && node --check src/core/storage.mjs && node --check src/core/validation.mjs && node --check src/mcp/handlers.mjs && node --check src/mcp/server.mjs && node --check src/mcp/tools.mjs && node --check commitlint.config.cjs",
     "prepare": "husky",
     "test": "node --test scripts/usora-mcp.test.mjs",
     "validate": "node scripts/validate-plugin.mjs"
