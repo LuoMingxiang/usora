@@ -3,44 +3,69 @@ import { access, readFile } from "node:fs/promises";
 import path from "node:path";
 
 const root = process.cwd();
-const plugin = root;
-const manifestPath = path.join(plugin, ".codex-plugin", "plugin.json");
-const manifest = JSON.parse(await readFile(manifestPath, "utf8"));
-const portableManifestPath = path.join(plugin, "plugin.json");
-const codebuddyManifestPath = path.join(plugin, ".codebuddy-plugin", "plugin.json");
-const codebuddyMarketplacePath = path.join(root, ".codebuddy-plugin", "marketplace.json");
-const agentsMarketplacePath = path.join(root, ".agents", "plugins", "marketplace.json");
+const semver = /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/;
 
-assert.equal(manifest.name, "usora");
-assert.match(manifest.version, /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/);
-
-for (const field of ["skills", "mcpServers"]) {
-  if (manifest[field]) {
-    await access(path.join(plugin, manifest[field]));
-  }
+async function json(file) {
+  return JSON.parse(await readFile(path.join(root, file), "utf8"));
 }
 
-const codebuddyManifest = JSON.parse(await readFile(codebuddyManifestPath, "utf8"));
-const codebuddyMarketplace = JSON.parse(await readFile(codebuddyMarketplacePath, "utf8"));
-const portableManifest = JSON.parse(await readFile(portableManifestPath, "utf8"));
-const agentsMarketplace = JSON.parse(await readFile(agentsMarketplacePath, "utf8"));
-assert.equal(portableManifest.name, manifest.name);
-assert.equal(codebuddyManifest.name, manifest.name);
-assert.equal(codebuddyManifest.version, manifest.version);
+async function exists(file) {
+  await access(path.join(root, file));
+}
+
+function pluginEntry(marketplace) {
+  const entry = marketplace.plugins.find((plugin) => plugin.name === "usora");
+  assert.ok(entry, "marketplace must include the usora plugin");
+  return entry;
+}
+
+const codex = await json(".codex-plugin/plugin.json");
+const codebuddy = await json(".codebuddy-plugin/plugin.json");
+const codebuddyMarketplace = await json(".codebuddy-plugin/marketplace.json");
+const agentsMarketplace = await json(".agents/plugins/marketplace.json");
+const rootMarketplace = await json("marketplace.json");
+const portable = await json("plugin.json");
+const pkg = await json("package.json");
+const mcp = await json(".mcp.json");
+const codebuddyMcp = await json(".codebuddy-plugin/mcp.json");
+
+assert.equal(codex.name, "usora");
+assert.match(codex.version, semver);
+assert.equal(codebuddy.name, codex.name);
+assert.equal(codebuddy.version, codex.version);
+assert.equal(pkg.version, codex.version);
+assert.equal(portable.name, codex.name);
+
+await exists(codex.skills);
+await exists(codex.mcpServers);
+
+assert.deepEqual(codebuddy.skills, ["./skills/usora-skill-hub"]);
+assert.equal(codebuddy.mcpServers, "./.codebuddy-plugin/mcp.json");
+assert.equal(codebuddy.commands, undefined);
+await exists(codebuddy.skills[0]);
+await exists(codebuddy.mcpServers);
+
+assert.equal(mcp.mcpServers.usora.command, "node");
+assert.deepEqual(mcp.mcpServers.usora.args, ["scripts/usora-mcp.mjs"]);
+assert.equal(mcp.mcpServers.usora.cwd, ".");
+await exists("scripts/usora-mcp.mjs");
+
+assert.equal(codebuddyMcp.mcpServers.usora.command, "node");
+assert.deepEqual(codebuddyMcp.mcpServers.usora.args, ["${CODEBUDDY_PLUGIN_ROOT}/scripts/usora-mcp.mjs"]);
+
 assert.equal(codebuddyMarketplace.displayName, "Usora Plugin Marketplace");
-assert.equal(codebuddyMarketplace.metadata.version, manifest.version);
-for (const field of ["skills"]) {
-  assert.ok(Array.isArray(codebuddyManifest[field]), `CodeBuddy manifest must declare ${field}`);
-  for (const entry of codebuddyManifest[field]) {
-    await access(path.join(root, entry));
-  }
-}
-assert.equal(codebuddyManifest.mcpServers, "./.mcp.json");
-await access(path.join(root, codebuddyManifest.mcpServers));
-assert.equal(codebuddyMarketplace.plugins[0].name, manifest.name);
-assert.equal(codebuddyMarketplace.plugins[0].version, manifest.version);
-await access(path.join(root, codebuddyMarketplace.plugins[0].source));
-assert.equal(agentsMarketplace.plugins[0].name, manifest.name);
-assert.equal(agentsMarketplace.plugins[0].source.url, "https://github.com/LuoMingxiang/usora.git");
+assert.equal(codebuddyMarketplace.metadata.version, codex.version);
+const codebuddyEntry = pluginEntry(codebuddyMarketplace);
+assert.equal(codebuddyEntry.version, codex.version);
+assert.equal(codebuddyEntry.source, ".");
+await exists(codebuddyEntry.source);
 
-console.log(`Plugin manifest OK: ${path.relative(root, manifestPath)}`);
+for (const marketplace of [agentsMarketplace, rootMarketplace]) {
+  const entry = pluginEntry(marketplace);
+  assert.equal(entry.source.source, "url");
+  assert.equal(entry.source.url, "https://github.com/LuoMingxiang/usora.git");
+  assert.equal(entry.source.ref, "master");
+  assert.equal(entry.source.path, undefined);
+}
+
+console.log("Plugin manifests OK: Codex + CodeBuddy + marketplaces");

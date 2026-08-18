@@ -134,7 +134,7 @@ During local development, test the plugin directly:
 codebuddy --plugin-dir .
 ```
 
-CodeBuddy loads Usora from the root-level `.codebuddy-plugin/plugin.json`, which declares `skills` and `mcpServers: "./.mcp.json"`. After loading, try:
+CodeBuddy loads Usora from the root-level `.codebuddy-plugin/plugin.json`, which declares `skills` and `mcpServers: "./.codebuddy-plugin/mcp.json"`. That MCP config uses `${CODEBUDDY_PLUGIN_ROOT}` so the VS Code extension does not resolve `scripts/usora-mcp.mjs` relative to the VS Code install directory. After loading, try:
 
 ```text
 Show Usora status
@@ -250,10 +250,11 @@ If a new Usora build is not visible after pulling or pushing changes, use this r
 
    ```text
    ./scripts/cleanup-usora-plugin-cache.ps1
+   ./scripts/cleanup-usora-plugin-cache.ps1 -HostName all
    ./scripts/cleanup-usora-plugin-cache.ps1 -Apply
    ```
 
-   The first command is a dry run. The `-Apply` command removes old `~/.codex/plugins/cache/usora/usora/<version>` directories and keeps the currently released version.
+   The first two commands are dry runs. The `-Apply` command removes old installed Usora cache versions for the selected host and keeps the currently released version. Use `-HostName codex`, `-HostName codebuddy`, or `-HostName all`.
 
 To do the release commit and push in one run:
 

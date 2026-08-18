@@ -134,7 +134,7 @@ codebuddy plugin install usora@usora
 codebuddy --plugin-dir .
 ```
 
-CodeBuddy 会从根目录的 `.codebuddy-plugin/plugin.json` 加载 Usora；其中显式声明了 `skills` 和 `mcpServers: "./.mcp.json"`。加载后可以试：
+CodeBuddy 会从根目录的 `.codebuddy-plugin/plugin.json` 加载 Usora；其中显式声明了 `skills` 和 `mcpServers: "./.codebuddy-plugin/mcp.json"`。这个 MCP 配置使用 `${CODEBUDDY_PLUGIN_ROOT}`，避免 VS Code 插件把 `scripts/usora-mcp.mjs` 解析到 VS Code 安装目录。加载后可以试：
 
 ```text
 Show Usora status
@@ -249,10 +249,11 @@ Codex 和 CodeBuddy 会把插件安装到本地插件缓存，并加载已安装
 
    ```text
    ./scripts/cleanup-usora-plugin-cache.ps1
+   ./scripts/cleanup-usora-plugin-cache.ps1 -HostName all
    ./scripts/cleanup-usora-plugin-cache.ps1 -Apply
    ```
 
-   第一条命令是 dry run。带 `-Apply` 的命令会删除旧的 `~/.codex/plugins/cache/usora/usora/<version>` 目录，并保留当前发布版本。
+   前两条命令是 dry run。带 `-Apply` 的命令会删除所选宿主的旧 Usora 安装缓存，并保留当前发布版本。可以使用 `-HostName codex`、`-HostName codebuddy` 或 `-HostName all`。
 
 一键完成发布 commit 和 push：
 
