@@ -60,7 +60,7 @@ Show Usora status
 
 In the first minute, success means you can see the local Hub path, record counts, and a next useful action. After real work, ask Codex to capture the session; repeated patterns can later become Candidates and published Skills.
 
-By default, Usora uses the host plugin data directory when Codex or CodeBuddy provides one, and falls back to `<cwd>/.usora` for local/manual MCP runs. To move the data later, ask Codex to move Usora data to another path; the plugin migrates existing records and saves the new location in `config.json`.
+By default, Usora uses a stable host data directory (`~/.codex/plugins/data/usora/.usora` or `~/.codebuddy/plugins/data/usora/.usora`) and falls back to `<cwd>/.usora` only for local/manual MCP runs. Plugin upgrades should not clear the Hub. To move the data later, ask Codex to move Usora data to another path; the plugin migrates existing records and saves the new location in `config.json`.
 
 For plugin-specific usage, storage layout, and cleanup details, see the [plugin guide](docs/plugin.md).
 

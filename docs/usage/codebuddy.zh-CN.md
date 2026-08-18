@@ -29,7 +29,7 @@ MCP 配置使用：
 
 `CODEBUDDY_PLUGIN_ROOT` 必须解析到已安装的 Usora 插件根目录。否则 CodeBuddy 可能会把 `scripts/usora-mcp.mjs` 解析到 VS Code 安装目录，并报 `MODULE_NOT_FOUND`。
 
-CodeBuddy 可能会把 marketplace source clone 到 `~/.codebuddy/plugins/marketplaces`。这是正常的。Usora 会优先把 Hub 数据放到 `CODEBUDDY_PLUGIN_DATA`；如果没有这个变量，则放到 `~/.codebuddy/plugins/data/usora/.usora`，不会写到当前项目。
+CodeBuddy 可能会把 marketplace source clone 到 `~/.codebuddy/plugins/marketplaces`。这是正常的。Usora 会把 Hub 数据放到 `~/.codebuddy/plugins/data/usora/.usora`，所以升级不会清空 Hub，也不会写到当前项目。
 
 ## 试用
 

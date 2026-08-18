@@ -164,7 +164,7 @@ Manual MCP fallback for hosts that support MCP but not plugin marketplaces:
 
 ## Data
 
-The default data directory is the host plugin data directory when `CODEBUDDY_PLUGIN_DATA` or `PLUGIN_DATA` is available. Local/manual MCP runs fall back to `<cwd>/.usora`. The `USORA_HOME` environment variable is not supported.
+The default data directory is stable across plugin upgrades: `~/.codex/plugins/data/usora/.usora` for Codex and `~/.codebuddy/plugins/data/usora/.usora` for CodeBuddy. Local/manual MCP runs fall back to `<cwd>/.usora`. The `USORA_HOME` environment variable is not supported.
 
 To move data elsewhere, call `hub_config` with a `path` argument, either absolute or relative to the workspace. Usora moves existing records into the new directory, clears the old record folders, and persists the new location in `config.json` as `hub_path`.
 

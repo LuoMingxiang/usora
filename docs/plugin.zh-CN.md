@@ -164,7 +164,7 @@ Capture this session into Usora
 
 ## 数据
 
-默认数据目录会优先使用宿主提供的插件数据目录：`CODEBUDDY_PLUGIN_DATA` 或 `PLUGIN_DATA`。本地/手动 MCP 运行时 fallback 到 `<cwd>/.usora`。目前不支持 `USORA_HOME` 环境变量。
+默认数据目录会跨插件升级保持稳定：Codex 使用 `~/.codex/plugins/data/usora/.usora`，CodeBuddy 使用 `~/.codebuddy/plugins/data/usora/.usora`。本地/手动 MCP 运行时 fallback 到 `<cwd>/.usora`。目前不支持 `USORA_HOME` 环境变量。
 
 如需移动数据，调用 `hub_config` 并传入 `path`，可以是绝对路径，也可以是相对 workspace 的路径。Usora 会把已有记录移动到新目录，清理旧记录文件夹，并把新位置以 `hub_path` 写入 `config.json`。
 

@@ -29,7 +29,7 @@ The MCP config starts:
 
 `CODEBUDDY_PLUGIN_ROOT` must resolve to the installed Usora plugin root. Without it, CodeBuddy may resolve `scripts/usora-mcp.mjs` relative to VS Code's install directory and fail with `MODULE_NOT_FOUND`.
 
-CodeBuddy may clone marketplace sources under `~/.codebuddy/plugins/marketplaces`. That is fine. Usora stores Hub data in `CODEBUDDY_PLUGIN_DATA` when available, otherwise `~/.codebuddy/plugins/data/usora/.usora`, so it does not create Hub data in the current project.
+CodeBuddy may clone marketplace sources under `~/.codebuddy/plugins/marketplaces`. That is fine. Usora stores Hub data in `~/.codebuddy/plugins/data/usora/.usora`, so upgrades do not clear the Hub and Usora does not create Hub data in the current project.
 
 ## Try
 

@@ -18,9 +18,11 @@ import { fileURLToPath } from "node:url";
  * @type {string}
  */
 const runtimePluginRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
-const isCodeBuddyInstall = runtimePluginRoot
-  .toLowerCase()
-  .includes(path.join(".codebuddy", "plugins", "marketplaces").toLowerCase());
+const lowerRuntimePluginRoot = runtimePluginRoot.toLowerCase();
+const isCodeBuddyInstall = lowerRuntimePluginRoot.includes(
+  path.join(".codebuddy", "plugins", "marketplaces").toLowerCase(),
+);
+const isCodexInstall = lowerRuntimePluginRoot.includes(path.join(".codex", "plugins", "cache").toLowerCase());
 
 export const anchorHome = process.env.CODEBUDDY_PLUGIN_DATA
   ? path.resolve(process.env.CODEBUDDY_PLUGIN_DATA, ".usora")
@@ -28,7 +30,9 @@ export const anchorHome = process.env.CODEBUDDY_PLUGIN_DATA
     ? path.resolve(process.env.PLUGIN_DATA, ".usora")
     : process.env.CODEBUDDY_PLUGIN_ROOT || isCodeBuddyInstall
       ? path.join(os.homedir(), ".codebuddy", "plugins", "data", "usora", ".usora")
-      : path.resolve(process.cwd(), ".usora");
+      : isCodexInstall
+        ? path.join(os.homedir(), ".codex", "plugins", "data", "usora", ".usora")
+        : path.resolve(process.cwd(), ".usora");
 
 /**
  * Resolve the absolute path to the local data Hub.
@@ -126,6 +130,53 @@ export async function readJson(file, fallback = null) {
   }
 }
 
+async function exists(file) {
+  try {
+    await fs.access(file);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function isInside(parent, child) {
+  const rel = path.relative(parent, child);
+  return rel === "" || (!!rel && !rel.startsWith("..") && !path.isAbsolute(rel));
+}
+
+async function copyHubData(sourceHome, targetHome) {
+  if (path.resolve(sourceHome) === path.resolve(targetHome)) return;
+  for (const dir of DIRS) {
+    const src = path.join(sourceHome, dir);
+    if (!(await exists(src))) continue;
+    await fs.mkdir(path.join(targetHome, dir), { recursive: true });
+    await fs.cp(src, path.join(targetHome, dir), { recursive: true, force: false, errorOnExist: false });
+  }
+}
+
+async function migrateLegacyConfig() {
+  const currentConfig = path.join(anchorHome, "config.json");
+  if (await exists(currentConfig)) return null;
+
+  const legacyHomes = [path.join(runtimePluginRoot, ".usora"), path.resolve(process.cwd(), ".usora")];
+  for (const legacyHome of legacyHomes) {
+    const config = await readJson(path.join(legacyHome, "config.json"));
+    if (!config) continue;
+
+    const legacyHub = config.hub_path ? path.resolve(config.hub_path) : legacyHome;
+    if (legacyHome !== path.join(runtimePluginRoot, ".usora") && !isInside(runtimePluginRoot, legacyHub)) continue;
+
+    await copyHubData(legacyHub, anchorHome);
+    const next = { ...config };
+    if (isInside(runtimePluginRoot, legacyHub)) {
+      delete next.hub_path;
+    }
+    await saveConfig(next);
+    return next;
+  }
+  return null;
+}
+
 /**
  * Atomically write an object as pretty-printed JSON (write to temp + rename).
  *
@@ -160,6 +211,8 @@ export async function writeEvent(type, data) {
  * @returns {Promise<{ maintainer: string; automation_policy: string; version: number; hub_path?: string }>}
  */
 export async function loadConfig() {
+  const migrated = await migrateLegacyConfig();
+  if (migrated) return migrated;
   return readJson(path.join(anchorHome, "config.json"), {
     maintainer: "codex",
     automation_policy: "manual_approval",
