@@ -219,6 +219,27 @@ test("hub_init detects Codex cache installs without env vars", async (t) => {
   await assert.rejects(access(path.join(pluginRoot, ".usora")));
 });
 
+test("hub_init avoids the project when only Claude plugin root is provided", async (t) => {
+  const cwd = await mkdtemp(path.join(os.tmpdir(), "usora-mcp-cwd-"));
+  const home = await mkdtemp(path.join(os.tmpdir(), "usora-home-"));
+  const pluginRoot = await mkdtemp(path.join(os.tmpdir(), "usora-claude-root-"));
+  const dataRoot = path.join(home, ".codex", "plugins", "data", "usora", ".usora");
+  t.after(() => rm(cwd, { recursive: true, force: true }));
+  t.after(() => rm(home, { recursive: true, force: true }));
+  t.after(() => rm(pluginRoot, { recursive: true, force: true }));
+
+  const responses = await run(
+    cwd,
+    [initialize, { jsonrpc: "2.0", id: 2, method: "tools/call", params: { name: "hub_init", arguments: {} } }],
+    { CLAUDE_PLUGIN_ROOT: pluginRoot, HOME: home, USERPROFILE: home },
+  );
+
+  const init = JSON.parse(responses[1].result.content[0].text);
+  assert.equal(init.hub, dataRoot);
+  assert.equal(init.data_path, dataRoot);
+  await assert.rejects(access(path.join(cwd, ".usora")));
+});
+
 test("hub_init migrates legacy plugin-local data into stable host data", async (t) => {
   const cwd = await mkdtemp(path.join(os.tmpdir(), "usora-mcp-cwd-"));
   const home = await mkdtemp(path.join(os.tmpdir(), "usora-home-"));
@@ -336,6 +357,60 @@ test("session hook captures canonical Activity in the configured Hub", async (t)
   assert.equal(activity.result, "Fixed");
   assert.equal(activity.metadata.transcript_path, path.join(cwd, "transcript.jsonl"));
   assert.equal(activity.updates.length, 2);
+});
+
+test("session hook extracts a small Activity summary from CodeBuddy transcript files", async (t) => {
+  const cwd = await mkdtemp(path.join(os.tmpdir(), "usora-hook-"));
+  const hub = path.join(cwd, "hub");
+  const transcriptDir = path.join(cwd, "history", "session");
+  const messagesDir = path.join(transcriptDir, "messages");
+  t.after(() => rm(cwd, { recursive: true, force: true }));
+
+  await mkdir(path.join(cwd, ".usora"), { recursive: true });
+  await mkdir(messagesDir, { recursive: true });
+  await writeFile(path.join(cwd, ".usora", "config.json"), JSON.stringify({ hub_path: hub, version: 1 }));
+  await writeFile(
+    path.join(transcriptDir, "index.json"),
+    JSON.stringify({
+      messages: [
+        { id: "u1", role: "user" },
+        { id: "a1", role: "assistant" },
+        { id: "u2", role: "user" },
+        { id: "a2", role: "assistant" },
+      ],
+    }),
+  );
+  await writeFile(
+    path.join(messagesDir, "u1.json"),
+    JSON.stringify({ role: "user", extra: JSON.stringify({ sourceContentBlocks: [{ text: "old task" }] }) }),
+  );
+  await writeFile(
+    path.join(messagesDir, "a1.json"),
+    JSON.stringify({ role: "assistant", message: JSON.stringify({ content: [{ text: "old result" }] }) }),
+  );
+  await writeFile(
+    path.join(messagesDir, "u2.json"),
+    JSON.stringify({ role: "user", extra: JSON.stringify({ sourceContentBlocks: [{ text: "final task" }] }) }),
+  );
+  await writeFile(
+    path.join(messagesDir, "a2.json"),
+    JSON.stringify({ role: "assistant", message: JSON.stringify({ content: [{ text: "final result" }] }) }),
+  );
+
+  await runHook(cwd, {
+    session_id: "s2",
+    source: "codebuddy",
+    cwd,
+    transcript_path: path.join(transcriptDir, "index.json"),
+  });
+
+  const [file] = await readdir(path.join(hub, "activities"));
+  const activity = JSON.parse(await readFile(path.join(hub, "activities", file), "utf8"));
+  assert.equal(activity.task, "old task");
+  assert.equal(activity.result, "final result");
+  assert.deepEqual(activity.key_points, ["old task", "final task"]);
+  assert.equal(activity.metadata.enrichment, "heuristic");
+  assert.equal(activity.updates[0].summary, "final result");
 });
 
 test("hub_status suggests the next lifecycle action from counts", async (t) => {

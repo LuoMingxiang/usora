@@ -30,7 +30,7 @@ export const anchorHome = process.env.CODEBUDDY_PLUGIN_DATA
     ? path.resolve(process.env.PLUGIN_DATA, ".usora")
     : process.env.CODEBUDDY_PLUGIN_ROOT || isCodeBuddyInstall
       ? path.join(os.homedir(), ".codebuddy", "plugins", "data", "usora", ".usora")
-      : isCodexInstall
+      : process.env.CLAUDE_PLUGIN_ROOT || isCodexInstall
         ? path.join(os.homedir(), ".codex", "plugins", "data", "usora", ".usora")
         : path.resolve(process.cwd(), ".usora");
 
