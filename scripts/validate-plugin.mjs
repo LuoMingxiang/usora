@@ -67,15 +67,15 @@ assert.match(
   /\$\{CODEBUDDY_PLUGIN_ROOT\}\/hooks\/session-hook\.mjs/,
 );
 
-assert.equal(mcp.usora.command, "node");
-assert.deepEqual(mcp.usora.args, ["scripts/usora-mcp.mjs"]);
-assert.equal(mcp.usora.cwd, ".");
+assert.equal(mcp.hub.command, "node");
+assert.deepEqual(mcp.hub.args, ["scripts/usora-mcp.mjs"]);
+assert.equal(mcp.hub.cwd, ".");
 await exists("scripts/usora-mcp.mjs");
 await exists("src/mcp/server.mjs");
 assert.match(await readFile(path.join(root, "scripts/usora-mcp.mjs"), "utf8"), /src\/mcp\/server\.mjs/);
 
-assert.equal(codebuddyMcp.mcpServers.usora.command, "node");
-assert.deepEqual(codebuddyMcp.mcpServers.usora.args, ["${CODEBUDDY_PLUGIN_ROOT}/scripts/usora-mcp.mjs"]);
+assert.equal(codebuddyMcp.mcpServers.hub.command, "node");
+assert.deepEqual(codebuddyMcp.mcpServers.hub.args, ["${CODEBUDDY_PLUGIN_ROOT}/scripts/usora-mcp.mjs"]);
 
 assert.equal(codebuddyMarketplace.displayName, "Usora Plugin Marketplace");
 assert.equal(codebuddyMarketplace.metadata.version, codex.version);

@@ -1,6 +1,6 @@
 {
   "mcpServers": {
-    "usora": {
+    "hub": {
       "command": "node",
       "args": ["${CODEBUDDY_PLUGIN_ROOT}/scripts/usora-mcp.mjs"]
     }
