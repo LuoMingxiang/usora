@@ -9,7 +9,7 @@
   "repository": "https://github.com/LuoMingxiang/usora",
   "skills": "./skills/",
   "mcpServers": "./.mcp.json",
-  "hooks": "./hooks/hooks.json",
+  "hooks": "./hooks/codex-hooks.json",
   "interface": {
     "displayName": "Usora",
     "shortDescription": "Turn practice into reusable AI capability.",

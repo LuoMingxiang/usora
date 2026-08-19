@@ -5,7 +5,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"${CODEBUDDY_PLUGIN_ROOT}/scripts/session-hook.mjs\"",
+            "command": "node \"${CODEBUDDY_PLUGIN_ROOT}/hooks/session-hook.mjs\"",
             "timeout": 30
           }
         ]

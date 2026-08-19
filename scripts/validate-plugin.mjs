@@ -29,6 +29,8 @@ const pkg = await json("package.json");
 const marketplaceTemplate = await json("common/marketplace.json");
 const mcp = await json(".mcp.json");
 const codebuddyMcp = await json(".codebuddy-plugin/mcp.json");
+const codexHooks = await json("hooks/codex-hooks.json");
+const codebuddyHooks = await json("hooks/codebuddy-hooks.json");
 
 assert.equal(codex.name, "usora");
 assert.match(codex.version, semver);
@@ -46,14 +48,24 @@ assert.equal(marketplaceTemplate.owner.name, "Veyra");
 
 await exists(codex.skills);
 assert.equal(codex.mcpServers, "./.mcp.json");
+assert.equal(codex.hooks, "./hooks/codex-hooks.json");
 await exists(codex.mcpServers);
+await exists(codex.hooks);
 
 assert.deepEqual(codebuddy.skills, ["./skills/usora-skill-hub"]);
 assert.equal(codebuddy.mcpServers, "./.codebuddy-plugin/mcp.json");
+assert.equal(codebuddy.hooks, "./hooks/codebuddy-hooks.json");
 assert.equal(codebuddy.commands, undefined);
 await exists(codebuddy.skills[0]);
 await exists(codebuddy.mcpServers);
+await exists(codebuddy.hooks);
 await assert.rejects(access(path.join(root, ".codex-plugin/mcp.json")));
+
+assert.match(codexHooks.hooks.SessionEnd[0].hooks[0].command, /\$\{CLAUDE_PLUGIN_ROOT\}\/hooks\/session-hook\.mjs/);
+assert.match(
+  codebuddyHooks.hooks.SessionEnd[0].hooks[0].command,
+  /\$\{CODEBUDDY_PLUGIN_ROOT\}\/hooks\/session-hook\.mjs/,
+);
 
 assert.equal(mcp.usora.command, "node");
 assert.deepEqual(mcp.usora.args, ["scripts/usora-mcp.mjs"]);

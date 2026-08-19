@@ -13,5 +13,5 @@
   "category": "Productivity",
   "skills": ["./skills/usora-skill-hub"],
   "mcpServers": "./.codebuddy-plugin/mcp.json",
-  "hooks": "./hooks/hooks.json"
+  "hooks": "./hooks/codebuddy-hooks.json"
 }
