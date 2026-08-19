@@ -31,6 +31,19 @@ async function run(cwd, requests, env = {}) {
   return output.trim().split("\n").map(JSON.parse);
 }
 
+async function runHook(cwd, event) {
+  const child = spawn(process.execPath, [path.resolve("hooks/session-hook.mjs")], {
+    cwd,
+    env: process.env,
+    stdio: ["pipe", "pipe", "inherit"],
+  });
+  await new Promise((resolve, reject) => {
+    child.once("error", reject);
+    child.once("close", (code) => (code === 0 ? resolve() : reject(Error(`hook exited ${code}`))));
+    child.stdin.end(`${JSON.stringify(event)}\n`);
+  });
+}
+
 const initialize = {
   jsonrpc: "2.0",
   id: 1,
@@ -296,6 +309,33 @@ test("hub_config with path moves data to the new directory and clears the old on
 
   // The anchor config must survive (it holds hub_path).
   await access(path.join(cwd, ".usora", "config.json"));
+});
+
+test("session hook captures canonical Activity in the configured Hub", async (t) => {
+  const cwd = await mkdtemp(path.join(os.tmpdir(), "usora-hook-"));
+  const hub = path.join(cwd, "hub");
+  t.after(() => rm(cwd, { recursive: true, force: true }));
+
+  await mkdir(path.join(cwd, ".usora"), { recursive: true });
+  await writeFile(path.join(cwd, ".usora", "config.json"), JSON.stringify({ hub_path: hub, version: 1 }));
+
+  await runHook(cwd, {
+    session_id: "s1",
+    cwd,
+    timestamp: "not-a-date",
+    transcript_path: path.join(cwd, "transcript.jsonl"),
+  });
+  await runHook(cwd, { session_id: "s1", cwd, timestamp: "2026-08-19T00:00:00Z", task: "Review", result: "Fixed" });
+
+  const files = await readdir(path.join(hub, "activities"));
+  assert.equal(files.length, 1);
+  const activity = JSON.parse(await readFile(path.join(hub, "activities", files[0]), "utf8"));
+  assert.equal(activity.session_id, "s1");
+  assert.equal(activity.source, "codex");
+  assert.equal(activity.task, "Review");
+  assert.equal(activity.result, "Fixed");
+  assert.equal(activity.metadata.transcript_path, path.join(cwd, "transcript.jsonl"));
+  assert.equal(activity.updates.length, 2);
 });
 
 test("hub_status suggests the next lifecycle action from counts", async (t) => {
