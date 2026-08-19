@@ -1,6 +1,6 @@
 {
   "name": "usora",
-  "version": "0.3.12",
+  "version": "0.3.13",
   "description": "A personal AI capability hub that turns real work into reusable, continuously improving skills.",
   "author": {
     "name": "Veyra"
@@ -9,11 +9,10 @@
   "repository": "https://github.com/LuoMingxiang/usora",
   "skills": "./skills/",
   "mcpServers": "./.mcp.json",
-  "hooks": "./hooks/codex-hooks.json",
   "interface": {
     "displayName": "Usora",
     "shortDescription": "Turn practice into reusable AI capability.",
-    "longDescription": "Usora is a local-first personal capability layer for the AI era. It turns accumulated practice into Activities, Candidates, and evolving Skills that help multiple AI agents[...],",
+    "longDescription": "Usora is a local-first personal capability layer for the AI era. It turns accumulated practice into Activities, Candidates, and evolving Skills that help multiple AI agents reuse one user-owned capability library.",
     "developerName": "Veyra",
     "category": "Productivity",
     "websiteURL": "https://github.com/LuoMingxiang/usora",
