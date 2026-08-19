@@ -1,6 +1,6 @@
 {
   "name": "usora",
-  "version": "0.3.13",
+  "version": "0.3.14",
   "description": "A personal AI capability hub that turns real work into reusable, continuously improving skills.",
   "author": {
     "name": "Veyra"
@@ -9,6 +9,7 @@
   "repository": "https://github.com/LuoMingxiang/usora",
   "skills": "./skills/",
   "mcpServers": "./.mcp.json",
+  "hooks": "./hooks/codex-hooks.json",
   "interface": {
     "displayName": "Usora",
     "shortDescription": "Turn practice into reusable AI capability.",

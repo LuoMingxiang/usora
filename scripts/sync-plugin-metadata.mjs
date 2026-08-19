@@ -43,6 +43,7 @@ await writeJson(".codex-plugin/plugin.json", {
   repository: manifest.repository,
   skills: "./skills/",
   mcpServers: "./.mcp.json",
+  hooks: "./hooks/codex-hooks.json",
   interface: manifest.interface,
 });
 
@@ -58,6 +59,7 @@ await writeJson(".codebuddy-plugin/plugin.json", {
   category: manifest.category,
   skills: manifest.skills,
   mcpServers: "./.codebuddy-plugin/mcp.json",
+  hooks: "./hooks/codebuddy-hooks.json",
 });
 
 const codebuddyMarketplace = {
