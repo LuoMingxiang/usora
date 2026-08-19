@@ -9,7 +9,7 @@
 
 <p align="center">
   <a href="../README.md">Project README</a> ·
-  <a href="README.zh-CN.md">中文</a>
+  <a href="plugin.zh-CN.md">中文</a>
 </p>
 
 # Usora Plugin
@@ -309,6 +309,11 @@ To clean data:
 ## MVP Boundary
 
 Usora is currently a local, single-user MVP. It does not include a Web UI, cloud sync, team collaboration, a public Skill marketplace, or direct AI-to-AI communication.
+
+## Related Guides
+
+- [Hooks: Automatic session activity recording](plugin/hooks.md)
+- [Plugin platform notes](plugin/create/README.md)
 
 ## Design Boundary
 

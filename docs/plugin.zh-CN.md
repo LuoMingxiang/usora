@@ -8,7 +8,7 @@
 </p>
 
 <p align="center">
-  <a href="README.md">English</a> ·
+  <a href="plugin.md">English</a> ·
   <a href="../README.zh-CN.md">项目 README</a>
 </p>
 
@@ -308,6 +308,11 @@ codex plugin remove usora@usora
 ## MVP 边界
 
 Usora 当前是本地、单用户 MVP。它不包含 Web UI、云同步、团队协作、公开 Skill marketplace，或 AI 与 AI 的直接通信。
+
+## 相关指南
+
+- [Hooks：自动记录会话活动](plugin/hooks.zh-CN.md)
+- [插件平台说明](plugin/create/README.zh-CN.md)
 
 ## 设计边界
 

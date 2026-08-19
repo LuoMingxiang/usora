@@ -1,3 +1,8 @@
+<p align="center">
+  <a href="hooks.md">English</a> ·
+  <a href="hooks.zh-CN.md">中文</a>
+</p>
+
 # Hooks: Automatic session activity recording
 
 This page explains the MVP hook implementation that records AI session activity when a host triggers `SessionEnd`.
