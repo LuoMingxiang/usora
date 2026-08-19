@@ -3,6 +3,7 @@ import path from "node:path";
 
 const root = process.cwd();
 const repoUrl = "https://github.com/LuoMingxiang/usora.git";
+const pluginDir = "plugins/foundry";
 
 async function readJson(file) {
   return JSON.parse(await readFile(path.join(root, file), "utf8"));
@@ -27,14 +28,14 @@ function marketplaceEntry(manifest, source) {
   };
 }
 
-const manifest = await readJson("plugin.json");
+const manifest = await readJson(path.join(pluginDir, "plugin.json"));
 const template = await readJson("common/marketplace.json");
 const pkg = await readJson("package.json");
 
 pkg.version = manifest.version;
 await writeJson("package.json", pkg);
 
-await writeJson(".codex-plugin/plugin.json", {
+await writeJson(path.join(pluginDir, ".codex-plugin/plugin.json"), {
   name: manifest.name,
   version: manifest.version,
   description: "A personal AI capability hub that turns real work into reusable, continuously improving skills.",
@@ -47,7 +48,7 @@ await writeJson(".codex-plugin/plugin.json", {
   interface: manifest.interface,
 });
 
-await writeJson(".codebuddy-plugin/plugin.json", {
+await writeJson(path.join(pluginDir, ".codebuddy-plugin/plugin.json"), {
   name: manifest.name,
   version: manifest.version,
   description: manifest.description,
@@ -68,14 +69,18 @@ const codebuddyMarketplace = {
     description: manifest.description,
     version: manifest.version,
   },
-  plugins: [marketplaceEntry(manifest, ".")],
+  plugins: [marketplaceEntry(manifest, `./${pluginDir}`)],
 };
 await writeJson(".codebuddy-plugin/marketplace.json", codebuddyMarketplace);
 
 const codexMarketplace = {
-  name: manifest.name,
+  name: template.name,
+  displayName: template.displayName,
+  description: template.description,
+  owner: template.owner,
+  metadata: template.metadata,
   interface: {
-    displayName: manifest.interface.displayName,
+    displayName: template.displayName,
   },
   plugins: [
     {
@@ -84,6 +89,7 @@ const codexMarketplace = {
         source: "url",
         url: repoUrl,
         ref: "master",
+        path: pluginDir,
       },
       policy: {
         installation: "AVAILABLE",

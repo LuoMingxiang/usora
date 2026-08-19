@@ -4,22 +4,22 @@
 
 ```powershell
 codebuddy plugin marketplace add https://github.com/LuoMingxiang/usora.git
-codebuddy plugin install usora@usora
+codebuddy plugin install usora@foundry
 ```
 
 本地开发时可以直接加载插件：
 
 ```powershell
-codebuddy --plugin-dir .
+codebuddy --plugin-dir plugins/foundry
 ```
 
-Usora 通过 `.codebuddy-plugin/plugin.json` 加载，并指向 `.codebuddy-plugin/mcp.json`。
+Usora Foundry 通过 `plugins/foundry/.codebuddy-plugin/plugin.json` 加载，并指向 `.codebuddy-plugin/mcp.json`。
 MCP 配置使用：
 
 ```json
 {
   "mcpServers": {
-    "usora": {
+    "practice": {
       "command": "node",
       "args": ["${CODEBUDDY_PLUGIN_ROOT}/scripts/usora-mcp.mjs"]
     }
@@ -45,7 +45,7 @@ Usora 的 marketplace entry 指向 GitHub `master`。本地改动必须 commit �
 
 ```powershell
 ./scripts/release-usora-plugin.ps1 -Commit -Push
-codebuddy plugin update usora@usora
+codebuddy plugin update usora@foundry
 ```
 
 ## 缓存清理

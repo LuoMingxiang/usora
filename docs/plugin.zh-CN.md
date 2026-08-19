@@ -130,18 +130,18 @@ CodeBuddy:
 
 ```powershell
 codebuddy plugin marketplace add https://github.com/LuoMingxiang/usora.git
-codebuddy plugin install usora@usora
+codebuddy plugin install usora@foundry
 ```
 
 本地开发时可以直接加载插件：
 
 ```powershell
-codebuddy --plugin-dir .
+codebuddy --plugin-dir plugins/foundry
 ```
 
-Codex 会通过 `.codex-plugin/plugin.json` 加载 Usora；其中显式声明 `mcpServers: "./.mcp.json"`。`.mcp.json` 保持在插件根目录，让 Codex 从已安装插件中解析 bundled MCP server。
+Codex 会通过 `plugins/foundry/.codex-plugin/plugin.json` 加载 Usora Foundry；其中显式声明 `mcpServers: "./.mcp.json"`。`.mcp.json` 保持在插件根目录，让 Codex 从已安装插件中解析 bundled MCP server。
 
-CodeBuddy 会通过 `.codebuddy-plugin/plugin.json` 加载 Usora；其中显式声明 `skills` 和 `mcpServers: "./.codebuddy-plugin/mcp.json"`。这个 MCP 配置使用 `${CODEBUDDY_PLUGIN_ROOT}`，避免 VS Code 插件把 `scripts/usora-mcp.mjs` 解析到 VS Code 安装目录。加载后可以试：
+CodeBuddy 会通过 `plugins/foundry/.codebuddy-plugin/plugin.json` 加载 Usora Foundry；其中显式声明 `skills` 和 `mcpServers: "./.codebuddy-plugin/mcp.json"`。这个 MCP 配置使用 `${CODEBUDDY_PLUGIN_ROOT}`，避免 VS Code 插件把 `scripts/usora-mcp.mjs` 解析到 VS Code 安装目录。加载后可以试：
 
 ```text
 Show Usora status
@@ -153,10 +153,10 @@ Capture this session into Usora
 ```json
 {
   "mcpServers": {
-    "usora": {
+    "practice": {
       "command": "node",
       "args": ["scripts/usora-mcp.mjs"],
-      "cwd": "/absolute/path/to/usora"
+      "cwd": "/absolute/path/to/usora/plugins/foundry"
     }
   }
 }

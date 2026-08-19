@@ -66,27 +66,29 @@ AI 助手常常会反复解决同一类本地工作流问题，但真正有价�
 
 ## 仓库组织
 
-Usora 对齐社区插件组织方式：一个 canonical plugin payload，加上薄宿主适配层。
+Usora 现在是 marketplace-style monorepo：插件市场仍叫 `usora`，当前第一个插件 payload 叫 `foundry`。
 
 ```text
-plugin.json                            # community plugin entry
-skills/                                # canonical Skill instructions
-src/                                   # MCP runtime modules
-scripts/usora-mcp.mjs                  # thin MCP entrypoint
-.mcp.json                              # shared MCP server entry
-.codex-plugin/                         # Codex adapter
-.codebuddy-plugin/                     # CodeBuddy adapter and marketplace metadata
-.agents/plugins/marketplace.json       # Codex-style marketplace metadata
+plugins/foundry/plugin.json            # canonical plugin entry
+plugins/foundry/skills/                # Skill instructions
+plugins/foundry/src/                   # MCP runtime modules
+plugins/foundry/scripts/usora-mcp.mjs  # thin MCP entrypoint
+plugins/foundry/.mcp.json              # shared MCP server entry
+plugins/foundry/.codex-plugin/         # Codex adapter
+plugins/foundry/.codebuddy-plugin/     # CodeBuddy adapter
 common/marketplace.json                # marketplace metadata template
+marketplace.json                       # generated marketplace metadata
+.agents/plugins/marketplace.json       # generated Codex-style marketplace metadata
+.codebuddy-plugin/marketplace.json     # generated CodeBuddy marketplace metadata
 ```
 
-编辑 `plugin.json` 后运行 `npm run sync`。发布前运行 `npm run doctor`。
+编辑 `plugins/foundry/plugin.json` 后运行 `npm run sync`。发布前运行 `npm run doctor`。
 
 ### Codex
 
 ```powershell
 codex plugin marketplace add https://github.com/LuoMingxiang/usora.git
-codex plugin add usora@usora
+codex plugin add usora@foundry
 ```
 
 见 [Codex 使用指南](docs/usage/codex.zh-CN.md)。
@@ -95,7 +97,7 @@ codex plugin add usora@usora
 
 ```powershell
 codebuddy plugin marketplace add https://github.com/LuoMingxiang/usora.git
-codebuddy plugin install usora@usora
+codebuddy plugin install usora@foundry
 ```
 
 见 [CodeBuddy 使用指南](docs/usage/codebuddy.zh-CN.md)。

@@ -1,5 +1,5 @@
 {
-  "name": "usora",
+  "name": "foundry",
   "version": "1.0.0",
   "description": "A personal AI capability hub that turns real work into reusable, continuously improving skills.",
   "author": {
@@ -11,18 +11,14 @@
   "mcpServers": "./.mcp.json",
   "hooks": "./hooks/codex-hooks.json",
   "interface": {
-    "displayName": "Usora",
+    "displayName": "Usora Foundry",
     "shortDescription": "Turn practice into reusable AI capability.",
     "longDescription": "Usora is a local-first personal capability layer for the AI era. It turns accumulated practice into Activities, Candidates, and evolving Skills that help multiple AI agents reuse one user-owned capability library.",
     "developerName": "Veyra",
     "category": "Productivity",
     "websiteURL": "https://github.com/LuoMingxiang/usora",
     "capabilities": ["Local-first", "Session memory", "Skill evolution"],
-    "defaultPrompt": [
-      "Initialize my Usora Skill Hub",
-      "Capture this session into Usora",
-      "Clean old Usora plugin cache"
-    ],
+    "defaultPrompt": ["Initialize Usora Foundry", "Capture this session into Usora", "Clean old Usora plugin cache"],
     "composerIcon": "./assets/logo.png",
     "logo": "./assets/logo.png"
   }

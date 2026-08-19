@@ -4,15 +4,15 @@
 
 ```powershell
 codex plugin marketplace add https://github.com/LuoMingxiang/usora.git
-codex plugin add usora@usora
+codex plugin add usora@foundry
 ```
 
-Usora is loaded through `.codex-plugin/plugin.json`, which points to the root `.mcp.json`.
+Usora Foundry is loaded through `plugins/foundry/.codex-plugin/plugin.json`, which points to the plugin root `.mcp.json`.
 The MCP config starts:
 
 ```json
 {
-  "usora": {
+  "practice": {
     "command": "node",
     "args": ["scripts/usora-mcp.mjs"],
     "cwd": "."

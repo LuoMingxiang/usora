@@ -4,22 +4,22 @@
 
 ```powershell
 codebuddy plugin marketplace add https://github.com/LuoMingxiang/usora.git
-codebuddy plugin install usora@usora
+codebuddy plugin install usora@foundry
 ```
 
 For local development:
 
 ```powershell
-codebuddy --plugin-dir .
+codebuddy --plugin-dir plugins/foundry
 ```
 
-Usora is loaded through `.codebuddy-plugin/plugin.json`, which points to `.codebuddy-plugin/mcp.json`.
+Usora Foundry is loaded through `plugins/foundry/.codebuddy-plugin/plugin.json`, which points to `.codebuddy-plugin/mcp.json`.
 The MCP config starts:
 
 ```json
 {
   "mcpServers": {
-    "usora": {
+    "practice": {
       "command": "node",
       "args": ["${CODEBUDDY_PLUGIN_ROOT}/scripts/usora-mcp.mjs"]
     }
@@ -45,7 +45,7 @@ Usora's marketplace entry points to GitHub `master`. Local changes only become i
 
 ```powershell
 ./scripts/release-usora-plugin.ps1 -Commit -Push
-codebuddy plugin update usora@usora
+codebuddy plugin update usora@foundry
 ```
 
 ## Cache Cleanup

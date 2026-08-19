@@ -130,18 +130,18 @@ CodeBuddy:
 
 ```powershell
 codebuddy plugin marketplace add https://github.com/LuoMingxiang/usora.git
-codebuddy plugin install usora@usora
+codebuddy plugin install usora@foundry
 ```
 
 During local development, test the plugin directly:
 
 ```powershell
-codebuddy --plugin-dir .
+codebuddy --plugin-dir plugins/foundry
 ```
 
-Codex loads Usora through `.codex-plugin/plugin.json`, which declares `mcpServers: "./.mcp.json"`. Keep `.mcp.json` at the plugin root so Codex resolves the bundled MCP server from the installed plugin.
+Codex loads Usora Foundry through `plugins/foundry/.codex-plugin/plugin.json`, which declares `mcpServers: "./.mcp.json"`. Keep `.mcp.json` at the plugin root so Codex resolves the bundled MCP server from the installed plugin.
 
-CodeBuddy loads Usora through `.codebuddy-plugin/plugin.json`, which declares `skills` and `mcpServers: "./.codebuddy-plugin/mcp.json"`. That MCP config uses `${CODEBUDDY_PLUGIN_ROOT}` so the VS Code extension does not resolve `scripts/usora-mcp.mjs` relative to the VS Code install directory. After loading, try:
+CodeBuddy loads Usora Foundry through `plugins/foundry/.codebuddy-plugin/plugin.json`, which declares `skills` and `mcpServers: "./.codebuddy-plugin/mcp.json"`. That MCP config uses `${CODEBUDDY_PLUGIN_ROOT}` so the VS Code extension does not resolve `scripts/usora-mcp.mjs` relative to the VS Code install directory. After loading, try:
 
 ```text
 Show Usora status
@@ -153,10 +153,10 @@ Manual MCP fallback for hosts that support MCP but not plugin marketplaces:
 ```json
 {
   "mcpServers": {
-    "usora": {
+    "practice": {
       "command": "node",
       "args": ["scripts/usora-mcp.mjs"],
-      "cwd": "/absolute/path/to/usora"
+      "cwd": "/absolute/path/to/usora/plugins/foundry"
     }
   }
 }

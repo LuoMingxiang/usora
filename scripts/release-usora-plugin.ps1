@@ -59,7 +59,7 @@ function Set-Version($Path, $Version) {
   Write-Host "Synced version: $Path"
 }
 
-$PortableManifestPath = Join-Path $Root "plugin.json"
+$PortableManifestPath = Join-Path $Root "plugins/foundry/plugin.json"
 
 $PortableManifest = Read-Json $PortableManifestPath
 $OldVersion = $PortableManifest.version
@@ -79,14 +79,14 @@ if ($Version) {
 Set-Version $PortableManifestPath $NewVersion
 
 node scripts/plugin.mjs sync
-npx prettier --write plugin.json common/marketplace.json marketplace.json .agents/plugins/marketplace.json .mcp.json .codex-plugin/plugin.json .codebuddy-plugin/plugin.json .codebuddy-plugin/marketplace.json .codebuddy-plugin/mcp.json package.json
+npx prettier --write plugins/foundry/plugin.json common/marketplace.json marketplace.json .agents/plugins/marketplace.json .codebuddy-plugin/marketplace.json plugins/foundry/.mcp.json plugins/foundry/.codex-plugin/plugin.json plugins/foundry/.codebuddy-plugin/plugin.json plugins/foundry/.codebuddy-plugin/mcp.json package.json
 Write-Host "Updated plugin version: $OldVersion -> $NewVersion"
 npm run validate
 npm test
 
 if ($Commit) {
-  git -C $Root add .agents .codebuddy-plugin .codex-plugin .husky .mcp.json .oxlintrc.json assets CODEBUDDY.md common docs hooks marketplace.json package.json plugin.json README.md README.zh-CN.md scripts skills src
-  git -C $Root commit -m "chore: release usora plugin $NewVersion"
+  git -C $Root add .agents .codebuddy-plugin .husky .oxlintrc.json CODEBUDDY.md common docs marketplace.json package.json plugins README.md README.zh-CN.md scripts
+  git -C $Root commit -m "chore: release foundry plugin $NewVersion"
 }
 
 if ($Push) {

@@ -12,8 +12,8 @@
   },
   "plugins": [
     {
-      "name": "usora",
-      "source": ".",
+      "name": "foundry",
+      "source": "./plugins/foundry",
       "description": "Turn AI work practice into a local-first reusable Skill Hub.",
       "version": "1.0.0",
       "author": {

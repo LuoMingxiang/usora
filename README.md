@@ -66,27 +66,29 @@ For plugin-specific usage, storage layout, and cleanup details, see the [plugin 
 
 ## Repository Layout
 
-Usora follows the community plugin layout: one canonical plugin payload plus thin host adapters.
+Usora is a marketplace-style monorepo. The marketplace stays `usora`; the first plugin payload is `foundry`.
 
 ```text
-plugin.json                            # community plugin entry
-skills/                                # canonical Skill instructions
-src/                                   # MCP runtime modules
-scripts/usora-mcp.mjs                  # thin MCP entrypoint
-.mcp.json                              # shared MCP server entry
-.codex-plugin/                         # Codex adapter
-.codebuddy-plugin/                     # CodeBuddy adapter and marketplace metadata
-.agents/plugins/marketplace.json       # Codex-style marketplace metadata
+plugins/foundry/plugin.json            # canonical plugin entry
+plugins/foundry/skills/                # Skill instructions
+plugins/foundry/src/                   # MCP runtime modules
+plugins/foundry/scripts/usora-mcp.mjs  # thin MCP entrypoint
+plugins/foundry/.mcp.json              # shared MCP server entry
+plugins/foundry/.codex-plugin/         # Codex adapter
+plugins/foundry/.codebuddy-plugin/     # CodeBuddy adapter
 common/marketplace.json                # marketplace metadata template
+marketplace.json                       # generated marketplace metadata
+.agents/plugins/marketplace.json       # generated Codex-style marketplace metadata
+.codebuddy-plugin/marketplace.json     # generated CodeBuddy marketplace metadata
 ```
 
-Run `npm run sync` after editing `plugin.json`. Run `npm run doctor` before release.
+Run `npm run sync` after editing `plugins/foundry/plugin.json`. Run `npm run doctor` before release.
 
 ### Codex
 
 ```powershell
 codex plugin marketplace add https://github.com/LuoMingxiang/usora.git
-codex plugin add usora@usora
+codex plugin add usora@foundry
 ```
 
 See [Codex usage](docs/usage/codex.md).
@@ -95,7 +97,7 @@ See [Codex usage](docs/usage/codex.md).
 
 ```powershell
 codebuddy plugin marketplace add https://github.com/LuoMingxiang/usora.git
-codebuddy plugin install usora@usora
+codebuddy plugin install usora@foundry
 ```
 
 See [CodeBuddy usage](docs/usage/codebuddy.md).

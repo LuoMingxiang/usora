@@ -1,5 +1,5 @@
 {
-  "hub": {
+  "practice": {
     "command": "node",
     "args": ["scripts/usora-mcp.mjs"],
     "cwd": "."

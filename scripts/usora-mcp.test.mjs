@@ -5,6 +5,11 @@ import path from "node:path";
 import test from "node:test";
 import { spawn } from "node:child_process";
 
+const foundryRoot = path.resolve("plugins/foundry");
+const mcpScript = path.join(foundryRoot, "scripts", "usora-mcp.mjs");
+const mcpSrc = path.join(foundryRoot, "src");
+const sessionHook = path.join(foundryRoot, "hooks", "session-hook.mjs");
+
 /**
  * Spawn the MCP server, send the given requests, and return parsed responses.
  *
@@ -14,7 +19,7 @@ import { spawn } from "node:child_process";
  * @returns {Promise<object[]>}
  */
 async function run(cwd, requests, env = {}) {
-  const child = spawn(process.execPath, [path.resolve("scripts/usora-mcp.mjs")], {
+  const child = spawn(process.execPath, [mcpScript], {
     cwd,
     env: { ...process.env, ...env },
     stdio: ["pipe", "pipe", "inherit"],
@@ -32,7 +37,7 @@ async function run(cwd, requests, env = {}) {
 }
 
 async function runHook(cwd, event) {
-  const child = spawn(process.execPath, [path.resolve("hooks/session-hook.mjs")], {
+  const child = spawn(process.execPath, [sessionHook], {
     cwd,
     env: process.env,
     stdio: ["pipe", "pipe", "inherit"],
@@ -150,8 +155,8 @@ test("hub_init detects CodeBuddy marketplace installs without env vars", async (
   await rm(marketplaceRoot, { recursive: true, force: true });
   await mkdir(path.join(marketplaceRoot, "scripts"), { recursive: true });
   await mkdir(path.join(marketplaceRoot, "src"), { recursive: true });
-  await cp(path.resolve("scripts/usora-mcp.mjs"), path.join(marketplaceRoot, "scripts", "usora-mcp.mjs"));
-  await cp(path.resolve("src"), path.join(marketplaceRoot, "src"), { recursive: true });
+  await cp(mcpScript, path.join(marketplaceRoot, "scripts", "usora-mcp.mjs"));
+  await cp(mcpSrc, path.join(marketplaceRoot, "src"), { recursive: true });
   t.after(() => rm(cwd, { recursive: true, force: true }));
   t.after(() => rm(home, { recursive: true, force: true }));
 
@@ -188,8 +193,8 @@ test("hub_init detects Codex cache installs without env vars", async (t) => {
   const dataRoot = path.join(home, ".codex", "plugins", "data", "usora", ".usora");
   await mkdir(path.join(pluginRoot, "scripts"), { recursive: true });
   await mkdir(path.join(pluginRoot, "src"), { recursive: true });
-  await cp(path.resolve("scripts/usora-mcp.mjs"), path.join(pluginRoot, "scripts", "usora-mcp.mjs"));
-  await cp(path.resolve("src"), path.join(pluginRoot, "src"), { recursive: true });
+  await cp(mcpScript, path.join(pluginRoot, "scripts", "usora-mcp.mjs"));
+  await cp(mcpSrc, path.join(pluginRoot, "src"), { recursive: true });
   t.after(() => rm(cwd, { recursive: true, force: true }));
   t.after(() => rm(home, { recursive: true, force: true }));
 
@@ -254,8 +259,8 @@ test("hub_init migrates legacy plugin-local data into stable host data", async (
     JSON.stringify({ id: "activity-legacy", task: "legacy", result: "kept" }),
   );
   await writeFile(path.join(legacyHub, "config.json"), JSON.stringify({ maintainer: "codex", version: 1 }));
-  await cp(path.resolve("scripts/usora-mcp.mjs"), path.join(pluginRoot, "scripts", "usora-mcp.mjs"));
-  await cp(path.resolve("src"), path.join(pluginRoot, "src"), { recursive: true });
+  await cp(mcpScript, path.join(pluginRoot, "scripts", "usora-mcp.mjs"));
+  await cp(mcpSrc, path.join(pluginRoot, "src"), { recursive: true });
   t.after(() => rm(cwd, { recursive: true, force: true }));
   t.after(() => rm(home, { recursive: true, force: true }));
 

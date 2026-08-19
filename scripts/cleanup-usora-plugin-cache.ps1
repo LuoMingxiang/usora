@@ -7,7 +7,7 @@ param(
 $ErrorActionPreference = "Stop"
 
 $Root = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
-$ManifestPath = Join-Path $Root ".codex-plugin/plugin.json"
+$ManifestPath = Join-Path $Root "plugins/foundry/.codex-plugin/plugin.json"
 $CurrentVersion = (Get-Content -Raw $ManifestPath | ConvertFrom-Json).version
 
 if (-not $CurrentVersion) {
@@ -15,8 +15,12 @@ if (-not $CurrentVersion) {
 }
 
 $CacheRoots = @{
-  codex = @(Join-Path $env:USERPROFILE ".codex/plugins/cache/usora/usora")
+  codex = @(
+    (Join-Path $env:USERPROFILE ".codex/plugins/cache/usora/foundry"),
+    (Join-Path $env:USERPROFILE ".codex/plugins/cache/usora/usora")
+  )
   codebuddy = @(
+    (Join-Path $env:USERPROFILE ".codebuddy/plugins/cache/usora/foundry"),
     (Join-Path $env:USERPROFILE ".codebuddy/plugins/cache/usora/usora"),
     (Join-Path $env:USERPROFILE ".codebuddy/plugins/marketplaces/https___github_com_LuoMingxiang_usora")
   )

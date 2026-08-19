@@ -4,15 +4,15 @@
 
 ```powershell
 codex plugin marketplace add https://github.com/LuoMingxiang/usora.git
-codex plugin add usora@usora
+codex plugin add usora@foundry
 ```
 
-Usora 通过 `.codex-plugin/plugin.json` 加载，并指向根目录 `.mcp.json`。
+Usora Foundry 通过 `plugins/foundry/.codex-plugin/plugin.json` 加载，并指向插件根目录 `.mcp.json`。
 MCP 配置使用：
 
 ```json
 {
-  "usora": {
+  "practice": {
     "command": "node",
     "args": ["scripts/usora-mcp.mjs"],
     "cwd": "."

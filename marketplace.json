@@ -1,15 +1,22 @@
 {
   "name": "usora",
+  "displayName": "Usora Plugin Marketplace",
+  "description": "Usora plugins for AI agent hosts.",
+  "owner": {
+    "name": "Veyra",
+    "url": "https://github.com/LuoMingxiang"
+  },
   "interface": {
-    "displayName": "Usora"
+    "displayName": "Usora Plugin Marketplace"
   },
   "plugins": [
     {
-      "name": "usora",
+      "name": "foundry",
       "source": {
         "source": "url",
         "url": "https://github.com/LuoMingxiang/usora.git",
-        "ref": "master"
+        "ref": "master",
+        "path": "plugins/foundry"
       },
       "policy": {
         "installation": "AVAILABLE",
