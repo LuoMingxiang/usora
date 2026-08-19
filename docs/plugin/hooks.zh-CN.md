@@ -23,8 +23,8 @@
 在仓库根目录运行：
 
 ```bash
-echo '{"session_id":"abc123","cwd":"/path/to/repo","timestamp":"2026-08-19T00:00:00Z"}' | node ./hooks/session-hook.mjs
-node ./scripts/plugin.mjs status
+echo '{"session_id":"abc123","cwd":"/path/to/repo","timestamp":"2026-08-19T00:00:00Z"}' | node plugins/foundry/hooks/session-hook.mjs
+printf '%s\n' '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"hub_status","arguments":{}}}' | node plugins/foundry/scripts/usora-mcp.mjs
 ```
 
 注意事项

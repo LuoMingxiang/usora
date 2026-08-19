@@ -33,10 +33,10 @@ Capture this session into Usora
 Usora's marketplace entry points to GitHub `master`. Local changes only become installable after commit and push.
 
 ```powershell
-./scripts/release-usora-plugin.ps1 -Commit -Push
+git push origin master
 ```
 
-Then upgrade Usora in `/plugins`. If the UI says upgrade failed but the version changed, open a new task and check whether the expected Usora tools are available.
+The Release workflow runs `semantic-release`, syncs plugin metadata, and tags the release. Then upgrade Usora in `/plugins`. If the UI says upgrade failed but the version changed, open a new task and check whether the expected Usora tools are available.
 
 ## Cache Cleanup
 
@@ -44,11 +44,4 @@ Then upgrade Usora in `/plugins`. If the UI says upgrade failed but the version 
 Clean old Usora plugin cache
 ```
 
-Developer fallback:
-
-```powershell
-./scripts/cleanup-usora-plugin-cache.ps1 -HostName codex
-./scripts/cleanup-usora-plugin-cache.ps1 -HostName codex -Apply
-```
-
-The first command is a dry run.
+The tool starts with a dry run. Confirm deletion only after it lists the old versions you expect.

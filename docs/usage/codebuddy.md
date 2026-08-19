@@ -44,15 +44,16 @@ Capture this session into Usora
 Usora's marketplace entry points to GitHub `master`. Local changes only become installable after commit and push.
 
 ```powershell
-./scripts/release-usora-plugin.ps1 -Commit -Push
+git push origin master
 codebuddy plugin update usora@foundry
 ```
 
+The Release workflow runs `semantic-release`, syncs plugin metadata, and tags the release before the update.
+
 ## Cache Cleanup
 
-```powershell
-./scripts/cleanup-usora-plugin-cache.ps1 -HostName codebuddy
-./scripts/cleanup-usora-plugin-cache.ps1 -HostName codebuddy -Apply
+```text
+Clean old Usora plugin cache
 ```
 
-The first command is a dry run.
+The tool starts with a dry run. Confirm deletion only after it lists the old versions you expect.

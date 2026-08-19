@@ -44,15 +44,16 @@ Capture this session into Usora
 Usora 的 marketplace entry 指向 GitHub `master`。本地改动必须 commit 并 push 后，才会成为可安装版本。
 
 ```powershell
-./scripts/release-usora-plugin.ps1 -Commit -Push
+git push origin master
 codebuddy plugin update usora@foundry
 ```
 
+Release workflow 会先运行 `semantic-release`、同步插件元数据并打 tag。
+
 ## 缓存清理
 
-```powershell
-./scripts/cleanup-usora-plugin-cache.ps1 -HostName codebuddy
-./scripts/cleanup-usora-plugin-cache.ps1 -HostName codebuddy -Apply
+```text
+Clean old Usora plugin cache
 ```
 
-第一条是 dry run。
+这个 tool 会先 dry run。只有当它列出的旧版本符合预期时，再确认删除。

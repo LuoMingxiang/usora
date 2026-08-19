@@ -217,33 +217,10 @@ Codex and CodeBuddy install plugins into their local plugin caches and load the 
 If a new Usora build is not visible after pulling or pushing changes, use this release loop:
 
 1. Finish the plugin change locally.
-2. Choose the release version:
-   - `patch`: fixes, docs, copy, metadata, small compatible improvements.
-   - `minor`: new compatible MVP capability or visible workflow improvement.
-   - `major`: breaking storage, tool, or Skill contract change. Usora should usually stay in `0.x` during MVP.
-
-3. Run the release helper from the repo root:
-
-   ```text
-   ./scripts/release-usora-plugin.ps1
-   ```
-
-   The helper bumps `plugins/foundry/plugin.json` by default, runs `bun run sync`, validates the plugin manifests, and runs the Node MCP tests.
-
-   Use `-Bump minor` or `-Bump major` when needed:
-
-   ```text
-   ./scripts/release-usora-plugin.ps1 -Bump minor
-   ```
-
-   To set an exact version:
-
-   ```text
-   ./scripts/release-usora-plugin.ps1 -Version 0.2.0
-   ```
-
-4. Review the diff.
-5. Commit and push the plugin changes.
+2. Run `bun run check`.
+3. Commit with a Conventional Commit message.
+4. Push to `master`.
+5. Let the Release workflow run `semantic-release`; it bumps versions, syncs plugin metadata, updates `CHANGELOG.md`, tags the release, and commits generated files.
 6. Open `/plugins`, find Usora, and upgrade or reinstall it.
 7. Refresh or restart Codex and open a new task if older MCP tools still appear.
 8. After the new version is installed, clean old Usora cache directories if needed through the Usora MCP tool:
@@ -253,24 +230,6 @@ If a new Usora build is not visible after pulling or pushing changes, use this r
    ```
 
    The tool defaults to a dry run. Confirm deletion only after it lists the old versions you expect.
-
-   Developers can also use the local helper:
-
-   ```text
-   ./scripts/cleanup-usora-plugin-cache.ps1
-   ./scripts/cleanup-usora-plugin-cache.ps1 -HostName all
-   ./scripts/cleanup-usora-plugin-cache.ps1 -Apply
-   ```
-
-   The first two commands are dry runs. The `-Apply` command removes old installed Usora cache versions for the selected host and keeps the currently released version. Use `-HostName codex`, `-HostName codebuddy`, or `-HostName all`.
-
-To do the release commit and push in one run:
-
-```text
-./scripts/release-usora-plugin.ps1 -Commit -Push
-```
-
-Use this after reviewing or when the change is already ready to publish. It bumps the patch version, validates, tests, commits the plugin metadata/runtime files and the release helper, then pushes. Add `-Bump minor` or `-Version 0.2.0` before `-Commit -Push` for larger releases.
 
 Codex handles plugin removal. Use `Uninstall plugin` in the `/plugins` browser.
 

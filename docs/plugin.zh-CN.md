@@ -216,33 +216,10 @@ Codex 和 CodeBuddy 会把插件安装到本地插件缓存，并加载已安装
 如果 pull 或 push 后看不到新的 Usora build，按这个发布流程走：
 
 1. 在本地完成插件改动。
-2. 选择发布版本：
-   - `patch`：修复、文档、文案、元数据、小型兼容改进。
-   - `minor`：新的兼容 MVP 能力，或可见工作流改进。
-   - `major`：破坏 storage、tool 或 Skill contract 的变更。MVP 阶段 Usora 通常应保持在 `0.x`。
-
-3. 从仓库根目录运行发布助手：
-
-   ```text
-   ./scripts/release-usora-plugin.ps1
-   ```
-
-   默认会 bump `plugins/foundry/plugin.json`，运行 `bun run sync`，校验 plugin manifests，并运行 Node MCP 测试。
-
-   需要时可以使用 `-Bump minor` 或 `-Bump major`：
-
-   ```text
-   ./scripts/release-usora-plugin.ps1 -Bump minor
-   ```
-
-   也可以指定精确版本：
-
-   ```text
-   ./scripts/release-usora-plugin.ps1 -Version 0.2.0
-   ```
-
-4. Review diff。
-5. Commit 并 push 插件变更。
+2. 运行 `bun run check`。
+3. 用 Conventional Commit 信息提交。
+4. Push 到 `master`。
+5. 让 Release workflow 执行 `semantic-release`；它会 bump 版本、同步插件元数据、更新 `CHANGELOG.md`、打 tag，并提交生成文件。
 6. 打开 `/plugins`，找到 Usora，然后 upgrade 或 reinstall。
 7. 如果旧 MCP tools 仍然出现，刷新或重启 Codex，并打开一个新 task。
 8. 新版本安装成功后，如有需要，通过 Usora MCP tool 清理旧 Usora cache 目录：
@@ -252,24 +229,6 @@ Codex 和 CodeBuddy 会把插件安装到本地插件缓存，并加载已安装
    ```
 
    这个 tool 默认是 dry run。只有当它列出的旧版本符合预期时，再确认删除。
-
-   开发者也可以使用本地 helper：
-
-   ```text
-   ./scripts/cleanup-usora-plugin-cache.ps1
-   ./scripts/cleanup-usora-plugin-cache.ps1 -HostName all
-   ./scripts/cleanup-usora-plugin-cache.ps1 -Apply
-   ```
-
-   前两条命令是 dry run。带 `-Apply` 的命令会删除所选宿主的旧 Usora 安装缓存，并保留当前发布版本。可以使用 `-HostName codex`、`-HostName codebuddy` 或 `-HostName all`。
-
-一键完成发布 commit 和 push：
-
-```text
-./scripts/release-usora-plugin.ps1 -Commit -Push
-```
-
-在已经 review 或确认变更可发布时使用它。它会 bump patch 版本、校验、测试、提交插件元数据、runtime 文件和 release helper，然后 push。较大版本可以在 `-Commit -Push` 前加 `-Bump minor` 或 `-Version 0.2.0`。
 
 Codex 负责插件移除。可以在 `/plugins` browser 中使用 `Uninstall plugin`。
 
