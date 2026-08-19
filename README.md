@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/usora.png" alt="Usora" width="520">
+  <img src="docs/assets/usora.png" alt="Usora" width="520">
 </p>
 
 <p align="center">
@@ -18,7 +18,7 @@
 Usora is a local-first plugin and personal capability layer for the AI era. It currently ships native adapters for Codex and CodeBuddy. The name combines _usus_ (practice, usage, experience) with _aura_ (an invisible field of influence): the capability field created by accumulated practice. It captures useful session context as Activities, turns repeated patterns into Candidates, and lets a Maintainer evaluate and publish reusable Skills without sending your project memory to a hosted service.
 
 <p align="center">
-  <img src="assets/origin.png" alt="Usora name origin: usus plus aura" width="720">
+  <img src="docs/assets/origin.png" alt="Usora name origin: usus plus aura" width="720">
 </p>
 
 ```text
@@ -26,7 +26,7 @@ Activity -> Candidate -> Skill Draft -> Evaluation -> Publish
 ```
 
 <p align="center">
-  <img src="assets/work.png" alt="How Usora turns AI work into reusable skills" width="720">
+  <img src="docs/assets/work.png" alt="How Usora turns AI work into reusable skills" width="720">
 </p>
 
 ## Why Usora?

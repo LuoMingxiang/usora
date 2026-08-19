@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="../assets/logo.png" alt="Usora logo" width="120">
+  <img src="assets/logo.png" alt="Usora logo" width="120">
 </p>
 
 <p align="center">
@@ -17,7 +17,7 @@
 Usora 是一个 Codex 和 CodeBuddy 插件，用来把日常 AI 工作沉淀为个人能力层。Usora 由 _usus_（practice, usage, experience）和 _aura_（invisible field of influence）组成，意为由累积实践形成的 capability field。它把有价值的 AI 工作记录为 Activities，把可复用模式提升为 Candidates，并帮助配置好的 Maintainer 发布 Skills。
 
 <p align="center">
-  <img src="../assets/origin.png" alt="Usora 名称来源：usus 加 aura" width="720">
+  <img src="assets/origin_zh.png" alt="Usora 名称来源：usus 加 aura" width="720">
 </p>
 
 ## 核心流程
@@ -27,7 +27,7 @@ Activity -> Candidate -> Skill Draft -> Evaluation -> Publish
 ```
 
 <p align="center">
-  <img src="../assets/work.png" alt="Usora 如何把 AI 工作转化为可复用 Skills" width="720">
+  <img src="assets/work_zh.png" alt="Usora 如何把 AI 工作转化为可复用 Skills" width="720">
 </p>
 
 ## 能力

@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="../assets/logo.png" alt="Usora logo" width="120">
+  <img src="assets/logo.png" alt="Usora logo" width="120">
 </p>
 
 <p align="center">
@@ -17,7 +17,7 @@
 Usora is a Codex and CodeBuddy plugin for building a personal capability layer from everyday AI work. The name combines _usus_ (practice, usage, experience) with _aura_ (an invisible field of influence): the capability field created by accumulated practice. It records useful AI work as Activities, promotes reusable patterns into Candidates, and helps a configured Maintainer publish Skills.
 
 <p align="center">
-  <img src="../assets/origin.png" alt="Usora name origin: usus plus aura" width="720">
+  <img src="assets/origin.png" alt="Usora name origin: usus plus aura" width="720">
 </p>
 
 ## Core Flow
@@ -27,7 +27,7 @@ Activity -> Candidate -> Skill Draft -> Evaluation -> Publish
 ```
 
 <p align="center">
-  <img src="../assets/work.png" alt="How Usora turns AI work into reusable skills" width="720">
+  <img src="assets/work.png" alt="How Usora turns AI work into reusable skills" width="720">
 </p>
 
 ## Capabilities

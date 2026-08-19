@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/usora.png" alt="Usora" width="520">
+  <img src="docs/assets/usora.png" alt="Usora" width="520">
 </p>
 
 <p align="center">
@@ -18,7 +18,7 @@
 Usora 是一个本地优先插件，也是 AI 时代的个人能力层。目前提供 Codex 和 CodeBuddy 原生适配。它的名字来自 _usus_（实践、使用、经验）与 _aura_（不可见的影响场）：由长期实践累积出来的能力场。Usora 会把有价值的会话上下文记录为 Activity，从重复模式中生成 Candidate，再由 Maintainer 评估并发布为可复用的 Skill，而不是把项目记忆交给云端服务。
 
 <p align="center">
-  <img src="assets/origin_zh.png" alt="Usora 名称由来：usus 加 aura" width="720">
+  <img src="docs/assets/origin_zh.png" alt="Usora 名称由来：usus 加 aura" width="720">
 </p>
 
 ```text
@@ -26,7 +26,7 @@ Activity -> Candidate -> Skill Draft -> Evaluation -> Publish
 ```
 
 <p align="center">
-  <img src="assets/work_zh.png" alt="Usora 如何把 AI 工作转化为可复用 Skill" width="720">
+  <img src="docs/assets/work_zh.png" alt="Usora 如何把 AI 工作转化为可复用 Skill" width="720">
 </p>
 
 ## 为什么需要 Usora？
