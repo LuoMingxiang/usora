@@ -11,7 +11,9 @@
     "lint": "oxlint --deny-warnings .",
     "plugin": "node scripts/plugin.mjs",
     "prepare": "husky",
+    "release": "semantic-release",
     "sync": "node scripts/plugin.mjs sync && prettier --write plugin.json common/marketplace.json marketplace.json .agents/plugins/marketplace.json .mcp.json .codex-plugin/plugin.json .codebuddy-plugin/plugin.json .codebuddy-plugin/marketplace.json package.json",
+    "sync:release": "node scripts/sync-release-version.mjs && prettier --write plugin.json marketplace.json .agents/plugins/marketplace.json .codex-plugin/plugin.json .codebuddy-plugin/plugin.json .codebuddy-plugin/marketplace.json package.json",
     "test": "node --test scripts/usora-mcp.test.mjs",
     "validate": "node scripts/validate-plugin.mjs"
   },
@@ -25,11 +27,17 @@
   "devDependencies": {
     "@commitlint/cli": "^21.2.2",
     "@commitlint/config-conventional": "^21.2.2",
+    "@semantic-release/changelog": "^6.0.3",
+    "@semantic-release/exec": "^7.1.0",
+    "@semantic-release/git": "^10.0.1",
+    "@semantic-release/github": "^12.0.9",
+    "@semantic-release/npm": "^13.1.5",
     "husky": "^9.1.7",
     "lint-staged": "^16.4.0",
     "oxlint": "^1.78.0",
     "prettier": "3.6.2",
     "prettier-plugin-jsdoc": "^1.8.1",
-    "prettier-plugin-packagejson": "^3.0.2"
+    "prettier-plugin-packagejson": "^3.0.2",
+    "semantic-release": "^25.0.9"
   }
 }
