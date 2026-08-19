@@ -30,6 +30,7 @@
           "package.json",
           "marketplace.json",
           ".agents/plugins/marketplace.json",
+          ".claude-plugin/marketplace.json",
           ".codebuddy-plugin/marketplace.json",
           "plugins/foundry/plugin.json",
           "plugins/foundry/.codex-plugin/plugin.json",

@@ -13,6 +13,9 @@ Thumbs.db
 # Node
 node_modules/
 package-lock.json
+pnpm-lock.yaml
+bun.lock
+bun.lockb
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*

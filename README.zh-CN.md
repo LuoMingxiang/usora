@@ -79,10 +79,11 @@ plugins/foundry/.codebuddy-plugin/     # CodeBuddy adapter
 common/marketplace.json                # marketplace metadata template
 marketplace.json                       # generated marketplace metadata
 .agents/plugins/marketplace.json       # generated Codex-style marketplace metadata
+.claude-plugin/marketplace.json        # generated Claude marketplace metadata
 .codebuddy-plugin/marketplace.json     # generated CodeBuddy marketplace metadata
 ```
 
-编辑 `plugins/foundry/plugin.json` 后运行 `npm run sync`。发布前运行 `npm run doctor`。
+编辑 `plugins/foundry/plugin.json` 后运行 `bun run sync`。发布前运行 `bun run doctor`。
 
 ### Codex
 

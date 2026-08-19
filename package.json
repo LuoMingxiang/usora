@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "check": "npm run format:check && npm run lint && npm test && npm run validate",
+    "check": "bun run format:check && bun run lint && bun run test && bun run validate",
     "doctor": "node scripts/plugin.mjs doctor",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
@@ -12,8 +12,8 @@
     "plugin": "node scripts/plugin.mjs",
     "prepare": "husky",
     "release": "semantic-release",
-    "sync": "node scripts/plugin.mjs sync && prettier --write plugins/foundry/plugin.json common/marketplace.json marketplace.json .agents/plugins/marketplace.json .codebuddy-plugin/marketplace.json plugins/foundry/.mcp.json plugins/foundry/.codex-plugin/plugin.json plugins/foundry/.codebuddy-plugin/plugin.json plugins/foundry/.codebuddy-plugin/mcp.json package.json",
-    "sync:release": "node scripts/sync-release-version.mjs && prettier --write plugins/foundry/plugin.json marketplace.json .agents/plugins/marketplace.json .codebuddy-plugin/marketplace.json plugins/foundry/.codex-plugin/plugin.json plugins/foundry/.codebuddy-plugin/plugin.json package.json",
+    "sync": "node scripts/plugin.mjs sync && prettier --write plugins/foundry/plugin.json common/marketplace.json marketplace.json .agents/plugins/marketplace.json .claude-plugin/marketplace.json .codebuddy-plugin/marketplace.json plugins/foundry/.mcp.json plugins/foundry/.codex-plugin/plugin.json plugins/foundry/.codebuddy-plugin/plugin.json plugins/foundry/.codebuddy-plugin/mcp.json package.json",
+    "sync:release": "node scripts/sync-release-version.mjs && prettier --write plugins/foundry/plugin.json marketplace.json .agents/plugins/marketplace.json .claude-plugin/marketplace.json .codebuddy-plugin/marketplace.json plugins/foundry/.codex-plugin/plugin.json plugins/foundry/.codebuddy-plugin/plugin.json package.json",
     "test": "node --test scripts/usora-mcp.test.mjs",
     "validate": "node scripts/validate-plugin.mjs"
   },
@@ -39,5 +39,6 @@
     "prettier-plugin-jsdoc": "^1.8.1",
     "prettier-plugin-packagejson": "^3.0.2",
     "semantic-release": "^25.0.9"
-  }
+  },
+  "packageManager": "bun@1.3.14"
 }

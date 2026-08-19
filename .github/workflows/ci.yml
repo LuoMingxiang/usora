@@ -18,11 +18,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: oven-sh/setup-bun@v2
         with:
-          node-version: 22
-      - run: npm install --no-package-lock
-      - run: npm run check
+          bun-version: 1.3.14
+      - run: bun install --no-save
+      - run: bun run check
 
   codeql:
     runs-on: ubuntu-latest

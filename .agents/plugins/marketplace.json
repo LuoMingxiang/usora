@@ -13,10 +13,10 @@
     {
       "name": "foundry",
       "source": {
-        "source": "url",
+        "source": "git-subdir",
         "url": "https://github.com/LuoMingxiang/usora.git",
         "ref": "master",
-        "path": "plugins/foundry"
+        "path": "./plugins/foundry"
       },
       "policy": {
         "installation": "AVAILABLE",

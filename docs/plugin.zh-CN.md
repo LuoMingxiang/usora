@@ -123,7 +123,7 @@ Codex:
 
 ```powershell
 codex plugin marketplace add https://github.com/LuoMingxiang/usora.git
-codex plugin add usora@usora
+codex plugin add usora@foundry
 ```
 
 CodeBuddy:
@@ -227,7 +227,7 @@ Codex 和 CodeBuddy 会把插件安装到本地插件缓存，并加载已安装
    ./scripts/release-usora-plugin.ps1
    ```
 
-   默认会 bump 根目录 `plugin.json` 的 SemVer patch 版本，运行 `npm run sync`，校验 plugin manifests，并运行 Node MCP 测试。
+   默认会 bump `plugins/foundry/plugin.json`，运行 `bun run sync`，校验 plugin manifests，并运行 Node MCP 测试。
 
    需要时可以使用 `-Bump minor` 或 `-Bump major`：
 
@@ -278,7 +278,7 @@ Codex 负责插件移除。可以在 `/plugins` browser 中使用 `Uninstall plu
 也可以从终端移除已安装插件：
 
 ```text
-codex plugin remove usora@usora
+codex plugin remove usora@foundry
 ```
 
 `codex plugin marketplace remove <marketplace-name>` 移除的是已配置的 marketplace source，不是普通的单插件卸载路径。

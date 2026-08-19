@@ -24,6 +24,7 @@ function pluginEntry(marketplace) {
 const codex = await json(path.join(pluginDir, ".codex-plugin/plugin.json"));
 const codebuddy = await json(path.join(pluginDir, ".codebuddy-plugin/plugin.json"));
 const codebuddyMarketplace = await json(".codebuddy-plugin/marketplace.json");
+const claudeMarketplace = await json(".claude-plugin/marketplace.json");
 const agentsMarketplace = await json(".agents/plugins/marketplace.json");
 const rootMarketplace = await json("marketplace.json");
 const portable = await json(path.join(pluginDir, "plugin.json"));
@@ -90,12 +91,22 @@ assert.equal(codebuddyEntry.source, "./plugins/foundry");
 assert.equal(codebuddyEntry.author.name, "Veyra");
 await exists(codebuddyEntry.source);
 
+assert.equal(claudeMarketplace.displayName, "Usora Plugin Marketplace");
+assert.equal(claudeMarketplace.metadata.version, codex.version);
+assert.equal(claudeMarketplace.metadata.pluginRoot, "plugins");
+assert.equal(claudeMarketplace.owner.name, "Veyra");
+const claudeEntry = pluginEntry(claudeMarketplace);
+assert.equal(claudeEntry.version, codex.version);
+assert.equal(claudeEntry.source, "./foundry");
+assert.equal(claudeEntry.author.name, "Veyra");
+await exists(path.join(claudeMarketplace.metadata.pluginRoot, claudeEntry.source));
+
 for (const marketplace of [agentsMarketplace, rootMarketplace]) {
   const entry = pluginEntry(marketplace);
-  assert.equal(entry.source.source, "url");
+  assert.equal(entry.source.source, "git-subdir");
   assert.equal(entry.source.url, "https://github.com/LuoMingxiang/usora.git");
   assert.equal(entry.source.ref, "master");
-  assert.equal(entry.source.path, pluginDir);
+  assert.equal(entry.source.path, `./${pluginDir}`);
 }
 
 console.log("Usora doctor OK: canonical manifest + Codex + CodeBuddy + marketplaces");

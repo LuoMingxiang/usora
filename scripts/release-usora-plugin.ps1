@@ -79,13 +79,13 @@ if ($Version) {
 Set-Version $PortableManifestPath $NewVersion
 
 node scripts/plugin.mjs sync
-npx prettier --write plugins/foundry/plugin.json common/marketplace.json marketplace.json .agents/plugins/marketplace.json .codebuddy-plugin/marketplace.json plugins/foundry/.mcp.json plugins/foundry/.codex-plugin/plugin.json plugins/foundry/.codebuddy-plugin/plugin.json plugins/foundry/.codebuddy-plugin/mcp.json package.json
+npx prettier --write plugins/foundry/plugin.json common/marketplace.json marketplace.json .agents/plugins/marketplace.json .claude-plugin/marketplace.json .codebuddy-plugin/marketplace.json plugins/foundry/.mcp.json plugins/foundry/.codex-plugin/plugin.json plugins/foundry/.codebuddy-plugin/plugin.json plugins/foundry/.codebuddy-plugin/mcp.json package.json
 Write-Host "Updated plugin version: $OldVersion -> $NewVersion"
-npm run validate
-npm test
+bun run validate
+bun run test
 
 if ($Commit) {
-  git -C $Root add .agents .codebuddy-plugin .husky .oxlintrc.json CODEBUDDY.md common docs marketplace.json package.json plugins README.md README.zh-CN.md scripts
+  git -C $Root add .agents .claude-plugin .codebuddy-plugin .husky .oxlintrc.json CODEBUDDY.md common docs marketplace.json package.json plugins README.md README.zh-CN.md scripts
   git -C $Root commit -m "chore: release foundry plugin $NewVersion"
 }
 

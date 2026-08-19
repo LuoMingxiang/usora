@@ -123,7 +123,7 @@ Codex:
 
 ```powershell
 codex plugin marketplace add https://github.com/LuoMingxiang/usora.git
-codex plugin add usora@usora
+codex plugin add usora@foundry
 ```
 
 CodeBuddy:
@@ -228,7 +228,7 @@ If a new Usora build is not visible after pulling or pushing changes, use this r
    ./scripts/release-usora-plugin.ps1
    ```
 
-   The helper bumps the root `plugin.json` SemVer patch version by default, runs `npm run sync`, validates the plugin manifests, and runs the Node MCP tests.
+   The helper bumps `plugins/foundry/plugin.json` by default, runs `bun run sync`, validates the plugin manifests, and runs the Node MCP tests.
 
    Use `-Bump minor` or `-Bump major` when needed:
 
@@ -279,7 +279,7 @@ Because Usora includes a local MCP server, Codex may ask you to disable Usora be
 From a terminal, remove the installed plugin with:
 
 ```text
-codex plugin remove usora@usora
+codex plugin remove usora@foundry
 ```
 
 `codex plugin marketplace remove <marketplace-name>` removes a configured marketplace source. It is not the normal per-plugin uninstall path.

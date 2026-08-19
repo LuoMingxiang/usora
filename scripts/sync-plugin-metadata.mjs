@@ -73,6 +73,17 @@ const codebuddyMarketplace = {
 };
 await writeJson(".codebuddy-plugin/marketplace.json", codebuddyMarketplace);
 
+const claudeMarketplace = {
+  ...template,
+  metadata: {
+    description: manifest.description,
+    version: manifest.version,
+    pluginRoot: "plugins",
+  },
+  plugins: [marketplaceEntry(manifest, `./${manifest.name}`)],
+};
+await writeJson(".claude-plugin/marketplace.json", claudeMarketplace);
+
 const codexMarketplace = {
   name: template.name,
   displayName: template.displayName,
@@ -86,10 +97,10 @@ const codexMarketplace = {
     {
       name: manifest.name,
       source: {
-        source: "url",
+        source: "git-subdir",
         url: repoUrl,
         ref: "master",
-        path: pluginDir,
+        path: `./${pluginDir}`,
       },
       policy: {
         installation: "AVAILABLE",

@@ -41,18 +41,18 @@
 
 ## 开发约定
 
-- 插件核心逻辑位于仓库根目录。
-  - MCP 服务实现：`scripts/usora-mcp.mjs`
+- 插件核心逻辑位于 `plugins/foundry`。
+  - MCP 服务实现：`plugins/foundry/scripts/usora-mcp.mjs`
   - 测试：`scripts/usora-mcp.test.mjs`
-- 插件行为规范（自然语言到工具的映射）：`skills/usora-skill-hub/SKILL.md`
+- 插件行为规范（自然语言到工具的映射）：`plugins/foundry/skills/usora-skill-hub/SKILL.md`
 - 插件市场清单：根目录 `marketplace.json`
 
 ### 运行测试
 
-本项目为纯 Node.js（ESM）实现，无额外运行时依赖。在仓库根目录运行：
+本项目使用 Bun 管理依赖，运行时代码仍是 Node.js（ESM）。在仓库根目录运行：
 
 ```bash
-npm run check
+bun run check
 ```
 
 请确保你的改动不会破坏现有测试，并为新功能补充测试。
