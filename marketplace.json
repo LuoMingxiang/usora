@@ -4,7 +4,8 @@
   "description": "Usora plugins for AI agent hosts.",
   "owner": {
     "name": "Veyra",
-    "url": "https://github.com/LuoMingxiang"
+    "url": "https://github.com/LuoMingxiang",
+    "email": "947617238@qq.com"
   },
   "interface": {
     "displayName": "Usora Plugin Marketplace"
