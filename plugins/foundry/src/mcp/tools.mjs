@@ -88,12 +88,21 @@ export const tools = [
         outcome: { type: "string" },
         source: { type: "string" },
         project: { type: "string" },
+        metadata: { type: "object" },
       },
     },
   },
   {
     name: "activity_list",
     description: "List recent Activities from the active Hub without loading archives.",
+    inputSchema: {
+      type: "object",
+      properties: { limit: { type: "number", description: "Optional result limit, default 20 and max 100." } },
+    },
+  },
+  {
+    name: "activity_digest_list",
+    description: "List compact Activity digests for AI retrieval without full Activity records.",
     inputSchema: {
       type: "object",
       properties: { limit: { type: "number", description: "Optional result limit, default 20 and max 100." } },
@@ -110,6 +119,26 @@ export const tools = [
         summary: { type: "string" },
         evidence: { type: "array", items: { type: "string" } },
         source: { type: "string" },
+      },
+    },
+  },
+  {
+    name: "pattern_index",
+    description: "Update the local Pattern index from Activity digests. Defaults to incremental NEW Activity indexing.",
+    inputSchema: {
+      type: "object",
+      properties: { mode: { type: "string", enum: ["incremental", "rebuild"] } },
+    },
+  },
+  {
+    name: "pattern_query",
+    description: "Query local Pattern metadata without loading full Activities.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        limit: { type: "number", description: "Optional result limit, default 20 and max 100." },
+        state: { type: "string" },
+        eligible: { type: "boolean" },
       },
     },
   },

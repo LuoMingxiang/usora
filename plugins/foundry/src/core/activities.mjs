@@ -1,7 +1,28 @@
 import fs from "node:fs/promises";
 import path from "node:path";
-import { dirPath, ensure, newId, now, processSessionId, readJson, writeEvent, writeJson } from "./storage.mjs";
+import {
+  ACTIVITY_SCHEMA_VERSION,
+  dirPath,
+  ensure,
+  newId,
+  now,
+  processSessionId,
+  readJson,
+  writeEvent,
+  writeJson,
+} from "./storage.mjs";
+import { buildActivityDigest } from "./intelligence/digest.mjs";
+import { buildActivityFingerprint } from "./intelligence/fingerprint.mjs";
 import { listLimit, mergeUnique } from "./validation.mjs";
+
+export const ACTIVITY_STATES = ["NEW", "INDEXED", "ABSORBED", "ARCHIVED"];
+const ACTIVITY_TRANSITIONS = {
+  NEW: ["INDEXED"],
+  INDEXED: ["ABSORBED"],
+  ABSORBED: ["ARCHIVED"],
+  ARCHIVED: [],
+};
+const RECENT_UPDATE_LIMIT = 10;
 
 /**
  * Find the Activity record (and its filename) for a given session id.
@@ -17,6 +38,44 @@ async function findActivityBySession(sessionId) {
     if (item?.session_id === sessionId) return { file, item };
   }
   return null;
+}
+
+function normalizeActivityHistory(item) {
+  item.recent_updates = item.recent_updates || item.updates || [];
+  item.history = item.history || {
+    update_count: item.recent_updates.length,
+    first_seen: item.started_at || item.recent_updates[0]?.timestamp || null,
+    last_seen: item.updated_at || item.recent_updates.at(-1)?.timestamp || null,
+    key_points: item.key_points || [],
+    segments: [],
+  };
+  delete item.updates;
+}
+
+function pushActivityUpdate(item, update) {
+  item.recent_updates.push(update);
+  item.history.update_count = (item.history.update_count || 0) + 1;
+  item.history.first_seen = item.history.first_seen || update.timestamp;
+  item.history.last_seen = update.timestamp;
+  item.history.key_points = mergeUnique(item.history.key_points, update.key_points);
+  if (item.recent_updates.length > RECENT_UPDATE_LIMIT) {
+    item.recent_updates = item.recent_updates.slice(-RECENT_UPDATE_LIMIT);
+  }
+}
+
+function updateHistorySourceRef(item) {
+  if (item.history.source_ref || !item.metadata?.transcript_path) return;
+  item.history.source_ref = { type: "host_transcript", path: item.metadata.transcript_path };
+}
+
+export function transitionActivityState(item, nextState) {
+  if (!ACTIVITY_STATES.includes(nextState)) throw Error("invalid Activity state");
+  if (item.state === nextState) return item;
+  if (!ACTIVITY_TRANSITIONS[item.state]?.includes(nextState)) {
+    throw Error(`invalid Activity state transition: ${item.state} -> ${nextState}`);
+  }
+  item.state = nextState;
+  return item;
 }
 
 /**
@@ -40,6 +99,7 @@ export async function captureActivity(args, options = {}) {
   const timestamp = args.timestamp || now();
 
   const item = existing?.item || {
+    schema_version: ACTIVITY_SCHEMA_VERSION,
     id: newId("activity"),
     source: args.source || "codex",
     session_id: sessionId,
@@ -50,9 +110,18 @@ export async function captureActivity(args, options = {}) {
     task: null,
     result: null,
     key_points: [],
-    updates: [],
+    recent_updates: [],
+    history: {
+      update_count: 0,
+      first_seen: timestamp,
+      last_seen: timestamp,
+      key_points: [],
+      segments: [],
+    },
   };
 
+  item.schema_version = item.schema_version || ACTIVITY_SCHEMA_VERSION;
+  normalizeActivityHistory(item);
   item.source = args.source || item.source;
   item.project = args.project || item.project;
   item.task = args.task ?? item.task;
@@ -63,12 +132,17 @@ export async function captureActivity(args, options = {}) {
   item.technologies = mergeUnique(item.technologies, args.technologies);
   item.key_points = mergeUnique(item.key_points, args.key_points);
   item.metadata = { ...item.metadata, ...args.metadata };
-  item.updates.push({
+  updateHistorySourceRef(item);
+  pushActivityUpdate(item, {
     timestamp,
     summary: args.summary || args.result || "Session captured",
     key_points: args.key_points || [],
   });
   item.updated_at = timestamp;
+  const fingerprint = buildActivityFingerprint(item);
+  item.fingerprint_version = fingerprint.version;
+  item.fingerprint = fingerprint.value;
+  item.digest = buildActivityDigest(item);
 
   const file = existing?.file || `${item.id}.json`;
   await writeJson(path.join(await dirPath("activities"), file), item);
@@ -97,4 +171,12 @@ export async function handleActivityList(args = {}) {
   }
   items.sort((a, b) => (b.updated_at || b.started_at || "").localeCompare(a.updated_at || a.started_at || ""));
   return { count: items.length, activities: items.slice(0, limit) };
+}
+
+export async function handleActivityDigestList(args = {}) {
+  const list = await handleActivityList(args);
+  return {
+    count: list.count,
+    activities: list.activities.map((activity) => activity.digest || buildActivityDigest(activity)),
+  };
 }

@@ -1,6 +1,6 @@
 import fs from "node:fs/promises";
 import path from "node:path";
-import { dirPath, newId, now, readJson, writeEvent, writeJson } from "./storage.mjs";
+import { CANDIDATE_SCHEMA_VERSION, dirPath, newId, now, readJson, writeEvent, writeJson } from "./storage.mjs";
 import { listLimit, safeName } from "./validation.mjs";
 
 /**
@@ -15,6 +15,7 @@ export async function handleCandidateCreate(args) {
     throw Error("title and summary are required");
   }
   const item = {
+    schema_version: CANDIDATE_SCHEMA_VERSION,
     id: newId("candidate"),
     title: args.title,
     summary: args.summary,

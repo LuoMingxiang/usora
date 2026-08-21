@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "benchmark:foundry": "node scripts/foundry-token-benchmark.mjs",
     "check": "bun run format:check && bun run lint && bun run test && bun run validate",
     "doctor": "node scripts/validate-plugin.mjs",
     "format": "prettier --write .",
@@ -13,7 +14,7 @@
     "release": "semantic-release",
     "sync": "node scripts/sync-plugin-metadata.mjs && prettier --write plugins/foundry/plugin.json common/marketplace.json marketplace.json .agents/plugins/marketplace.json .claude-plugin/marketplace.json .codebuddy-plugin/marketplace.json plugins/foundry/.mcp.json plugins/foundry/.codex-plugin/plugin.json plugins/foundry/.codebuddy-plugin/plugin.json plugins/foundry/.codebuddy-plugin/mcp.json package.json",
     "sync:release": "node scripts/sync-release-version.mjs && prettier --write plugins/foundry/plugin.json marketplace.json .agents/plugins/marketplace.json .claude-plugin/marketplace.json .codebuddy-plugin/marketplace.json plugins/foundry/.codex-plugin/plugin.json plugins/foundry/.codebuddy-plugin/plugin.json package.json",
-    "test": "node --test scripts/usora-mcp.test.mjs",
+    "test": "node --test scripts/usora-mcp.test.mjs scripts/foundry-baseline.test.mjs scripts/foundry-session-compiler.test.mjs scripts/foundry-pattern-index.test.mjs",
     "validate": "node scripts/validate-plugin.mjs"
   },
   "lint-staged": {

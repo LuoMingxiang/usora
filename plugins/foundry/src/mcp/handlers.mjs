@@ -1,8 +1,9 @@
 import { ensure } from "../core/storage.mjs";
-import { handleActivityCapture, handleActivityList } from "../core/activities.mjs";
+import { handleActivityCapture, handleActivityDigestList, handleActivityList } from "../core/activities.mjs";
 import { handleCandidateCreate, handleCandidateEvaluate, handleCandidateList } from "../core/candidates.mjs";
 import { handleEventList } from "../core/events.mjs";
 import { handleHubCleanup, handleHubConfig, handleHubDoctor, handleHubInit, handleHubStatus } from "../core/hub.mjs";
+import { handlePatternIndex, handlePatternQuery } from "../core/patterns.mjs";
 import { handlePluginCacheCleanup } from "../core/cache.mjs";
 import {
   handleSkillCreate,
@@ -25,8 +26,11 @@ const HANDLERS = {
   hub_cleanup: handleHubCleanup,
   plugin_cache_cleanup: handlePluginCacheCleanup,
   activity_capture: handleActivityCapture,
+  activity_digest_list: handleActivityDigestList,
   activity_list: handleActivityList,
   candidate_create: handleCandidateCreate,
+  pattern_index: handlePatternIndex,
+  pattern_query: handlePatternQuery,
   candidate_list: handleCandidateList,
   candidate_evaluate: handleCandidateEvaluate,
   skill_create: handleSkillCreate,

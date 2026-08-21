@@ -4,6 +4,7 @@ import {
   ARCHIVABLE_STATES,
   AUTOMATION_POLICIES,
   DIRS,
+  HUB_SCHEMA_VERSION,
   anchorHome,
   dirPath,
   loadConfig,
@@ -23,8 +24,8 @@ export async function handleHubInit(args = {}) {
     }
     config.automation_policy = args.automation_policy;
   }
-  await saveConfig(config);
-  const home = await resolveHome(config);
+  const saved = await saveConfig(config);
+  const home = await resolveHome(saved);
   await fs.mkdir(home, { recursive: true });
   await Promise.all(DIRS.map((dir) => fs.mkdir(path.join(home, dir), { recursive: true })));
   return {
@@ -32,8 +33,9 @@ export async function handleHubInit(args = {}) {
     hub: home,
     data_path: home,
     config_path: path.join(anchorHome, "config.json"),
-    maintainer: config.maintainer,
-    automation_policy: config.automation_policy,
+    hub_schema_version: saved.hub_schema_version || HUB_SCHEMA_VERSION,
+    maintainer: saved.maintainer,
+    automation_policy: saved.automation_policy,
   };
 }
 
@@ -87,6 +89,7 @@ export async function handleHubConfig(args) {
       data_path: newHome,
       moved_from: movedFrom,
       config_path: path.join(anchorHome, "config.json"),
+      hub_schema_version: saved.hub_schema_version || HUB_SCHEMA_VERSION,
     };
   }
   return {
@@ -94,6 +97,7 @@ export async function handleHubConfig(args) {
     hub: await resolveHome(saved),
     data_path: await resolveHome(saved),
     config_path: path.join(anchorHome, "config.json"),
+    hub_schema_version: saved.hub_schema_version || HUB_SCHEMA_VERSION,
   };
 }
 
@@ -122,6 +126,7 @@ export async function handleHubStatus() {
     data_path: home,
     config_path: path.join(anchorHome, "config.json"),
     config,
+    hub_schema_version: config.hub_schema_version || HUB_SCHEMA_VERSION,
     activities,
     candidates,
     skills,
@@ -231,6 +236,7 @@ export async function handleHubDoctor() {
     hub: home,
     data_path: home,
     config_path: path.join(anchorHome, "config.json"),
+    hub_schema_version: config.hub_schema_version || HUB_SCHEMA_VERSION,
     config,
     counts,
     checks,

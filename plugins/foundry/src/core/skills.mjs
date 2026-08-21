@@ -1,6 +1,14 @@
 import fs from "node:fs/promises";
 import path from "node:path";
-import { dirPath, loadConfig, now, readJson, writeEvent, writeJson } from "./storage.mjs";
+import {
+  SKILL_METADATA_SCHEMA_VERSION,
+  dirPath,
+  loadConfig,
+  now,
+  readJson,
+  writeEvent,
+  writeJson,
+} from "./storage.mjs";
 import { listLimit, safeName } from "./validation.mjs";
 
 /**
@@ -19,6 +27,7 @@ export async function handleSkillCreate(args) {
   await fs.mkdir(dir, { recursive: true });
 
   const meta = {
+    schema_version: SKILL_METADATA_SCHEMA_VERSION,
     name: skillName,
     description: args.description || "",
     content: args.content,
