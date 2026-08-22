@@ -16,6 +16,7 @@ import {
   handleCandidateResolve,
 } from "../core/candidates.mjs";
 import { handleEventList } from "../core/events.mjs";
+import { handleContextBudget, handleTelemetryMetrics } from "../core/context-budget.mjs";
 import { handleHubCleanup, handleHubConfig, handleHubDoctor, handleHubInit, handleHubStatus } from "../core/hub.mjs";
 import { handlePatternGet, handlePatternIndex, handlePatternQuery } from "../core/patterns.mjs";
 import { handlePluginCacheCleanup } from "../core/cache.mjs";
@@ -43,6 +44,7 @@ const HANDLERS = {
   hub_doctor: handleHubDoctor,
   hub_cleanup: handleHubCleanup,
   plugin_cache_cleanup: handlePluginCacheCleanup,
+  context_budget: handleContextBudget,
   activity_capture: handleActivityCapture,
   activity_digest_list: handleActivityDigestList,
   activity_list: handleActivityList,
@@ -68,6 +70,7 @@ const HANDLERS = {
   skill_query: handleSkillQuery,
   skill_get: handleSkillGet,
   event_list: handleEventList,
+  telemetry_metrics: handleTelemetryMetrics,
 };
 
 /**

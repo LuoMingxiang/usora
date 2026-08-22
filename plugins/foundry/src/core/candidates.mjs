@@ -1,7 +1,8 @@
 import fs from "node:fs/promises";
 import path from "node:path";
-import { CANDIDATE_SCHEMA_VERSION, dirPath, newId, now, readJson, writeEvent, writeJson } from "./storage.mjs";
+import { checkContextBudget, recordIntelligenceRun } from "./context-budget.mjs";
 import { linkPatternCandidate } from "./patterns.mjs";
+import { CANDIDATE_SCHEMA_VERSION, dirPath, newId, now, readJson, writeEvent, writeJson } from "./storage.mjs";
 import { listLimit, safeName } from "./validation.mjs";
 
 function asArray(value) {
@@ -197,8 +198,14 @@ export async function handleCandidateResolve(args = {}) {
   if (!args.title || !args.summary) {
     throw Error("title and summary are required");
   }
+  const started = Date.now();
   const threshold = Number(args.threshold) || 0.62;
   const matches = await handleCandidateMatch(args);
+  const budget = await checkContextBudget("candidate_resolver", {
+    required: { title: args.title, summary: args.summary, technologies: args.technologies, tags: args.tags },
+    recommended: { candidates: matches.candidates.slice(0, 5), skills: matches.skills.slice(0, 5) },
+    optional: { evidence: normalizeEvidence(args.evidence).slice(0, 3) },
+  });
   const bestCandidate = matches.candidates[0];
   const bestSkill = matches.skills[0];
 
@@ -212,6 +219,18 @@ export async function handleCandidateResolve(args = {}) {
       matches,
     };
     await writeEvent("CandidateResolved", result);
+    await recordIntelligenceRun({
+      stage: "candidate_resolver",
+      input: { args, matches },
+      output: result,
+      evidence_loaded: normalizeEvidence(args.evidence).length,
+      skills_loaded: matches.skills.length,
+      full_activity_load: false,
+      full_skill_load: false,
+      cache_hit: true,
+      duration_ms: Date.now() - started,
+      budget,
+    });
     return result;
   }
   if (bestSkill && bestSkill.score >= threshold) {
@@ -223,6 +242,18 @@ export async function handleCandidateResolve(args = {}) {
       matches,
     };
     await writeEvent("CandidateResolved", result);
+    await recordIntelligenceRun({
+      stage: "candidate_resolver",
+      input: { args, matches },
+      output: result,
+      evidence_loaded: normalizeEvidence(args.evidence).length,
+      skills_loaded: matches.skills.length,
+      full_activity_load: false,
+      full_skill_load: false,
+      cache_hit: true,
+      duration_ms: Date.now() - started,
+      budget,
+    });
     return result;
   }
 
@@ -236,6 +267,18 @@ export async function handleCandidateResolve(args = {}) {
   if (args.pattern_fingerprint && !shouldDrop) await linkPatternCandidate(args.pattern_fingerprint, candidate.id);
   const result = { action: shouldDrop ? "dropped" : "created", candidate, matches };
   await writeEvent("CandidateResolved", result);
+  await recordIntelligenceRun({
+    stage: "candidate_resolver",
+    input: { args, matches },
+    output: result,
+    evidence_loaded: normalizeEvidence(args.evidence).length,
+    skills_loaded: matches.skills.length,
+    full_activity_load: false,
+    full_skill_load: false,
+    cache_hit: false,
+    duration_ms: Date.now() - started,
+    budget,
+  });
   return result;
 }
 

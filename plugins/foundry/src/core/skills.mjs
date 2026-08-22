@@ -1,5 +1,6 @@
 import fs from "node:fs/promises";
 import path from "node:path";
+import { checkContextBudget, recordIntelligenceRun } from "./context-budget.mjs";
 import {
   SKILL_METADATA_SCHEMA_VERSION,
   dirPath,
@@ -97,24 +98,48 @@ export async function handleSkillCreate(args) {
 }
 
 export async function handleSkillGenerate(args = {}) {
+  const started = Date.now();
   const candidate = await requirePassingCandidate(args.candidate_id);
   const similar = await querySkillIndex({
     q: [candidate.title, candidate.summary, ...(candidate.technologies || [])].join(" "),
     limit: 3,
   });
-  return handleSkillCreate({
+  const content = generatedSkillContent(candidate, similar.skills);
+  const generation = {
+    source: "candidate_spec",
+    evidence_loaded: Math.min((candidate.evidence || []).length, 3),
+    skills_loaded: similar.skills.length,
+    full_activity_load: false,
+    full_skill_load: false,
+  };
+  const budget = await checkContextBudget("skill_compiler", {
+    required: { candidate: { ...candidate, evidence: (candidate.evidence || []).slice(0, 3) } },
+    recommended: { similar_skills: similar.skills.slice(0, 3) },
+    optional: {},
+  });
+  const skill = await handleSkillCreate({
     name: args.name || generatedSkillName(candidate),
     description: args.description || candidate.summary,
-    content: generatedSkillContent(candidate, similar.skills),
+    content,
     candidate_id: candidate.id,
-    generation: {
-      source: "candidate_spec",
-      evidence_loaded: Math.min((candidate.evidence || []).length, 3),
-      skills_loaded: similar.skills.length,
-      full_activity_load: false,
-      full_skill_load: false,
-    },
+    generation,
   });
+  await recordIntelligenceRun({
+    stage: "skill_compiler",
+    input: {
+      candidate: { ...candidate, evidence: (candidate.evidence || []).slice(0, 3) },
+      similar_skills: similar.skills,
+    },
+    output: skill,
+    evidence_loaded: generation.evidence_loaded,
+    skills_loaded: generation.skills_loaded,
+    full_activity_load: false,
+    full_skill_load: false,
+    cache_hit: false,
+    duration_ms: Date.now() - started,
+    budget,
+  });
+  return skill;
 }
 
 /**

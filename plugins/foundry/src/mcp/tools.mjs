@@ -53,6 +53,20 @@ export const tools = [
     },
   },
   {
+    name: "context_budget",
+    description:
+      "Estimate context size for a Foundry intelligence stage using chars/4 token estimates and emit overflow events when limits are exceeded.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        stage: { type: "string", enum: ["pattern_judge", "candidate_resolver", "skill_compiler", "evaluator"] },
+        required: { type: "object" },
+        recommended: { type: "object" },
+        optional: { type: "object" },
+      },
+    },
+  },
+  {
     name: "hub_config",
     description:
       "Configure the Maintainer, automation policy, and/or relocate the data directory. Pass `path` to MOVE the existing Hub data to a new directory (migrates existing records and clears the old directory), applied immediately.",
@@ -413,5 +427,11 @@ export const tools = [
       type: "object",
       properties: { limit: { type: "number", description: "Optional result limit, default 20 and max 100." } },
     },
+  },
+  {
+    name: "telemetry_metrics",
+    description:
+      "Summarize IntelligenceRun and CandidateResolved telemetry with trend metrics; token counts are chars/4 estimates only.",
+    inputSchema: { type: "object", properties: {} },
   },
 ];

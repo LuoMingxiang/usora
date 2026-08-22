@@ -1,6 +1,7 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { transitionActivityState } from "./activities.mjs";
+import { checkContextBudget, recordIntelligenceRun } from "./context-budget.mjs";
 import { PATTERN_SCHEMA_VERSION, dirPath, loadConfig, readJson, writeEvent, writeJson } from "./storage.mjs";
 import { listLimit } from "./validation.mjs";
 
@@ -99,30 +100,66 @@ async function updateActivityState(file, activity) {
 }
 
 export async function indexNewActivities() {
+  const started = Date.now();
   const records = await readActivities();
   const index = await readPatterns();
   for (const { item } of records) upsertPattern(index.patterns, item);
   await writePatterns(index);
   for (const { file, item } of records) await updateActivityState(file, item);
-  await writeEvent("PatternIndexUpdated", {
+  const result = {
     mode: "incremental",
     indexed: records.length,
     patterns: index.patterns.length,
+  };
+  await writeEvent("PatternIndexUpdated", result);
+  const input = { digests: records.map(({ item }) => item.digest || item), patterns: index.patterns };
+  const budget = await checkContextBudget("pattern_judge", {
+    required: { digests: input.digests },
+    recommended: { patterns: index.patterns },
   });
-  return { mode: "incremental", indexed: records.length, patterns: index.patterns.length };
+  await recordIntelligenceRun({
+    stage: "pattern_judge",
+    input,
+    output: result,
+    evidence_loaded: records.length,
+    skills_loaded: 0,
+    full_activity_load: true,
+    full_skill_load: false,
+    duration_ms: Date.now() - started,
+    budget,
+  });
+  return result;
 }
 
 export async function rebuildPatternIndex() {
+  const started = Date.now();
   const records = await readActivities({ includeIndexed: true });
   const index = { schema_version: PATTERN_SCHEMA_VERSION, patterns: [] };
   for (const { item } of records) upsertPattern(index.patterns, item);
   await writePatterns(index);
-  await writeEvent("PatternIndexUpdated", {
+  const result = {
     mode: "rebuild",
     indexed: records.length,
     patterns: index.patterns.length,
+  };
+  await writeEvent("PatternIndexUpdated", result);
+  const input = { digests: records.map(({ item }) => item.digest || item), patterns: index.patterns };
+  const budget = await checkContextBudget("pattern_judge", {
+    required: { digests: input.digests },
+    recommended: { patterns: index.patterns },
   });
-  return { mode: "rebuild", indexed: records.length, patterns: index.patterns.length };
+  await recordIntelligenceRun({
+    stage: "pattern_judge",
+    input,
+    output: result,
+    evidence_loaded: records.length,
+    skills_loaded: 0,
+    full_activity_load: true,
+    full_skill_load: false,
+    duration_ms: Date.now() - started,
+    budget,
+  });
+  return result;
 }
 
 export async function queryPatterns(args = {}) {

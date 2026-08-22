@@ -467,6 +467,11 @@ test("foundry token benchmark reports repeatable baseline dimensions", async (t)
   assert.ok(report.activities.average_full_json_chars > 0);
   assert.ok(report.activity_list_limit_20_chars > report.activities.average_full_json_chars);
   assert.ok(report.skill_list_chars > 0);
+  assert.ok(report.telemetry.intelligence_runs >= 3);
+  assert.ok(report.telemetry.avg_context_chars > 0);
+  assert.ok(report.telemetry.full_activity_loads >= 1);
+  assert.equal(report.telemetry.full_skill_loads, 0);
+  assert.match(report.telemetry.note, /chars\/4/);
   await access(report.hub);
 });
 
