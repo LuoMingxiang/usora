@@ -360,6 +360,32 @@ export const tools = [
     },
   },
   {
+    name: "skill_evolve",
+    description:
+      "Apply or recommend a SkillDelta. With a passing candidate_id, defaults to PATCH an existing similar Skill before creating a new draft.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        name: { type: "string" },
+        candidate_id: { type: "string" },
+        pattern_fingerprint: { type: "string" },
+        action: { type: "string", enum: ["CREATE", "PATCH", "NOOP", "SPLIT", "MERGE"] },
+        reason: { type: "string" },
+        evidence: { type: "array", items: { type: "object" } },
+        target_skill: { type: "string" },
+        threshold: { type: "number" },
+        changes: {
+          type: "object",
+          properties: {
+            content: { type: "string" },
+            content_append: { type: "string" },
+            description: { type: "string" },
+          },
+        },
+      },
+    },
+  },
+  {
     name: "skill_evaluate",
     description: "Evaluate a Skill draft as pass or fail.",
     inputSchema: {

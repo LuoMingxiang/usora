@@ -34,6 +34,7 @@ Maintain one Activity per AI session. After substantive progress, call `activity
 - “Publish this Skill” → MCP tool `skill_publish`
 - “Create a Skill draft” → MCP tool `skill_create`
 - “Generate a Skill from an approved Candidate” → MCP tool `skill_generate`
+- “Evolve this Skill” → MCP tool `skill_evolve`
 - “Evaluate this Skill” → MCP tool `skill_evaluate`
 - “Show recent Skills” → MCP tool `skill_query` (metadata only) or legacy `skill_list`
 - “Show this Skill” → MCP tool `skill_get` or legacy `skill_read`

@@ -27,6 +27,14 @@ async function requirePassingCandidate(candidateId) {
   return candidate;
 }
 
+async function readSkillMeta(name) {
+  const skillName = safeName(name, "name");
+  const file = path.join(await dirPath("skills"), skillName, "skill.json");
+  const meta = await readJson(file);
+  if (!meta) throw Error("Skill not found");
+  return { skillName, file, meta, dir: path.dirname(file) };
+}
+
 function generatedSkillName(candidate, fallback = "generated-skill") {
   const slug = String(candidate.title || fallback)
     .toLowerCase()
@@ -140,6 +148,83 @@ export async function handleSkillGenerate(args = {}) {
     budget,
   });
   return skill;
+}
+
+function skillDelta(args, candidate, action) {
+  return {
+    schema_version: 1,
+    action,
+    reason: args.reason || "",
+    evidence: args.evidence || candidate?.evidence?.slice(0, 3) || [],
+    source_candidate: candidate?.id || args.candidate_id || null,
+    source_pattern: args.pattern_fingerprint || candidate?.fingerprint || null,
+    changes: args.changes || {},
+    target_skill: args.target_skill || null,
+    created_at: now(),
+  };
+}
+
+async function patchSkill(name, delta) {
+  const { file, meta, dir } = await readSkillMeta(name);
+  const current = await fs.readFile(path.join(dir, "SKILL.md"), "utf8").catch(() => meta.content || "");
+  const append = delta.changes.content_append || "";
+  const nextContent = delta.changes.content || (append ? `${current.trimEnd()}\n\n${append.trim()}\n` : current);
+  meta.content = nextContent;
+  meta.description = delta.changes.description || meta.description;
+  meta.source_candidate = delta.source_candidate || meta.source_candidate || null;
+  meta.source_patterns = [...new Set([...(meta.source_patterns || []), delta.source_pattern].filter(Boolean))];
+  meta.revision = (meta.revision || 0) + 1;
+  meta.updated_at = now();
+  meta.evolution = [...(meta.evolution || []), delta].slice(-20);
+  await writeJson(file, meta);
+  await fs.writeFile(path.join(dir, "SKILL.md"), nextContent.endsWith("\n") ? nextContent : `${nextContent}\n`, "utf8");
+  await rebuildSkillIndex();
+  await writeEvent("SkillEvolved", { name: meta.name, revision: meta.revision, delta });
+  return meta;
+}
+
+export async function handleSkillEvolve(args = {}) {
+  if (args.action && !["CREATE", "PATCH", "NOOP", "SPLIT", "MERGE"].includes(args.action)) {
+    throw Error("action must be CREATE, PATCH, NOOP, SPLIT, or MERGE");
+  }
+  const candidate = args.candidate_id ? await requirePassingCandidate(args.candidate_id) : null;
+  const action = args.action || null;
+  if ((action === "CREATE" || (!action && !args.name)) && !candidate) {
+    throw Error("candidate_id is required to create a Skill evolution");
+  }
+  if (action === "CREATE") return handleSkillGenerate(args);
+
+  const similar = candidate
+    ? await querySkillIndex({
+        q: [candidate.title, candidate.summary, ...(candidate.technologies || [])].join(" "),
+        limit: 3,
+      })
+    : { skills: [] };
+  const target = args.name || similar.skills[0]?.name;
+  const resolvedAction =
+    action || (target && (similar.skills[0]?.score || 0) >= (Number(args.threshold) || 0.2) ? "PATCH" : "CREATE");
+
+  if (resolvedAction === "CREATE")
+    return handleSkillGenerate({ ...args, candidate_id: candidate?.id || args.candidate_id });
+
+  const delta = skillDelta(args, candidate, resolvedAction);
+  if (resolvedAction === "PATCH") {
+    if (!target) throw Error("name is required for PATCH");
+    const patch = delta.changes.content_append
+      ? delta
+      : {
+          ...delta,
+          changes: {
+            ...delta.changes,
+            content_append: `## Evolution\n${candidate?.summary || args.reason || "Updated behavior."}`,
+          },
+        };
+    return patchSkill(target, patch);
+  }
+
+  const result = { action: resolvedAction, target_skill: target || null, delta, similar_skills: similar.skills };
+  await writeEvent("SkillEvolutionRecommended", result);
+  return result;
 }
 
 /**

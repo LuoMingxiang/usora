@@ -31,6 +31,7 @@ import {
   handleSkillPublish,
   handleSkillQuery,
   handleSkillRead,
+  handleSkillEvolve,
 } from "../core/skills.mjs";
 
 /**
@@ -64,6 +65,7 @@ const HANDLERS = {
   candidate_evaluate: handleCandidateEvaluate,
   skill_create: handleSkillCreate,
   skill_generate: handleSkillGenerate,
+  skill_evolve: handleSkillEvolve,
   skill_evaluate: handleSkillEvaluate,
   skill_publish: handleSkillPublish,
   skill_read: handleSkillRead,
@@ -95,6 +97,7 @@ const WRITE_TOOLS = new Set([
   "pattern_index",
   "skill_create",
   "skill_generate",
+  "skill_evolve",
   "skill_evaluate",
   "skill_publish",
   "context_budget",
