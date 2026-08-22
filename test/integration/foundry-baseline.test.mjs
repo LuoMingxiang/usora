@@ -4,8 +4,8 @@ import { access, mkdir, mkdtemp, readFile, readdir, rm, writeFile } from "node:f
 import os from "node:os";
 import path from "node:path";
 import { test } from "vitest";
-import { transitionActivityState } from "../plugins/foundry/src/core/activities.mjs";
-import { buildActivityFingerprint } from "../plugins/foundry/src/core/intelligence/fingerprint.mjs";
+import { transitionActivityState } from "../../plugins/foundry/src/core/activities.mjs";
+import { buildActivityFingerprint } from "../../plugins/foundry/src/core/intelligence/fingerprint.mjs";
 
 const foundryRoot = path.resolve("plugins/foundry");
 const mcpScript = path.join(foundryRoot, "scripts", "usora-mcp.mjs");

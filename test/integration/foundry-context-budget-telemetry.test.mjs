@@ -4,7 +4,7 @@ import { mkdtemp, rm } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { test } from "vitest";
-import { checkContextBudget } from "../plugins/foundry/src/core/context-budget.mjs";
+import { checkContextBudget } from "../../plugins/foundry/src/core/context-budget.mjs";
 
 const mcpScript = path.resolve("plugins/foundry/scripts/usora-mcp.mjs");
 
