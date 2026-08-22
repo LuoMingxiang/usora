@@ -17,6 +17,7 @@ import {
 } from "../core/candidates.mjs";
 import { handleEventList } from "../core/events.mjs";
 import { handleContextBudget, handleTelemetryMetrics } from "../core/context-budget.mjs";
+import { handleGovernanceResolve, handleGovernanceScan, handleSkillGraphValidate } from "../core/governance.mjs";
 import { handleHubCleanup, handleHubConfig, handleHubDoctor, handleHubInit, handleHubStatus } from "../core/hub.mjs";
 import { handleHubMigrate, migrationStatus } from "../core/migration.mjs";
 import { handlePatternGet, handlePatternIndex, handlePatternQuery } from "../core/patterns.mjs";
@@ -49,6 +50,9 @@ const HANDLERS = {
   hub_cleanup: handleHubCleanup,
   plugin_cache_cleanup: handlePluginCacheCleanup,
   context_budget: handleContextBudget,
+  governance_scan: handleGovernanceScan,
+  governance_resolve: handleGovernanceResolve,
+  skill_graph_validate: handleSkillGraphValidate,
   activity_capture: handleActivityCapture,
   activity_digest_list: handleActivityDigestList,
   activity_list: handleActivityList,
@@ -104,6 +108,7 @@ const WRITE_TOOLS = new Set([
   "skill_publish",
   "context_budget",
   "usage_capture",
+  "governance_resolve",
 ]);
 
 /**
