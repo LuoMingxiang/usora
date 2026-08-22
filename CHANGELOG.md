@@ -1,3 +1,17 @@
+# [1.1.0](https://github.com/LuoMingxiang/usora/compare/v1.0.0...v1.1.0) (2026-08-22)
+
+### Features
+
+- **foundry:** add candidate resolution gate ([b804678](https://github.com/LuoMingxiang/usora/commit/b804678a29ecce6fa607770e7cc29398e03e6b1d))
+- **foundry:** add compact skill retrieval and generation ([5389e8f](https://github.com/LuoMingxiang/usora/commit/5389e8f1fafa7fd6fc10b0e99e3b4a3e9f1e4420))
+- **foundry:** add context telemetry metrics ([2db46f1](https://github.com/LuoMingxiang/usora/commit/2db46f103776311acc3faa6e56d3756f9c9ed453))
+- **foundry:** add explicit hub migration ([b5bcd96](https://github.com/LuoMingxiang/usora/commit/b5bcd9646523f98ebc763bc65d8a17b41637848c))
+- **foundry:** add skill evolution deltas ([e7f10c6](https://github.com/LuoMingxiang/usora/commit/e7f10c654e09a871f6533d72aea25d98c676a408))
+- **foundry:** add skill governance controls ([f61c943](https://github.com/LuoMingxiang/usora/commit/f61c943389df0bd908daaa7454f24b4d808ae742))
+- **foundry:** add token runtime phases 0-4 ([7054195](https://github.com/LuoMingxiang/usora/commit/705419507a0af3273c79d0c5078dac233784b391))
+- **foundry:** capture skill runtime usage ([454c143](https://github.com/LuoMingxiang/usora/commit/454c1432afebc8aed4a0f47ec1cfe371851ad03e))
+- **foundry:** define session protocol adapters ([d79767c](https://github.com/LuoMingxiang/usora/commit/d79767ce0d5c49c134a163f53bac5e3caf7eefa8))
+
 # 2.0.0 (2026-08-22)
 
 ### ⚠ BREAKING CHANGES
