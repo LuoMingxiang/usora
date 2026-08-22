@@ -3,7 +3,7 @@ import { spawn } from "node:child_process";
 import { mkdtemp, mkdir, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import test from "node:test";
+import { test } from "vitest";
 
 const mcpScript = path.resolve("plugins/foundry/scripts/usora-mcp.mjs");
 
@@ -38,7 +38,7 @@ const initialize = {
 
 test("query/get APIs keep default reads compact and allow targeted full reads", async (t) => {
   const cwd = await mkdtemp(path.join(os.tmpdir(), "usora-query-"));
-  t.after(() => rm(cwd, { recursive: true, force: true }));
+  t.onTestFinished(() => rm(cwd, { recursive: true, force: true }));
 
   const responses = await run(cwd, [
     initialize,
@@ -68,7 +68,7 @@ test("query/get APIs keep default reads compact and allow targeted full reads", 
 
 test("skill_generate requires a passing Candidate and uses bounded metadata-only context", async (t) => {
   const cwd = await mkdtemp(path.join(os.tmpdir(), "usora-skillgen-"));
-  t.after(() => rm(cwd, { recursive: true, force: true }));
+  t.onTestFinished(() => rm(cwd, { recursive: true, force: true }));
 
   await run(cwd, [initialize, call(2, "hub_init")]);
   await mkdir(path.join(cwd, ".usora", "indexes"), { recursive: true });

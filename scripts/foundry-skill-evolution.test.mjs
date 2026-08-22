@@ -3,7 +3,7 @@ import { spawn } from "node:child_process";
 import { mkdtemp, rm } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import test from "node:test";
+import { test } from "vitest";
 
 const mcpScript = path.resolve("plugins/foundry/scripts/usora-mcp.mjs");
 
@@ -38,7 +38,7 @@ const initialize = {
 
 test("skill_evolve patches similar Skills instead of creating duplicates", async (t) => {
   const cwd = await mkdtemp(path.join(os.tmpdir(), "usora-evolve-"));
-  t.after(() => rm(cwd, { recursive: true, force: true }));
+  t.onTestFinished(() => rm(cwd, { recursive: true, force: true }));
 
   const setup = await run(cwd, [
     initialize,
@@ -81,7 +81,7 @@ test("skill_evolve patches similar Skills instead of creating duplicates", async
 
 test("skill_evolve supports CREATE, NOOP, SPLIT, and MERGE audit paths", async (t) => {
   const cwd = await mkdtemp(path.join(os.tmpdir(), "usora-evolve-"));
-  t.after(() => rm(cwd, { recursive: true, force: true }));
+  t.onTestFinished(() => rm(cwd, { recursive: true, force: true }));
 
   const setup = await run(cwd, [
     initialize,
@@ -113,7 +113,7 @@ test("skill_evolve supports CREATE, NOOP, SPLIT, and MERGE audit paths", async (
 
 test("skill_evolve keeps Candidate gate on create paths", async (t) => {
   const cwd = await mkdtemp(path.join(os.tmpdir(), "usora-evolve-"));
-  t.after(() => rm(cwd, { recursive: true, force: true }));
+  t.onTestFinished(() => rm(cwd, { recursive: true, force: true }));
 
   const setup = await run(cwd, [
     initialize,

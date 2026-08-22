@@ -3,7 +3,7 @@ import { spawn } from "node:child_process";
 import { mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import test from "node:test";
+import { test } from "vitest";
 
 const mcpScript = path.resolve("plugins/foundry/scripts/usora-mcp.mjs");
 
@@ -42,7 +42,7 @@ function body(response) {
 
 test("pattern_index is incremental, idempotent, eligible-aware, and rebuildable", async (t) => {
   const cwd = await mkdtemp(path.join(os.tmpdir(), "usora-patterns-"));
-  t.after(() => rm(cwd, { recursive: true, force: true }));
+  t.onTestFinished(() => rm(cwd, { recursive: true, force: true }));
 
   await run(cwd, [
     initialize,

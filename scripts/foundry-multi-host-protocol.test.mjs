@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import test from "node:test";
+import { test } from "vitest";
 import { readCodeBuddySession } from "../plugins/foundry/src/adapters/codebuddy-session.mjs";
 import { readCodexSession } from "../plugins/foundry/src/adapters/codex-session.mjs";
 import { normalizeSessionProtocol, validateSessionProtocol } from "../plugins/foundry/src/core/session-protocol.mjs";
@@ -32,7 +32,7 @@ test("Codex and CodeBuddy adapters emit Session Protocol v1", async (t) => {
   assert.equal(codex.source, "codex");
 
   const cwd = await mkdtemp(path.join(os.tmpdir(), "usora-protocol-"));
-  t.after(() => rm(cwd, { recursive: true, force: true }));
+  t.onTestFinished(() => rm(cwd, { recursive: true, force: true }));
   const transcriptDir = path.join(cwd, "session");
   const messagesDir = path.join(transcriptDir, "messages");
   await mkdir(messagesDir, { recursive: true });

@@ -3,7 +3,7 @@ import { spawn } from "node:child_process";
 import { mkdtemp, readFile, rm, writeFile, mkdir } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import test from "node:test";
+import { test } from "vitest";
 
 const mcpScript = path.resolve("plugins/foundry/scripts/usora-mcp.mjs");
 
@@ -38,7 +38,7 @@ const initialize = {
 
 test("candidate_resolve creates, matches, links patterns, and keeps Skill content out of match results", async (t) => {
   const cwd = await mkdtemp(path.join(os.tmpdir(), "usora-candidate-"));
-  t.after(() => rm(cwd, { recursive: true, force: true }));
+  t.onTestFinished(() => rm(cwd, { recursive: true, force: true }));
 
   await run(cwd, [initialize, call(2, "hub_init")]);
   await mkdir(path.join(cwd, ".usora", "indexes"), { recursive: true });
@@ -102,7 +102,7 @@ test("candidate_resolve creates, matches, links patterns, and keeps Skill conten
 
 test("candidate_resolve drops low evidence and skill_create requires passing Candidate evaluation", async (t) => {
   const cwd = await mkdtemp(path.join(os.tmpdir(), "usora-candidate-"));
-  t.after(() => rm(cwd, { recursive: true, force: true }));
+  t.onTestFinished(() => rm(cwd, { recursive: true, force: true }));
 
   const responses = await run(cwd, [
     initialize,

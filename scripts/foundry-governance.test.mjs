@@ -3,7 +3,7 @@ import { spawn } from "node:child_process";
 import { mkdtemp, readFile, rm } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import test from "node:test";
+import { test } from "vitest";
 
 const mcpScript = path.resolve("plugins/foundry/scripts/usora-mcp.mjs");
 
@@ -38,7 +38,7 @@ const initialize = {
 
 test("governance_scan finds unused, low-success, duplicate, and stale Skills", async (t) => {
   const cwd = await mkdtemp(path.join(os.tmpdir(), "usora-governance-"));
-  t.after(() => rm(cwd, { recursive: true, force: true }));
+  t.onTestFinished(() => rm(cwd, { recursive: true, force: true }));
 
   const responses = await run(cwd, [
     initialize,
@@ -63,7 +63,7 @@ test("governance_scan finds unused, low-success, duplicate, and stale Skills", a
 
 test("governance_resolve is auditable and gates destructive actions to Maintainer", async (t) => {
   const cwd = await mkdtemp(path.join(os.tmpdir(), "usora-governance-"));
-  t.after(() => rm(cwd, { recursive: true, force: true }));
+  t.onTestFinished(() => rm(cwd, { recursive: true, force: true }));
 
   const setup = await run(cwd, [
     initialize,

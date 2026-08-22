@@ -3,7 +3,7 @@ import { spawn } from "node:child_process";
 import { mkdtemp, rm } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import test from "node:test";
+import { test } from "vitest";
 import { checkContextBudget } from "../plugins/foundry/src/core/context-budget.mjs";
 
 const mcpScript = path.resolve("plugins/foundry/scripts/usora-mcp.mjs");
@@ -52,7 +52,7 @@ test("context budget reports chars and chars/4 estimates", async () => {
 
 test("candidate and skill intelligence runs feed telemetry metrics", async (t) => {
   const cwd = await mkdtemp(path.join(os.tmpdir(), "usora-telemetry-"));
-  t.after(() => rm(cwd, { recursive: true, force: true }));
+  t.onTestFinished(() => rm(cwd, { recursive: true, force: true }));
 
   const responses = await run(cwd, [
     initialize,
@@ -90,7 +90,7 @@ test("candidate and skill intelligence runs feed telemetry metrics", async (t) =
 
 test("tiny context budgets emit overflow events", async (t) => {
   const cwd = await mkdtemp(path.join(os.tmpdir(), "usora-budget-"));
-  t.after(() => rm(cwd, { recursive: true, force: true }));
+  t.onTestFinished(() => rm(cwd, { recursive: true, force: true }));
 
   const responses = await run(cwd, [
     initialize,

@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import test from "node:test";
+import { test } from "vitest";
 import { compileSessionKnowledge } from "../plugins/foundry/src/core/intelligence/session-compiler.mjs";
 
 test("session compiler extracts early constraints, corrections, failures, decisions, and verification", () => {
