@@ -1,4 +1,4 @@
-import { compactText } from "../../adapters/codebuddy-session.mjs";
+import { compactText } from "../session-protocol.mjs";
 
 function unique(values) {
   return [...new Set(values.filter(Boolean))];

@@ -1,5 +1,8 @@
+import { normalizeSessionProtocol } from "../session-protocol.mjs";
+
 export function parseSessionEvents(session) {
-  return (session.messages || []).map((message, index) => ({
+  const normalized = normalizeSessionProtocol(session);
+  return (normalized.messages || []).map((message, index) => ({
     id: message.id || `event-${index + 1}`,
     index,
     role: message.role,

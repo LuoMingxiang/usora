@@ -1,5 +1,6 @@
 import fs from "node:fs/promises";
 import path from "node:path";
+import { compactText, normalizeSessionProtocol } from "../core/session-protocol.mjs";
 
 function parseJson(value) {
   try {
@@ -18,15 +19,6 @@ function textFromContent(content) {
     .join("\n");
 }
 
-export function compactText(value, limit = 2000) {
-  const text = String(value || "")
-    .replace(/<additional_data>[\s\S]*?<\/additional_data>/g, "")
-    .replace(/<\/?user_query>/g, "")
-    .replace(/\s+/g, " ")
-    .trim();
-  return text.length > limit ? `${text.slice(0, limit - 3)}...` : text;
-}
-
 async function readMessage(file, fallback = {}) {
   const item = parseJson(await fs.readFile(file, "utf8"));
   const extra = parseJson(item?.extra);
@@ -40,7 +32,7 @@ async function readMessage(file, fallback = {}) {
 }
 
 export async function readCodeBuddySession(transcriptPath) {
-  if (!transcriptPath) return { messages: [] };
+  if (!transcriptPath) return normalizeSessionProtocol({ source: "codebuddy", messages: [] });
   const index = parseJson(await fs.readFile(transcriptPath, "utf8").catch(() => ""));
   const messages = [];
   for (const entry of index?.messages || []) {
@@ -49,5 +41,9 @@ export async function readCodeBuddySession(transcriptPath) {
     const message = await readMessage(file, entry).catch(() => null);
     if (message?.text) messages.push(message);
   }
-  return { messages, source_ref: { type: "host_transcript", path: transcriptPath } };
+  return normalizeSessionProtocol({
+    source: "codebuddy",
+    source_ref: { type: "host_transcript", path: transcriptPath },
+    messages,
+  });
 }

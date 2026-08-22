@@ -1,4 +1,4 @@
-import { compactText } from "./codebuddy-session.mjs";
+import { compactText, normalizeSessionProtocol } from "../core/session-protocol.mjs";
 
 export function readCodexSession(event) {
   const messages = [];
@@ -7,5 +7,5 @@ export function readCodexSession(event) {
     const text = compactText(message.text || message.content || message.message || "");
     if (text) messages.push({ id: message.id || null, role: message.role, timestamp: message.timestamp || null, text });
   }
-  return { messages };
+  return normalizeSessionProtocol({ source: "codex", messages });
 }
