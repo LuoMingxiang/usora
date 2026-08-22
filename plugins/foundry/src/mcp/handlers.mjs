@@ -33,6 +33,7 @@ import {
   handleSkillRead,
   handleSkillEvolve,
 } from "../core/skills.mjs";
+import { handleUsageCapture } from "../core/usage.mjs";
 
 /**
  * Map of tool name → async handler function.
@@ -73,6 +74,7 @@ const HANDLERS = {
   skill_index: handleSkillIndex,
   skill_query: handleSkillQuery,
   skill_get: handleSkillGet,
+  usage_capture: handleUsageCapture,
   event_list: handleEventList,
   telemetry_metrics: handleTelemetryMetrics,
 };
@@ -101,6 +103,7 @@ const WRITE_TOOLS = new Set([
   "skill_evaluate",
   "skill_publish",
   "context_budget",
+  "usage_capture",
 ]);
 
 /**

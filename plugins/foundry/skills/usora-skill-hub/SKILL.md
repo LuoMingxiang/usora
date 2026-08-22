@@ -38,6 +38,7 @@ Maintain one Activity per AI session. After substantive progress, call `activity
 - “Evaluate this Skill” → MCP tool `skill_evaluate`
 - “Show recent Skills” → MCP tool `skill_query` (metadata only) or legacy `skill_list`
 - “Show this Skill” → MCP tool `skill_get` or legacy `skill_read`
+- “Record Skill usage” → MCP tool `usage_capture`
 - “Show recent Usora events” → MCP tool `event_list`
 - “Show Usora telemetry metrics” → MCP tool `telemetry_metrics`
 - “Capture this task” → Usora MCP tool `activity_capture`

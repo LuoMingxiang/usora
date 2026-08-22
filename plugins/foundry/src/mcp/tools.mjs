@@ -459,6 +459,23 @@ export const tools = [
     inputSchema: { type: "object", required: ["name"], properties: { name: { type: "string" } } },
   },
   {
+    name: "usage_capture",
+    description: "Record one runtime Skill usage outcome and update Skill usage metrics. Outcome may be unknown.",
+    inputSchema: {
+      type: "object",
+      required: ["skill"],
+      properties: {
+        session_id: { type: "string" },
+        skill: { type: "string" },
+        activity_id: { type: "string" },
+        outcome: { type: "string", enum: ["success", "partial", "failure", "unknown"] },
+        validation_evidence: { type: "array", items: { type: "string" } },
+        project: { type: "string" },
+        used_at: { type: "string" },
+      },
+    },
+  },
+  {
     name: "event_list",
     description: "List recent lifecycle events.",
     inputSchema: {

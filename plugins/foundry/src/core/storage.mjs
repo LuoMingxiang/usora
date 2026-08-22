@@ -71,7 +71,17 @@ export const EVENT_SCHEMA_VERSION = 1;
  *
  * @type {string[]}
  */
-export const DIRS = ["activities", "candidates", "skills", "archive", "events", "sessions", "indexes", "backups"];
+export const DIRS = [
+  "activities",
+  "candidates",
+  "skills",
+  "usage",
+  "archive",
+  "events",
+  "sessions",
+  "indexes",
+  "backups",
+];
 
 /**
  * Valid values for `config.automation_policy`.

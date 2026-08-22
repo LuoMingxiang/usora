@@ -34,7 +34,7 @@ async function backupHub(home) {
   await fs.mkdir(backup, { recursive: true });
   for (const dir of DIRS) {
     if (dir === "backups") continue;
-    await fs.cp(path.join(home, dir), path.join(backup, dir), { recursive: true, force: true });
+    await fs.cp(path.join(home, dir), path.join(backup, dir), { recursive: true, force: true }).catch(() => {});
   }
   await fs.cp(path.join(anchorHome, "config.json"), path.join(backup, "config.json"), { force: true });
   return backup;
@@ -44,7 +44,7 @@ async function restoreHub(home, backup) {
   for (const dir of DIRS) {
     if (dir === "backups") continue;
     await fs.rm(path.join(home, dir), { recursive: true, force: true });
-    await fs.cp(path.join(backup, dir), path.join(home, dir), { recursive: true, force: true });
+    await fs.cp(path.join(backup, dir), path.join(home, dir), { recursive: true, force: true }).catch(() => {});
   }
   await fs.cp(path.join(backup, "config.json"), path.join(anchorHome, "config.json"), { force: true });
 }
