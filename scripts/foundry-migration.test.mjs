@@ -3,7 +3,7 @@ import { spawn } from "node:child_process";
 import { mkdir, mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import test from "node:test";
+import { test } from "vitest";
 
 const mcpScript = path.resolve("plugins/foundry/scripts/usora-mcp.mjs");
 
@@ -72,7 +72,7 @@ async function writeV1Hub(cwd) {
 
 test("v1 Hub requires explicit migration before v2 writes", async (t) => {
   const cwd = await mkdtemp(path.join(os.tmpdir(), "usora-migration-"));
-  t.after(() => rm(cwd, { recursive: true, force: true }));
+  t.onTestFinished(() => rm(cwd, { recursive: true, force: true }));
   const hub = await writeV1Hub(cwd);
 
   const blocked = await run(cwd, [

@@ -3,7 +3,7 @@ import { spawn } from "node:child_process";
 import { access, mkdir, mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import test from "node:test";
+import { test } from "vitest";
 import { transitionActivityState } from "../plugins/foundry/src/core/activities.mjs";
 import { buildActivityFingerprint } from "../plugins/foundry/src/core/intelligence/fingerprint.mjs";
 
@@ -58,7 +58,7 @@ async function readOnlyActivity(hub) {
 
 test("activity_capture baseline covers merge, process session fallback, and required fields", async (t) => {
   const cwd = await tmpdir("usora-baseline-");
-  t.after(() => rm(cwd, { recursive: true, force: true }));
+  t.onTestFinished(() => rm(cwd, { recursive: true, force: true }));
 
   const responses = await run(cwd, [
     initialize,
@@ -114,7 +114,7 @@ test("activity_capture baseline covers merge, process session fallback, and requ
 
 test("candidate, skill, and cleanup lifecycle baseline stays explicit", async (t) => {
   const cwd = await tmpdir("usora-baseline-");
-  t.after(() => rm(cwd, { recursive: true, force: true }));
+  t.onTestFinished(() => rm(cwd, { recursive: true, force: true }));
 
   const responses = await run(cwd, [
     initialize,
@@ -192,7 +192,7 @@ test("candidate, skill, and cleanup lifecycle baseline stays explicit", async (t
 
 test("hub_cleanup archives only generated activities and preserves v1 fixture shape", async (t) => {
   const cwd = await tmpdir("usora-baseline-");
-  t.after(() => rm(cwd, { recursive: true, force: true }));
+  t.onTestFinished(() => rm(cwd, { recursive: true, force: true }));
 
   await run(cwd, [
     initialize,
@@ -254,7 +254,7 @@ test("hub_cleanup archives only generated activities and preserves v1 fixture sh
 
 test("activity intelligence writes compact digest, stable fingerprint, hot context, and state transitions", async (t) => {
   const cwd = await tmpdir("usora-activity-intel-");
-  t.after(() => rm(cwd, { recursive: true, force: true }));
+  t.onTestFinished(() => rm(cwd, { recursive: true, force: true }));
 
   const requests = [initialize];
   for (let index = 1; index <= 12; index++) {
@@ -325,7 +325,7 @@ test("activity intelligence writes compact digest, stable fingerprint, hot conte
 
 test("hub storage schema v2 writes versioned records and keeps v1 reads working", async (t) => {
   const cwd = await tmpdir("usora-schema-v2-");
-  t.after(() => rm(cwd, { recursive: true, force: true }));
+  t.onTestFinished(() => rm(cwd, { recursive: true, force: true }));
 
   const responses = await run(cwd, [
     initialize,
@@ -387,7 +387,7 @@ test("session hook baseline records relaxed captures and preserves early importa
   const hub = path.join(cwd, "hub");
   const transcriptDir = path.join(cwd, "history", "session");
   const messagesDir = path.join(transcriptDir, "messages");
-  t.after(() => rm(cwd, { recursive: true, force: true }));
+  t.onTestFinished(() => rm(cwd, { recursive: true, force: true }));
 
   await mkdir(path.join(cwd, ".usora"), { recursive: true });
   await mkdir(messagesDir, { recursive: true });
@@ -435,7 +435,7 @@ test("session hook baseline records relaxed captures and preserves early importa
   assert.doesNotMatch(sessionRecordText, /ordinary follow up message 6/);
 
   const relaxedCwd = await tmpdir("usora-hook-relaxed-");
-  t.after(() => rm(relaxedCwd, { recursive: true, force: true }));
+  t.onTestFinished(() => rm(relaxedCwd, { recursive: true, force: true }));
   await runHook(relaxedCwd, { session_id: "empty", transcript_path: path.join(relaxedCwd, "missing.json") });
   const relaxed = await readOnlyActivity(path.join(relaxedCwd, ".usora"));
   assert.equal(relaxed.task, null);
@@ -445,7 +445,7 @@ test("session hook baseline records relaxed captures and preserves early importa
 
 test("foundry token benchmark reports repeatable baseline dimensions", async (t) => {
   const cwd = await tmpdir("usora-benchmark-test-");
-  t.after(() => rm(cwd, { recursive: true, force: true }));
+  t.onTestFinished(() => rm(cwd, { recursive: true, force: true }));
 
   const child = spawn(process.execPath, [benchmarkScript], {
     cwd: path.resolve("."),

@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { mkdtemp, readFile, readdir, rm, access, mkdir, cp, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import test from "node:test";
+import { test } from "vitest";
 import { spawn } from "node:child_process";
 
 const foundryRoot = path.resolve("plugins/foundry");
@@ -58,7 +58,7 @@ const initialize = {
 
 test("hub_init uses the default .usora directory and merges activities", async (t) => {
   const cwd = await mkdtemp(path.join(os.tmpdir(), "usora-mcp-"));
-  t.after(() => rm(cwd, { recursive: true, force: true }));
+  t.onTestFinished(() => rm(cwd, { recursive: true, force: true }));
 
   const requests = [
     initialize,
@@ -111,8 +111,8 @@ test("hub_init uses the default .usora directory and merges activities", async (
 test("hub_init uses host plugin data when CodeBuddy provides it", async (t) => {
   const cwd = await mkdtemp(path.join(os.tmpdir(), "usora-mcp-cwd-"));
   const pluginData = await mkdtemp(path.join(os.tmpdir(), "usora-mcp-data-"));
-  t.after(() => rm(cwd, { recursive: true, force: true }));
-  t.after(() => rm(pluginData, { recursive: true, force: true }));
+  t.onTestFinished(() => rm(cwd, { recursive: true, force: true }));
+  t.onTestFinished(() => rm(pluginData, { recursive: true, force: true }));
 
   const responses = await run(
     cwd,
@@ -132,9 +132,9 @@ test("hub_init avoids the project when only CodeBuddy plugin root is provided", 
   const home = await mkdtemp(path.join(os.tmpdir(), "usora-home-"));
   const pluginRoot = await mkdtemp(path.join(os.tmpdir(), "usora-mcp-root-"));
   const dataRoot = path.join(home, ".codebuddy", "plugins", "data", "usora", ".usora");
-  t.after(() => rm(cwd, { recursive: true, force: true }));
-  t.after(() => rm(home, { recursive: true, force: true }));
-  t.after(() => rm(pluginRoot, { recursive: true, force: true }));
+  t.onTestFinished(() => rm(cwd, { recursive: true, force: true }));
+  t.onTestFinished(() => rm(home, { recursive: true, force: true }));
+  t.onTestFinished(() => rm(pluginRoot, { recursive: true, force: true }));
 
   const responses = await run(
     cwd,
@@ -158,8 +158,8 @@ test("hub_init detects CodeBuddy marketplace installs without env vars", async (
   await mkdir(path.join(marketplaceRoot, "src"), { recursive: true });
   await cp(mcpScript, path.join(marketplaceRoot, "scripts", "usora-mcp.mjs"));
   await cp(mcpSrc, path.join(marketplaceRoot, "src"), { recursive: true });
-  t.after(() => rm(cwd, { recursive: true, force: true }));
-  t.after(() => rm(home, { recursive: true, force: true }));
+  t.onTestFinished(() => rm(cwd, { recursive: true, force: true }));
+  t.onTestFinished(() => rm(home, { recursive: true, force: true }));
 
   const child = spawn(process.execPath, [path.join(marketplaceRoot, "scripts", "usora-mcp.mjs")], {
     cwd,
@@ -196,8 +196,8 @@ test("hub_init detects Codex cache installs without env vars", async (t) => {
   await mkdir(path.join(pluginRoot, "src"), { recursive: true });
   await cp(mcpScript, path.join(pluginRoot, "scripts", "usora-mcp.mjs"));
   await cp(mcpSrc, path.join(pluginRoot, "src"), { recursive: true });
-  t.after(() => rm(cwd, { recursive: true, force: true }));
-  t.after(() => rm(home, { recursive: true, force: true }));
+  t.onTestFinished(() => rm(cwd, { recursive: true, force: true }));
+  t.onTestFinished(() => rm(home, { recursive: true, force: true }));
 
   const child = spawn(process.execPath, [path.join(pluginRoot, "scripts", "usora-mcp.mjs")], {
     cwd,
@@ -230,9 +230,9 @@ test("hub_init avoids the project when only Claude plugin root is provided", asy
   const home = await mkdtemp(path.join(os.tmpdir(), "usora-home-"));
   const pluginRoot = await mkdtemp(path.join(os.tmpdir(), "usora-claude-root-"));
   const dataRoot = path.join(home, ".codex", "plugins", "data", "usora", ".usora");
-  t.after(() => rm(cwd, { recursive: true, force: true }));
-  t.after(() => rm(home, { recursive: true, force: true }));
-  t.after(() => rm(pluginRoot, { recursive: true, force: true }));
+  t.onTestFinished(() => rm(cwd, { recursive: true, force: true }));
+  t.onTestFinished(() => rm(home, { recursive: true, force: true }));
+  t.onTestFinished(() => rm(pluginRoot, { recursive: true, force: true }));
 
   const responses = await run(
     cwd,
@@ -262,8 +262,8 @@ test("hub_init migrates legacy plugin-local data into stable host data", async (
   await writeFile(path.join(legacyHub, "config.json"), JSON.stringify({ maintainer: "codex", version: 1 }));
   await cp(mcpScript, path.join(pluginRoot, "scripts", "usora-mcp.mjs"));
   await cp(mcpSrc, path.join(pluginRoot, "src"), { recursive: true });
-  t.after(() => rm(cwd, { recursive: true, force: true }));
-  t.after(() => rm(home, { recursive: true, force: true }));
+  t.onTestFinished(() => rm(cwd, { recursive: true, force: true }));
+  t.onTestFinished(() => rm(home, { recursive: true, force: true }));
 
   const child = spawn(process.execPath, [path.join(pluginRoot, "scripts", "usora-mcp.mjs")], {
     cwd,
@@ -298,7 +298,7 @@ test("hub_init migrates legacy plugin-local data into stable host data", async (
 
 test("hub_config with path moves data to the new directory and clears the old one", async (t) => {
   const cwd = await mkdtemp(path.join(os.tmpdir(), "usora-mcp-"));
-  t.after(() => rm(cwd, { recursive: true, force: true }));
+  t.onTestFinished(() => rm(cwd, { recursive: true, force: true }));
 
   const newDir = path.join(cwd, "relocated");
   const requests = [
@@ -341,7 +341,7 @@ test("hub_config with path moves data to the new directory and clears the old on
 test("session hook captures canonical Activity in the configured Hub", async (t) => {
   const cwd = await mkdtemp(path.join(os.tmpdir(), "usora-hook-"));
   const hub = path.join(cwd, "hub");
-  t.after(() => rm(cwd, { recursive: true, force: true }));
+  t.onTestFinished(() => rm(cwd, { recursive: true, force: true }));
 
   await mkdir(path.join(cwd, ".usora"), { recursive: true });
   await writeFile(path.join(cwd, ".usora", "config.json"), JSON.stringify({ hub_path: hub, version: 1 }));
@@ -371,7 +371,7 @@ test("session hook extracts a small Activity summary from CodeBuddy transcript f
   const hub = path.join(cwd, "hub");
   const transcriptDir = path.join(cwd, "history", "session");
   const messagesDir = path.join(transcriptDir, "messages");
-  t.after(() => rm(cwd, { recursive: true, force: true }));
+  t.onTestFinished(() => rm(cwd, { recursive: true, force: true }));
 
   await mkdir(path.join(cwd, ".usora"), { recursive: true });
   await mkdir(messagesDir, { recursive: true });
@@ -422,7 +422,7 @@ test("session hook extracts a small Activity summary from CodeBuddy transcript f
 
 test("hub_status suggests the next lifecycle action from counts", async (t) => {
   const cwd = await mkdtemp(path.join(os.tmpdir(), "usora-mcp-"));
-  t.after(() => rm(cwd, { recursive: true, force: true }));
+  t.onTestFinished(() => rm(cwd, { recursive: true, force: true }));
 
   const requests = [
     initialize,
@@ -463,7 +463,7 @@ test("hub_status suggests the next lifecycle action from counts", async (t) => {
 
 test("hub_status works before explicit hub_init", async (t) => {
   const cwd = await mkdtemp(path.join(os.tmpdir(), "usora-mcp-"));
-  t.after(() => rm(cwd, { recursive: true, force: true }));
+  t.onTestFinished(() => rm(cwd, { recursive: true, force: true }));
 
   const responses = await run(cwd, [
     initialize,
@@ -481,7 +481,7 @@ test("hub_status works before explicit hub_init", async (t) => {
 
 test("hub_config returns data_path without relocation", async (t) => {
   const cwd = await mkdtemp(path.join(os.tmpdir(), "usora-mcp-"));
-  t.after(() => rm(cwd, { recursive: true, force: true }));
+  t.onTestFinished(() => rm(cwd, { recursive: true, force: true }));
 
   const responses = await run(cwd, [
     initialize,
@@ -500,7 +500,7 @@ test("hub_config returns data_path without relocation", async (t) => {
 
 test("skill_list returns recent Skill metadata without content", async (t) => {
   const cwd = await mkdtemp(path.join(os.tmpdir(), "usora-mcp-"));
-  t.after(() => rm(cwd, { recursive: true, force: true }));
+  t.onTestFinished(() => rm(cwd, { recursive: true, force: true }));
 
   const requests = [
     initialize,
@@ -532,7 +532,7 @@ test("skill_list returns recent Skill metadata without content", async (t) => {
 
 test("read-side tools complete the Hub lifecycle view", async (t) => {
   const cwd = await mkdtemp(path.join(os.tmpdir(), "usora-mcp-"));
-  t.after(() => rm(cwd, { recursive: true, force: true }));
+  t.onTestFinished(() => rm(cwd, { recursive: true, force: true }));
 
   const requests = [
     initialize,
@@ -593,7 +593,7 @@ test("read-side tools complete the Hub lifecycle view", async (t) => {
 
 test("plugin_cache_cleanup is exposed and safe outside installed cache", async (t) => {
   const cwd = await mkdtemp(path.join(os.tmpdir(), "usora-mcp-"));
-  t.after(() => rm(cwd, { recursive: true, force: true }));
+  t.onTestFinished(() => rm(cwd, { recursive: true, force: true }));
 
   const responses = await run(cwd, [
     initialize,

@@ -3,7 +3,7 @@ import { spawn } from "node:child_process";
 import { mkdtemp, readdir, rm } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import test from "node:test";
+import { test } from "vitest";
 
 const mcpScript = path.resolve("plugins/foundry/scripts/usora-mcp.mjs");
 
@@ -38,7 +38,7 @@ const initialize = {
 
 test("usage_capture records outcomes and updates Skill metrics", async (t) => {
   const cwd = await mkdtemp(path.join(os.tmpdir(), "usora-usage-"));
-  t.after(() => rm(cwd, { recursive: true, force: true }));
+  t.onTestFinished(() => rm(cwd, { recursive: true, force: true }));
 
   const responses = await run(cwd, [
     initialize,
@@ -68,7 +68,7 @@ test("usage_capture records outcomes and updates Skill metrics", async (t) => {
 
 test("usage_capture validates Skill and outcome", async (t) => {
   const cwd = await mkdtemp(path.join(os.tmpdir(), "usora-usage-"));
-  t.after(() => rm(cwd, { recursive: true, force: true }));
+  t.onTestFinished(() => rm(cwd, { recursive: true, force: true }));
 
   const responses = await run(cwd, [
     initialize,

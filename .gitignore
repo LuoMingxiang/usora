@@ -1,7 +1,7 @@
 # Usora runtime data
 .usora/
 usora-foundry-complete-implementation-plan-*.md
-
+VITEST_MIGRATION_PLAN.md
 # OS
 .DS_Store
 Thumbs.db
