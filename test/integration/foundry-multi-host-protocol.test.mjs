@@ -3,10 +3,10 @@ import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { test } from "vitest";
-import { readCodeBuddySession } from "../plugins/foundry/src/adapters/codebuddy-session.mjs";
-import { readCodexSession } from "../plugins/foundry/src/adapters/codex-session.mjs";
-import { normalizeSessionProtocol, validateSessionProtocol } from "../plugins/foundry/src/core/session-protocol.mjs";
-import { compileSessionKnowledge } from "../plugins/foundry/src/core/intelligence/session-compiler.mjs";
+import { readCodeBuddySession } from "../../plugins/foundry/src/adapters/codebuddy-session.mjs";
+import { readCodexSession } from "../../plugins/foundry/src/adapters/codex-session.mjs";
+import { normalizeSessionProtocol, validateSessionProtocol } from "../../plugins/foundry/src/core/session-protocol.mjs";
+import { compileSessionKnowledge } from "../../plugins/foundry/src/core/intelligence/session-compiler.mjs";
 
 test("Session Protocol v1 validates required fields and gracefully normalizes unsupported events", () => {
   const normalized = normalizeSessionProtocol({
