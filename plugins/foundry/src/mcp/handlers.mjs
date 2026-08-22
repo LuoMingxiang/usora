@@ -1,21 +1,33 @@
 import { ensure } from "../core/storage.mjs";
-import { handleActivityCapture, handleActivityDigestList, handleActivityList } from "../core/activities.mjs";
+import {
+  handleActivityCapture,
+  handleActivityDigestList,
+  handleActivityGet,
+  handleActivityList,
+  handleActivityQuery,
+} from "../core/activities.mjs";
 import {
   handleCandidateCreate,
   handleCandidateEvaluate,
+  handleCandidateGet,
   handleCandidateList,
   handleCandidateMatch,
+  handleCandidateQuery,
   handleCandidateResolve,
 } from "../core/candidates.mjs";
 import { handleEventList } from "../core/events.mjs";
 import { handleHubCleanup, handleHubConfig, handleHubDoctor, handleHubInit, handleHubStatus } from "../core/hub.mjs";
-import { handlePatternIndex, handlePatternQuery } from "../core/patterns.mjs";
+import { handlePatternGet, handlePatternIndex, handlePatternQuery } from "../core/patterns.mjs";
 import { handlePluginCacheCleanup } from "../core/cache.mjs";
+import { handleSkillIndex } from "../core/skill-index.mjs";
 import {
   handleSkillCreate,
   handleSkillEvaluate,
+  handleSkillGenerate,
+  handleSkillGet,
   handleSkillList,
   handleSkillPublish,
+  handleSkillQuery,
   handleSkillRead,
 } from "../core/skills.mjs";
 
@@ -34,18 +46,27 @@ const HANDLERS = {
   activity_capture: handleActivityCapture,
   activity_digest_list: handleActivityDigestList,
   activity_list: handleActivityList,
+  activity_query: handleActivityQuery,
+  activity_get: handleActivityGet,
   candidate_create: handleCandidateCreate,
   candidate_match: handleCandidateMatch,
+  candidate_query: handleCandidateQuery,
+  candidate_get: handleCandidateGet,
   candidate_resolve: handleCandidateResolve,
   pattern_index: handlePatternIndex,
   pattern_query: handlePatternQuery,
+  pattern_get: handlePatternGet,
   candidate_list: handleCandidateList,
   candidate_evaluate: handleCandidateEvaluate,
   skill_create: handleSkillCreate,
+  skill_generate: handleSkillGenerate,
   skill_evaluate: handleSkillEvaluate,
   skill_publish: handleSkillPublish,
   skill_read: handleSkillRead,
   skill_list: handleSkillList,
+  skill_index: handleSkillIndex,
+  skill_query: handleSkillQuery,
+  skill_get: handleSkillGet,
   event_list: handleEventList,
 };
 

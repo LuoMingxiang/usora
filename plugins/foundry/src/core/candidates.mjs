@@ -99,6 +99,11 @@ function topMatches(target, items, limit) {
     .map(({ item, ...match }) => ({ ...match, ...item }));
 }
 
+function pickFields(item, fields) {
+  if (!Array.isArray(fields) || fields.length === 0) return item;
+  return Object.fromEntries(fields.filter((field) => field in item).map((field) => [field, item[field]]));
+}
+
 /**
  * `candidate_create`: record a reusable pattern as a new Candidate.
  *
@@ -166,6 +171,26 @@ export async function handleCandidateMatch(args = {}) {
     candidates: topMatches(target, candidates, limit),
     skills: topMatches(target, skills, limit),
   };
+}
+
+export async function handleCandidateQuery(args = {}) {
+  const limit = listLimit(args.limit);
+  let candidates = await readCandidates();
+  if (args.state) candidates = candidates.filter((candidate) => candidate.state === args.state);
+  if (args.since)
+    candidates = candidates.filter((candidate) => (candidate.updated_at || candidate.created_at || "") >= args.since);
+  candidates.sort((a, b) => (b.updated_at || b.created_at || "").localeCompare(a.updated_at || a.created_at || ""));
+  return {
+    count: candidates.length,
+    candidates: candidates.slice(0, limit).map((item) => pickFields(item, args.fields)),
+  };
+}
+
+export async function handleCandidateGet(args = {}) {
+  const id = safeName(args.id, "id");
+  const candidate = await readJson(path.join(await dirPath("candidates"), `${id}.json`));
+  if (!candidate) throw Error("Candidate not found");
+  return pickFields(candidate, args.fields);
 }
 
 export async function handleCandidateResolve(args = {}) {

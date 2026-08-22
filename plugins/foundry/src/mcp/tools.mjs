@@ -109,6 +109,32 @@ export const tools = [
     },
   },
   {
+    name: "activity_query",
+    description: "Query Activities; defaults to compact digests and only returns full records when projection=full.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        limit: { type: "number", description: "Optional result limit, default 20 and max 100." },
+        state: { type: "string" },
+        since: { type: "string" },
+        projection: { type: "string", enum: ["digest", "full"] },
+        fields: { type: "array", items: { type: "string" } },
+      },
+    },
+  },
+  {
+    name: "activity_get",
+    description: "Read one full Activity record by id; use only when a digest is insufficient.",
+    inputSchema: {
+      type: "object",
+      required: ["id"],
+      properties: {
+        id: { type: "string" },
+        fields: { type: "array", items: { type: "string" } },
+      },
+    },
+  },
+  {
     name: "candidate_create",
     description: "Create a Candidate from an observed reusable pattern; do not create one for a one-off task.",
     inputSchema: {
@@ -216,7 +242,21 @@ export const tools = [
       properties: {
         limit: { type: "number", description: "Optional result limit, default 20 and max 100." },
         state: { type: "string" },
+        since: { type: "string" },
         eligible: { type: "boolean" },
+        fields: { type: "array", items: { type: "string" } },
+      },
+    },
+  },
+  {
+    name: "pattern_get",
+    description: "Read one Pattern metadata record by fingerprint.",
+    inputSchema: {
+      type: "object",
+      required: ["fingerprint"],
+      properties: {
+        fingerprint: { type: "string" },
+        fields: { type: "array", items: { type: "string" } },
       },
     },
   },
@@ -226,6 +266,31 @@ export const tools = [
     inputSchema: {
       type: "object",
       properties: { limit: { type: "number", description: "Optional result limit, default 20 and max 100." } },
+    },
+  },
+  {
+    name: "candidate_query",
+    description: "Query Candidate records with limit/state/since and optional field projection.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        limit: { type: "number", description: "Optional result limit, default 20 and max 100." },
+        state: { type: "string" },
+        since: { type: "string" },
+        fields: { type: "array", items: { type: "string" } },
+      },
+    },
+  },
+  {
+    name: "candidate_get",
+    description: "Read one Candidate record by id.",
+    inputSchema: {
+      type: "object",
+      required: ["id"],
+      properties: {
+        id: { type: "string" },
+        fields: { type: "array", items: { type: "string" } },
+      },
     },
   },
   {
@@ -252,6 +317,19 @@ export const tools = [
         content: { type: "string" },
         description: { type: "string" },
         candidate_id: { type: "string" },
+      },
+    },
+  },
+  {
+    name: "skill_generate",
+    description: "Generate a deterministic Skill draft from a passing Candidate without loading full Activities.",
+    inputSchema: {
+      type: "object",
+      required: ["candidate_id"],
+      properties: {
+        candidate_id: { type: "string" },
+        name: { type: "string" },
+        description: { type: "string" },
       },
     },
   },
@@ -291,6 +369,42 @@ export const tools = [
       type: "object",
       properties: { limit: { type: "number", description: "Optional result limit, default 20 and max 100." } },
     },
+  },
+  {
+    name: "skill_index",
+    description: "Query or rebuild the local Skill metadata-only index.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        mode: { type: "string", enum: ["query", "rebuild"] },
+        limit: { type: "number", description: "Optional result limit, default 20 and max 100." },
+        state: { type: "string" },
+        candidate_id: { type: "string" },
+        since: { type: "string" },
+        q: { type: "string" },
+        fields: { type: "array", items: { type: "string" } },
+      },
+    },
+  },
+  {
+    name: "skill_query",
+    description: "Query Skill metadata from the local index without reading SKILL.md.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        limit: { type: "number", description: "Optional result limit, default 20 and max 100." },
+        state: { type: "string" },
+        candidate_id: { type: "string" },
+        since: { type: "string" },
+        q: { type: "string" },
+        fields: { type: "array", items: { type: "string" } },
+      },
+    },
+  },
+  {
+    name: "skill_get",
+    description: "Read one Skill metadata record plus SKILL.md content by name.",
+    inputSchema: { type: "object", required: ["name"], properties: { name: { type: "string" } } },
   },
   {
     name: "event_list",

@@ -21,15 +21,21 @@ Maintain one Activity per AI session. After substantive progress, call `activity
 - “Clean everything” → MCP tool `hub_cleanup` with `mode: all, confirm: true` (deletes all Hub data but keeps the data directory and config)
 - “Clean old Usora plugin cache” → MCP tool `plugin_cache_cleanup` (dry run by default; pass `confirm: true` to delete old installed plugin versions)
 - “Capture this task” → MCP tool `activity_capture`
-- “Show recent Activities” → MCP tool `activity_list`
+- “Show recent Activities” → MCP tool `activity_query` (defaults to compact digests) or legacy `activity_list`
+- “Show one full Activity” → MCP tool `activity_get`
 - “Create a Candidate” → MCP tool `candidate_create`
-- “Show recent Candidates” → MCP tool `candidate_list`
+- “Resolve a Candidate proposal” → MCP tool `candidate_resolve`
+- “Show recent Candidates” → MCP tool `candidate_query` or legacy `candidate_list`
+- “Show one Candidate” → MCP tool `candidate_get`
 - “Evaluate this Candidate” → MCP tool `candidate_evaluate`
+- “Query Patterns” → MCP tool `pattern_query`
+- “Show one Pattern” → MCP tool `pattern_get`
 - “Publish this Skill” → MCP tool `skill_publish`
 - “Create a Skill draft” → MCP tool `skill_create`
+- “Generate a Skill from an approved Candidate” → MCP tool `skill_generate`
 - “Evaluate this Skill” → MCP tool `skill_evaluate`
-- “Show recent Skills” → MCP tool `skill_list`
-- “Show this Skill” → MCP tool `skill_read`
+- “Show recent Skills” → MCP tool `skill_query` (metadata only) or legacy `skill_list`
+- “Show this Skill” → MCP tool `skill_get` or legacy `skill_read`
 - “Show recent Usora events” → MCP tool `event_list`
 - “Capture this task” → Usora MCP tool `activity_capture`
 

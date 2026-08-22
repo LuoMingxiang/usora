@@ -9,6 +9,7 @@ import {
   writeEvent,
   writeJson,
 } from "./storage.mjs";
+import { querySkillIndex, rebuildSkillIndex, skillSummary } from "./skill-index.mjs";
 import { listLimit, safeName } from "./validation.mjs";
 
 async function readCandidate(id) {
@@ -22,6 +23,40 @@ async function requirePassingCandidate(candidateId) {
   if (candidate.state !== "EVALUATED" || candidate.evaluation?.result !== "pass") {
     throw Error("Skill requires a passing Candidate evaluation");
   }
+  return candidate;
+}
+
+function generatedSkillName(candidate, fallback = "generated-skill") {
+  const slug = String(candidate.title || fallback)
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 64);
+  return slug || fallback;
+}
+
+function generatedSkillContent(candidate, similarSkills) {
+  const evidence = (candidate.evidence || [])
+    .slice(0, 3)
+    .map((item) => `- ${item.activity_id || item.id || "evidence"}${item.reason ? `: ${item.reason}` : ""}`)
+    .join("\n");
+  const similar = similarSkills
+    .slice(0, 3)
+    .map((skill) => `- ${skill.name}: ${skill.description || skill.state || "metadata only"}`)
+    .join("\n");
+  return [
+    `# ${candidate.title}`,
+    "",
+    "## When To Use",
+    candidate.summary,
+    "",
+    "## Evidence",
+    evidence || "- No evidence refs provided.",
+    "",
+    "## Similar Skills Checked",
+    similar || "- No similar Skill metadata found.",
+    "",
+  ].join("\n");
 }
 
 /**
@@ -46,6 +81,7 @@ export async function handleSkillCreate(args) {
     description: args.description || "",
     content: args.content,
     source_candidate: args.candidate_id || null,
+    generation: args.generation || null,
     state: "DRAFT",
     revision: 0,
     created_at: now(),
@@ -55,8 +91,30 @@ export async function handleSkillCreate(args) {
 
   const content = args.content.endsWith("\n") ? args.content : `${args.content}\n`;
   await fs.writeFile(path.join(dir, "SKILL.md"), content, "utf8");
+  await rebuildSkillIndex();
   await writeEvent("SkillDraftCreated", meta);
   return meta;
+}
+
+export async function handleSkillGenerate(args = {}) {
+  const candidate = await requirePassingCandidate(args.candidate_id);
+  const similar = await querySkillIndex({
+    q: [candidate.title, candidate.summary, ...(candidate.technologies || [])].join(" "),
+    limit: 3,
+  });
+  return handleSkillCreate({
+    name: args.name || generatedSkillName(candidate),
+    description: args.description || candidate.summary,
+    content: generatedSkillContent(candidate, similar.skills),
+    candidate_id: candidate.id,
+    generation: {
+      source: "candidate_spec",
+      evidence_loaded: Math.min((candidate.evidence || []).length, 3),
+      skills_loaded: similar.skills.length,
+      full_activity_load: false,
+      full_skill_load: false,
+    },
+  });
 }
 
 /**
@@ -85,6 +143,7 @@ export async function handleSkillEvaluate(args) {
   item.updated_at = now();
 
   await writeJson(file, item);
+  await rebuildSkillIndex();
   await writeEvent("SkillEvaluationCompleted", item);
   return item;
 }
@@ -118,6 +177,7 @@ export async function handleSkillPublish(args) {
   meta.updated_at = meta.published_at;
 
   await writeJson(file, meta);
+  await rebuildSkillIndex();
   await writeEvent("SkillPublished", meta);
   return meta;
 }
@@ -152,9 +212,16 @@ export async function handleSkillList(args = {}) {
   for (const dir of await fs.readdir(skillsDir).catch(() => [])) {
     const meta = await readJson(path.join(skillsDir, dir, "skill.json"));
     if (!meta) continue;
-    const { content: _content, ...summary } = meta;
-    items.push(summary);
+    items.push(skillSummary(meta));
   }
   items.sort((a, b) => (b.updated_at || b.created_at || "").localeCompare(a.updated_at || a.created_at || ""));
   return { count: items.length, skills: items.slice(0, limit) };
+}
+
+export async function handleSkillQuery(args = {}) {
+  return querySkillIndex(args);
+}
+
+export async function handleSkillGet(args = {}) {
+  return handleSkillRead(args);
 }

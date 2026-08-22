@@ -13,7 +13,7 @@ import {
 } from "./storage.mjs";
 import { buildActivityDigest } from "./intelligence/digest.mjs";
 import { buildActivityFingerprint } from "./intelligence/fingerprint.mjs";
-import { listLimit, mergeUnique } from "./validation.mjs";
+import { listLimit, mergeUnique, safeName } from "./validation.mjs";
 
 export const ACTIVITY_STATES = ["NEW", "INDEXED", "ABSORBED", "ARCHIVED"];
 const ACTIVITY_TRANSITIONS = {
@@ -38,6 +38,22 @@ async function findActivityBySession(sessionId) {
     if (item?.session_id === sessionId) return { file, item };
   }
   return null;
+}
+
+async function readActivities() {
+  const activitiesDir = await dirPath("activities");
+  const items = [];
+  for (const file of await fs.readdir(activitiesDir).catch(() => [])) {
+    if (!file.endsWith(".json")) continue;
+    const item = await readJson(path.join(activitiesDir, file));
+    if (item) items.push(item);
+  }
+  return items;
+}
+
+function pickFields(item, fields) {
+  if (!Array.isArray(fields) || fields.length === 0) return item;
+  return Object.fromEntries(fields.filter((field) => field in item).map((field) => [field, item[field]]));
 }
 
 function normalizeActivityHistory(item) {
@@ -162,13 +178,7 @@ export async function handleActivityCapture(args) {
  */
 export async function handleActivityList(args = {}) {
   const limit = listLimit(args.limit);
-  const activitiesDir = await dirPath("activities");
-  const items = [];
-  for (const file of await fs.readdir(activitiesDir).catch(() => [])) {
-    if (!file.endsWith(".json")) continue;
-    const item = await readJson(path.join(activitiesDir, file));
-    if (item) items.push(item);
-  }
+  const items = await readActivities();
   items.sort((a, b) => (b.updated_at || b.started_at || "").localeCompare(a.updated_at || a.started_at || ""));
   return { count: items.length, activities: items.slice(0, limit) };
 }
@@ -179,4 +189,28 @@ export async function handleActivityDigestList(args = {}) {
     count: list.count,
     activities: list.activities.map((activity) => activity.digest || buildActivityDigest(activity)),
   };
+}
+
+export async function handleActivityQuery(args = {}) {
+  const limit = listLimit(args.limit);
+  let activities = await readActivities();
+  if (args.state) activities = activities.filter((activity) => activity.state === args.state);
+  if (args.since)
+    activities = activities.filter((activity) => (activity.updated_at || activity.started_at || "") >= args.since);
+  activities.sort((a, b) => (b.updated_at || b.started_at || "").localeCompare(a.updated_at || a.started_at || ""));
+  const projection = args.projection || "digest";
+  return {
+    count: activities.length,
+    activities: activities.slice(0, limit).map((activity) => {
+      if (args.fields) return pickFields(activity, args.fields);
+      return projection === "full" ? activity : activity.digest || buildActivityDigest(activity);
+    }),
+  };
+}
+
+export async function handleActivityGet(args = {}) {
+  const id = safeName(args.id, "id");
+  const activity = await readJson(path.join(await dirPath("activities"), `${id}.json`));
+  if (!activity) throw Error("Activity not found");
+  return pickFields(activity, args.fields);
 }

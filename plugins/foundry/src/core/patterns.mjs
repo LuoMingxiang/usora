@@ -2,6 +2,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { transitionActivityState } from "./activities.mjs";
 import { PATTERN_SCHEMA_VERSION, dirPath, loadConfig, readJson, writeEvent, writeJson } from "./storage.mjs";
+import { listLimit } from "./validation.mjs";
 
 const PATTERNS_FILE = "patterns.json";
 
@@ -44,6 +45,11 @@ async function readActivities({ includeIndexed = false } = {}) {
 
 function unique(values) {
   return [...new Set(values.filter(Boolean))];
+}
+
+function pickFields(item, fields) {
+  if (!Array.isArray(fields) || fields.length === 0) return item;
+  return Object.fromEntries(fields.filter((field) => field in item).map((field) => [field, item[field]]));
 }
 
 function patternFromActivity(activity) {
@@ -122,10 +128,12 @@ export async function rebuildPatternIndex() {
 export async function queryPatterns(args = {}) {
   const config = await loadConfig();
   const minOccurrences = config.intelligence?.candidate_min_occurrences || 2;
-  const limit = Math.min(Math.max(Number(args.limit) || 20, 1), 100);
+  const limit = listLimit(args.limit);
   const index = await readPatterns();
   let patterns = index.patterns || [];
   if (args.state) patterns = patterns.filter((pattern) => pattern.state === args.state);
+  if (args.since)
+    patterns = patterns.filter((pattern) => (pattern.last_seen || pattern.first_seen || "") >= args.since);
   if (args.eligible) {
     patterns = patterns.filter(
       (pattern) => pattern.high_value || (pattern.type !== "routine" && pattern.occurrences >= minOccurrences),
@@ -134,7 +142,7 @@ export async function queryPatterns(args = {}) {
   patterns = patterns
     .slice()
     .sort((a, b) => (b.last_seen || "").localeCompare(a.last_seen || "") || b.occurrences - a.occurrences);
-  return { count: patterns.length, patterns: patterns.slice(0, limit) };
+  return { count: patterns.length, patterns: patterns.slice(0, limit).map((item) => pickFields(item, args.fields)) };
 }
 
 export async function handlePatternIndex(args = {}) {
@@ -143,4 +151,11 @@ export async function handlePatternIndex(args = {}) {
 
 export async function handlePatternQuery(args = {}) {
   return queryPatterns(args);
+}
+
+export async function handlePatternGet(args = {}) {
+  const index = await readPatterns();
+  const pattern = (index.patterns || []).find((item) => item.fingerprint === args.fingerprint);
+  if (!pattern) throw Error("Pattern not found");
+  return pickFields(pattern, args.fields);
 }
