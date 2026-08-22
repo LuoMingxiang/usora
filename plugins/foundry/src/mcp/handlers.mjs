@@ -18,6 +18,7 @@ import {
 import { handleEventList } from "../core/events.mjs";
 import { handleContextBudget, handleTelemetryMetrics } from "../core/context-budget.mjs";
 import { handleHubCleanup, handleHubConfig, handleHubDoctor, handleHubInit, handleHubStatus } from "../core/hub.mjs";
+import { handleHubMigrate, migrationStatus } from "../core/migration.mjs";
 import { handlePatternGet, handlePatternIndex, handlePatternQuery } from "../core/patterns.mjs";
 import { handlePluginCacheCleanup } from "../core/cache.mjs";
 import { handleSkillIndex } from "../core/skill-index.mjs";
@@ -39,6 +40,7 @@ import {
  */
 const HANDLERS = {
   hub_init: handleHubInit,
+  hub_migrate: handleHubMigrate,
   hub_config: handleHubConfig,
   hub_status: handleHubStatus,
   hub_doctor: handleHubDoctor,
@@ -73,6 +75,31 @@ const HANDLERS = {
   telemetry_metrics: handleTelemetryMetrics,
 };
 
+const MIGRATION_ALLOWED = new Set([
+  "hub_init",
+  "hub_migrate",
+  "hub_status",
+  "hub_doctor",
+  "event_list",
+  "telemetry_metrics",
+  "plugin_cache_cleanup",
+]);
+
+const WRITE_TOOLS = new Set([
+  "hub_config",
+  "hub_cleanup",
+  "activity_capture",
+  "candidate_create",
+  "candidate_resolve",
+  "candidate_evaluate",
+  "pattern_index",
+  "skill_create",
+  "skill_generate",
+  "skill_evaluate",
+  "skill_publish",
+  "context_budget",
+]);
+
 /**
  * Ensure storage exists, then dispatch a tool call to its handler.
  *
@@ -85,5 +112,8 @@ export async function call(name, args = {}) {
   const handler = HANDLERS[name];
   if (!handler) throw Error(`Unknown Usora tool: ${name}`);
   await ensure();
+  if (WRITE_TOOLS.has(name) && !MIGRATION_ALLOWED.has(name) && (await migrationStatus()).migration_required) {
+    throw Error("Hub migration required before writing v2 records. Run hub_migrate with dry_run, then confirm=true.");
+  }
   return handler(args);
 }

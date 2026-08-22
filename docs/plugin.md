@@ -34,11 +34,13 @@ Activity -> Candidate -> Skill Draft -> Evaluation -> Publish
 
 - Initialize local Usora storage.
 - Merge Activity captures by session.
+- Query compact Activity digests and resolve Candidates with local duplicate checks.
 - Create and evaluate Candidates.
 - Configure Maintainer and automation policy.
-- Create, evaluate, publish, and revise Skills in place.
-- List recent Activities, Candidates, Skills, and lifecycle events.
-- Read one Skill by name.
+- Generate Skill drafts from approved Candidates, then evaluate and publish Skills in place.
+- Query Activities, Patterns, Candidates, and Skills with compact defaults.
+- Read one full Activity or Skill only when needed.
+- Inspect telemetry metrics and lifecycle events.
 - Check local Hub health.
 - Preview or delete old installed Usora plugin cache versions.
 - Archive processed Activities.
@@ -95,6 +97,7 @@ Evaluate this Candidate
 Skill lifecycle:
 
 ```text
+Generate a Skill from an approved Candidate
 Create a Skill draft
 Evaluate this Skill
 Publish this Skill
@@ -165,6 +168,10 @@ Manual MCP fallback for hosts that support MCP but not plugin marketplaces:
 ## Data
 
 The default data directory is stable across plugin upgrades: `~/.codex/plugins/data/usora/.usora` for Codex and `~/.codebuddy/plugins/data/usora/.usora` for CodeBuddy. Local/manual MCP runs fall back to `<cwd>/.usora`. The `USORA_HOME` environment variable is not supported.
+
+Usora Foundry 2.0 uses Hub schema v2. v1 Hubs are never silently migrated: `hub_init`, `hub_status`, and `hub_doctor` report `migration_required` when a v1 Hub is detected, and write tools reject new v2 records until migration completes. Run `hub_migrate` without `confirm` for a dry run, then run `hub_migrate` with `confirm: true` to create a backup under `<hub>/backups/` and migrate Activities, Candidates, Skills, and config.
+
+Legacy `activity_list`, `candidate_list`, and `skill_list` are deprecated. Prefer `activity_query`, `candidate_query`, and `skill_query`; these default to compact digest/metadata results. Use `activity_get` or `skill_get` only when full records or Markdown content are required.
 
 To move data elsewhere, call `hub_config` with a `path` argument, either absolute or relative to the workspace. Usora moves existing records into the new directory, clears the old record folders, and persists the new location in `config.json` as `hub_path`.
 

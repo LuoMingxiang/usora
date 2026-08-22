@@ -43,10 +43,11 @@ AI 助手常常会反复解决同一类本地工作流问题，但真正有价�
 
 - 初始化并查看本地 Usora Hub。
 - 按 AI 会话合并记录 Activity。
-- 创建和评估 Candidate。
+- 查询紧凑 Activity digest，用本地重复检查解析 Candidate，并评估 Candidate。
 - 配置 Maintainer 与自动化策略。
-- 创建、评估、发布 Skill，并在原地递增版本。
-- 查看最近的 Activity、Candidate、Skill 和生命周期事件。
+- 只从已通过评估的 Candidate 生成 Skill 草稿，然后评估并发布 Skill。
+- 查看紧凑 Activity、Candidate、Skill、telemetry 指标和生命周期事件。
+- 写入新记录前显式迁移 v1 Hub 到当前 schema。
 - 归档已处理 Activity。
 
 ## 快速开始
@@ -63,6 +64,10 @@ AI 助手常常会反复解决同一类本地工作流问题，但真正有价�
 默认情况下，Usora 会使用稳定的宿主数据目录（`~/.codex/plugins/data/usora/.usora` 或 `~/.codebuddy/plugins/data/usora/.usora`）；只有本地/手动 MCP 运行时才 fallback 到 `<cwd>/.usora`。插件升级不应该清空 Hub。之后如果想迁移数据目录，可以让 Codex 把 Usora 数据移到新的路径；插件会迁移已有记录，并把新位置保存到 `config.json`。
 
 更详细的插件使用、数据结构和清理说明见 [插件说明](docs/plugin.zh-CN.md)。
+
+## Breaking Upgrade Notes
+
+Usora Foundry `2.0.0` 使用 Hub schema v2。已有 v1 Hub 不会被静默升级。如果 `hub_status` 返回 `migration_required: true`，先运行 `hub_migrate` dry run，再用 `confirm: true` 创建备份并迁移记录。旧的 `activity_list`、`candidate_list` 和 `skill_list` 仍可用，但已 deprecated；优先使用更省上下文的 `activity_query`、`candidate_query` 和 `skill_query`。
 
 ## 仓库组织
 

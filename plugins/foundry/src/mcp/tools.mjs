@@ -24,6 +24,18 @@ export const tools = [
     inputSchema: { type: "object", properties: {} },
   },
   {
+    name: "hub_migrate",
+    description:
+      "Explicitly migrate a v1 Hub to the current schema. Defaults to dry run; pass confirm=true to back up and migrate.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        dry_run: { type: "boolean" },
+        confirm: { type: "boolean", description: "Required true to write migration changes." },
+      },
+    },
+  },
+  {
     name: "hub_doctor",
     description:
       "Run a lightweight local Hub health check for required directories, counts, config, and missing Skill metadata.",
@@ -108,7 +120,7 @@ export const tools = [
   },
   {
     name: "activity_list",
-    description: "List recent Activities from the active Hub without loading archives.",
+    description: "Deprecated: use activity_query. List recent Activities from the active Hub without loading archives.",
     inputSchema: {
       type: "object",
       properties: { limit: { type: "number", description: "Optional result limit, default 20 and max 100." } },
@@ -276,7 +288,7 @@ export const tools = [
   },
   {
     name: "candidate_list",
-    description: "List recent Candidates.",
+    description: "Deprecated: use candidate_query. List recent Candidates.",
     inputSchema: {
       type: "object",
       properties: { limit: { type: "number", description: "Optional result limit, default 20 and max 100." } },
@@ -378,7 +390,7 @@ export const tools = [
   },
   {
     name: "skill_list",
-    description: "List recent Skill metadata without loading SKILL.md content.",
+    description: "Deprecated: use skill_query. List recent Skill metadata without loading SKILL.md content.",
     inputSchema: {
       type: "object",
       properties: { limit: { type: "number", description: "Optional result limit, default 20 and max 100." } },

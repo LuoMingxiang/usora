@@ -12,9 +12,13 @@ import {
   resolveHome,
   saveConfig,
 } from "./storage.mjs";
+import { migrationStatus } from "./migration.mjs";
 
 export async function handleHubInit(args = {}) {
   const config = await loadConfig();
+  if ((config.hub_schema_version || config.version || HUB_SCHEMA_VERSION) < HUB_SCHEMA_VERSION) {
+    return { ...(await migrationStatus()), initialized: false, action: "migration_required" };
+  }
   if (args.maintainer !== undefined) {
     config.maintainer = args.maintainer;
   }
@@ -127,6 +131,7 @@ export async function handleHubStatus() {
     config_path: path.join(anchorHome, "config.json"),
     config,
     hub_schema_version: config.hub_schema_version || HUB_SCHEMA_VERSION,
+    migration_required: (config.hub_schema_version || config.version || HUB_SCHEMA_VERSION) < HUB_SCHEMA_VERSION,
     activities,
     candidates,
     skills,
@@ -237,6 +242,7 @@ export async function handleHubDoctor() {
     data_path: home,
     config_path: path.join(anchorHome, "config.json"),
     hub_schema_version: config.hub_schema_version || HUB_SCHEMA_VERSION,
+    migration_required: (config.hub_schema_version || config.version || HUB_SCHEMA_VERSION) < HUB_SCHEMA_VERSION,
     config,
     counts,
     checks,
