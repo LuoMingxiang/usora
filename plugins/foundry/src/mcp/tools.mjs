@@ -117,7 +117,85 @@ export const tools = [
       properties: {
         title: { type: "string" },
         summary: { type: "string" },
-        evidence: { type: "array", items: { type: "string" } },
+        domain: { type: "string" },
+        topic: { type: "string" },
+        tags: { type: "array", items: { type: "string" } },
+        technologies: { type: "array", items: { type: "string" } },
+        fingerprint: { type: "string" },
+        pattern_fingerprint: { type: "string" },
+        occurrences: { type: "number" },
+        confidence: { type: "number" },
+        evidence: {
+          type: "array",
+          items: {
+            anyOf: [
+              { type: "string" },
+              {
+                type: "object",
+                properties: {
+                  activity_id: { type: "string" },
+                  reason: { type: "string" },
+                },
+              },
+            ],
+          },
+        },
+        source: { type: "string" },
+      },
+    },
+  },
+  {
+    name: "candidate_match",
+    description: "Return local Candidate and Skill metadata matches without reading Skill content.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        title: { type: "string" },
+        summary: { type: "string" },
+        topic: { type: "string" },
+        tags: { type: "array", items: { type: "string" } },
+        technologies: { type: "array", items: { type: "string" } },
+        fingerprint: { type: "string" },
+        pattern_fingerprint: { type: "string" },
+        limit: { type: "number" },
+      },
+    },
+  },
+  {
+    name: "candidate_resolve",
+    description:
+      "Resolve a Candidate proposal locally: match an existing Candidate/Skill, create a new Candidate, or drop low-evidence input.",
+    inputSchema: {
+      type: "object",
+      required: ["title", "summary"],
+      properties: {
+        title: { type: "string" },
+        summary: { type: "string" },
+        domain: { type: "string" },
+        topic: { type: "string" },
+        tags: { type: "array", items: { type: "string" } },
+        technologies: { type: "array", items: { type: "string" } },
+        fingerprint: { type: "string" },
+        pattern_fingerprint: { type: "string" },
+        occurrences: { type: "number" },
+        confidence: { type: "number" },
+        high_value: { type: "boolean" },
+        threshold: { type: "number" },
+        evidence: {
+          type: "array",
+          items: {
+            anyOf: [
+              { type: "string" },
+              {
+                type: "object",
+                properties: {
+                  activity_id: { type: "string" },
+                  reason: { type: "string" },
+                },
+              },
+            ],
+          },
+        },
         source: { type: "string" },
       },
     },

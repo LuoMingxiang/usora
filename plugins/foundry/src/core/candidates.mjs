@@ -1,7 +1,103 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { CANDIDATE_SCHEMA_VERSION, dirPath, newId, now, readJson, writeEvent, writeJson } from "./storage.mjs";
+import { linkPatternCandidate } from "./patterns.mjs";
 import { listLimit, safeName } from "./validation.mjs";
+
+function asArray(value) {
+  return Array.isArray(value) ? value : [];
+}
+
+function normalizeEvidence(evidence = []) {
+  return asArray(evidence).map((item) => (typeof item === "string" ? { activity_id: item, reason: "" } : { ...item }));
+}
+
+function words(value) {
+  return new Set(
+    String(value || "")
+      .toLowerCase()
+      .replace(/[^\p{L}\p{N}]+/gu, " ")
+      .trim()
+      .split(/\s+/)
+      .filter(Boolean),
+  );
+}
+
+function jaccard(left, right) {
+  if (!left.size || !right.size) return 0;
+  let shared = 0;
+  for (const token of left) if (right.has(token)) shared += 1;
+  return shared / new Set([...left, ...right]).size;
+}
+
+function recordText(item) {
+  return [
+    item.title,
+    item.name,
+    item.summary,
+    item.description,
+    item.domain,
+    item.topic,
+    ...asArray(item.tags),
+    ...asArray(item.technologies),
+  ].join(" ");
+}
+
+function scoreMatch(target, item) {
+  if (target.fingerprint && target.fingerprint === item.fingerprint) {
+    return { score: 1, reasons: ["fingerprint"] };
+  }
+  const titleScore = jaccard(words(target.title), words(item.title || item.name));
+  const summaryScore = jaccard(words(target.summary), words(item.summary || item.description));
+  const techScore = jaccard(words(asArray(target.technologies).join(" ")), words(asArray(item.technologies).join(" ")));
+  const topicScore = jaccard(words(target.topic), words(item.topic));
+  const tagScore = jaccard(words(asArray(target.tags).join(" ")), words(asArray(item.tags).join(" ")));
+  const textScore = jaccard(words(recordText(target)), words(recordText(item)));
+  const score =
+    0.35 * titleScore + 0.25 * summaryScore + 0.15 * techScore + 0.1 * topicScore + 0.1 * tagScore + 0.05 * textScore;
+  return {
+    score: Number(score.toFixed(3)),
+    reasons: [
+      titleScore >= 0.8 ? "title" : null,
+      summaryScore >= 0.6 ? "summary" : null,
+      techScore > 0 ? "technologies" : null,
+      topicScore > 0 ? "topic" : null,
+      tagScore > 0 ? "tags" : null,
+    ].filter(Boolean),
+  };
+}
+
+async function readCandidates() {
+  const candidatesDir = await dirPath("candidates");
+  const items = [];
+  for (const file of await fs.readdir(candidatesDir).catch(() => [])) {
+    if (!file.endsWith(".json")) continue;
+    const item = await readJson(path.join(candidatesDir, file));
+    if (item) items.push(item);
+  }
+  return items;
+}
+
+async function readSkills() {
+  const skillsDir = await dirPath("skills");
+  const items = [];
+  for (const dir of await fs.readdir(skillsDir).catch(() => [])) {
+    const item = await readJson(path.join(skillsDir, dir, "skill.json"));
+    if (!item) continue;
+    const { content: _content, ...summary } = item;
+    items.push(summary);
+  }
+  return items;
+}
+
+function topMatches(target, items, limit) {
+  return items
+    .map((item) => ({ ...scoreMatch(target, item), item }))
+    .filter((match) => match.score > 0)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, limit)
+    .map(({ item, ...match }) => ({ ...match, ...item }));
+}
 
 /**
  * `candidate_create`: record a reusable pattern as a new Candidate.
@@ -14,15 +110,27 @@ export async function handleCandidateCreate(args) {
   if (!args.title || !args.summary) {
     throw Error("title and summary are required");
   }
+  const evidence = normalizeEvidence(args.evidence);
   const item = {
     schema_version: CANDIDATE_SCHEMA_VERSION,
     id: newId("candidate"),
     title: args.title,
     summary: args.summary,
+    domain: args.domain || null,
+    topic: args.topic || null,
+    tags: asArray(args.tags),
+    technologies: asArray(args.technologies),
+    fingerprint: args.fingerprint || args.pattern_fingerprint || null,
+    occurrences: Number(args.occurrences) || evidence.length || 1,
+    confidence: args.confidence ?? null,
     source: args.source || "codex",
-    evidence: args.evidence || [],
+    evidence,
+    resolution: args.resolution || null,
+    resolution_reason: args.resolution_reason || "",
+    merge_target: args.merge_target || null,
     created_at: now(),
-    state: "OPEN",
+    updated_at: now(),
+    state: args.state || "OPEN",
   };
   await writeJson(path.join(await dirPath("candidates"), `${item.id}.json`), item);
   await writeEvent("CandidateCreated", item);
@@ -37,15 +145,73 @@ export async function handleCandidateCreate(args) {
  */
 export async function handleCandidateList(args = {}) {
   const limit = listLimit(args.limit);
-  const candidatesDir = await dirPath("candidates");
-  const items = [];
-  for (const file of await fs.readdir(candidatesDir).catch(() => [])) {
-    if (!file.endsWith(".json")) continue;
-    const item = await readJson(path.join(candidatesDir, file));
-    if (item) items.push(item);
-  }
+  const items = await readCandidates();
   items.sort((a, b) => (b.updated_at || b.created_at || "").localeCompare(a.updated_at || a.created_at || ""));
   return { count: items.length, candidates: items.slice(0, limit) };
+}
+
+export async function handleCandidateMatch(args = {}) {
+  const limit = listLimit(args.limit || 5);
+  const target = {
+    title: args.title || "",
+    summary: args.summary || "",
+    topic: args.topic || null,
+    tags: asArray(args.tags),
+    technologies: asArray(args.technologies),
+    fingerprint: args.fingerprint || args.pattern_fingerprint || null,
+  };
+  const candidates = (await readCandidates()).filter((item) => item.state !== "REJECTED" && item.state !== "DROPPED");
+  const skills = await readSkills();
+  return {
+    candidates: topMatches(target, candidates, limit),
+    skills: topMatches(target, skills, limit),
+  };
+}
+
+export async function handleCandidateResolve(args = {}) {
+  if (!args.title || !args.summary) {
+    throw Error("title and summary are required");
+  }
+  const threshold = Number(args.threshold) || 0.62;
+  const matches = await handleCandidateMatch(args);
+  const bestCandidate = matches.candidates[0];
+  const bestSkill = matches.skills[0];
+
+  if (bestCandidate && bestCandidate.score >= threshold) {
+    if (args.pattern_fingerprint) await linkPatternCandidate(args.pattern_fingerprint, bestCandidate.id);
+    const result = {
+      action: "matched",
+      candidate: bestCandidate,
+      resolution_reason: "matched existing Candidate",
+      merge_target: { type: "candidate", id: bestCandidate.id, score: bestCandidate.score },
+      matches,
+    };
+    await writeEvent("CandidateResolved", result);
+    return result;
+  }
+  if (bestSkill && bestSkill.score >= threshold) {
+    const result = {
+      action: "matched",
+      candidate: null,
+      resolution_reason: "matched existing Skill",
+      merge_target: { type: "skill", id: bestSkill.name, score: bestSkill.score },
+      matches,
+    };
+    await writeEvent("CandidateResolved", result);
+    return result;
+  }
+
+  const shouldDrop = !args.high_value && (Number(args.occurrences) || normalizeEvidence(args.evidence).length || 1) < 2;
+  const candidate = await handleCandidateCreate({
+    ...args,
+    resolution: shouldDrop ? "DROP" : "CREATE",
+    resolution_reason: shouldDrop ? "insufficient evidence" : "no local match",
+    state: shouldDrop ? "DROPPED" : "OPEN",
+  });
+  if (args.pattern_fingerprint && !shouldDrop) await linkPatternCandidate(args.pattern_fingerprint, candidate.id);
+  const result = { action: shouldDrop ? "dropped" : "created", candidate, matches };
+  await writeEvent("CandidateResolved", result);
+  return result;
 }
 
 /**

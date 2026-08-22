@@ -17,6 +17,17 @@ async function writePatterns(index) {
   await writeJson(await patternsPath(), { schema_version: PATTERN_SCHEMA_VERSION, patterns: index.patterns || [] });
 }
 
+export async function linkPatternCandidate(fingerprint, candidateId) {
+  if (!fingerprint || !candidateId) return null;
+  const index = await readPatterns();
+  const pattern = (index.patterns || []).find((item) => item.fingerprint === fingerprint);
+  if (!pattern) return null;
+  pattern.candidate_id = candidateId;
+  pattern.state = "CANDIDATE";
+  await writePatterns(index);
+  return pattern;
+}
+
 async function readActivities({ includeIndexed = false } = {}) {
   const activitiesDir = await dirPath("activities");
   const items = [];

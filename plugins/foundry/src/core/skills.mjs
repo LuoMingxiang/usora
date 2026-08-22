@@ -11,6 +11,19 @@ import {
 } from "./storage.mjs";
 import { listLimit, safeName } from "./validation.mjs";
 
+async function readCandidate(id) {
+  return readJson(path.join(await dirPath("candidates"), `${safeName(id, "candidate_id")}.json`));
+}
+
+async function requirePassingCandidate(candidateId) {
+  if (!candidateId) return;
+  const candidate = await readCandidate(candidateId);
+  if (!candidate) throw Error("Candidate not found");
+  if (candidate.state !== "EVALUATED" || candidate.evaluation?.result !== "pass") {
+    throw Error("Skill requires a passing Candidate evaluation");
+  }
+}
+
 /**
  * `skill_create`: create a Skill draft (skill.json + SKILL.md).
  *
@@ -22,6 +35,7 @@ export async function handleSkillCreate(args) {
   if (!args.name || !args.content) {
     throw Error("name and content are required");
   }
+  await requirePassingCandidate(args.candidate_id);
   const skillName = safeName(args.name, "name");
   const dir = path.join(await dirPath("skills"), skillName);
   await fs.mkdir(dir, { recursive: true });
