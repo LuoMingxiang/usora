@@ -43,10 +43,11 @@ AI assistants often solve the same local workflow problems again and again, but 
 
 - Initialize and inspect a local Usora Hub.
 - Merge Activity records by AI session.
-- Create and evaluate Candidates.
+- Query compact Activity digests, resolve Candidates with local duplicate checks, and evaluate Candidates.
 - Configure Maintainer and automation policy.
-- Create, evaluate, publish, and revise Skills in place.
-- Inspect recent Activities, Candidates, Skills, and lifecycle events.
+- Generate Skill drafts only from approved Candidates, then evaluate and publish Skills in place.
+- Inspect compact Activities, Candidates, Skills, telemetry metrics, and lifecycle events.
+- Explicitly migrate v1 Hubs to the current schema before writing new records.
 - Archive processed Activities.
 
 ## Quick Start
@@ -63,6 +64,10 @@ In the first minute, success means you can see the local Hub path, record counts
 By default, Usora uses a stable host data directory (`~/.codex/plugins/data/usora/.usora` or `~/.codebuddy/plugins/data/usora/.usora`) and falls back to `<cwd>/.usora` only for local/manual MCP runs. Plugin upgrades should not clear the Hub. To move the data later, ask Codex to move Usora data to another path; the plugin migrates existing records and saves the new location in `config.json`.
 
 For plugin-specific usage, storage layout, and cleanup details, see the [plugin guide](docs/plugin.md).
+
+## Breaking Upgrade Notes
+
+Usora Foundry `2.0.0` uses Hub schema v2. Existing v1 Hubs are not silently upgraded. If `hub_status` reports `migration_required: true`, run `hub_migrate` as a dry run first, then run it with `confirm: true` to create a backup and migrate records. Legacy `activity_list`, `candidate_list`, and `skill_list` remain available but are deprecated in favor of compact `activity_query`, `candidate_query`, and `skill_query`.
 
 ## Repository Layout
 

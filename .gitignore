@@ -1,5 +1,6 @@
 # Usora runtime data
 .usora/
+usora-foundry-complete-implementation-plan-*.md
 
 # OS
 .DS_Store

@@ -12,6 +12,7 @@ Maintain one Activity per AI session. After substantive progress, call `activity
 ## Natural-language mapping
 
 - “Initialize my Skill Hub” → MCP tool `hub_init` (creates the Hub under the stable host data directory, local fallback `<cwd>/.usora`, or the previously relocated directory)
+- “Migrate my Usora Hub” → MCP tool `hub_migrate` (dry run first; pass `confirm: true` only when the user wants to migrate)
 - “Configure my Maintainer or automation policy” → MCP tool `hub_config`
 - “Move/relocate my Usora data to `<path>`” → MCP tool `hub_config` with `path` (moves existing data and clears the old directory)
 - “Show my Skill Hub status” → MCP tool `hub_status`, then present the canonical status summary below
@@ -21,16 +22,28 @@ Maintain one Activity per AI session. After substantive progress, call `activity
 - “Clean everything” → MCP tool `hub_cleanup` with `mode: all, confirm: true` (deletes all Hub data but keeps the data directory and config)
 - “Clean old Usora plugin cache” → MCP tool `plugin_cache_cleanup` (dry run by default; pass `confirm: true` to delete old installed plugin versions)
 - “Capture this task” → MCP tool `activity_capture`
-- “Show recent Activities” → MCP tool `activity_list`
+- “Show recent Activities” → MCP tool `activity_query` (defaults to compact digests) or legacy `activity_list`
+- “Show one full Activity” → MCP tool `activity_get`
 - “Create a Candidate” → MCP tool `candidate_create`
-- “Show recent Candidates” → MCP tool `candidate_list`
+- “Resolve a Candidate proposal” → MCP tool `candidate_resolve`
+- “Show recent Candidates” → MCP tool `candidate_query` or legacy `candidate_list`
+- “Show one Candidate” → MCP tool `candidate_get`
 - “Evaluate this Candidate” → MCP tool `candidate_evaluate`
+- “Query Patterns” → MCP tool `pattern_query`
+- “Show one Pattern” → MCP tool `pattern_get`
 - “Publish this Skill” → MCP tool `skill_publish`
 - “Create a Skill draft” → MCP tool `skill_create`
+- “Generate a Skill from an approved Candidate” → MCP tool `skill_generate`
+- “Evolve this Skill” → MCP tool `skill_evolve`
 - “Evaluate this Skill” → MCP tool `skill_evaluate`
-- “Show recent Skills” → MCP tool `skill_list`
-- “Show this Skill” → MCP tool `skill_read`
+- “Show recent Skills” → MCP tool `skill_query` (metadata only) or legacy `skill_list`
+- “Show this Skill” → MCP tool `skill_get` or legacy `skill_read`
+- “Record Skill usage” → MCP tool `usage_capture`
+- “Scan Skill governance” → MCP tool `governance_scan`
+- “Resolve Skill governance” → MCP tool `governance_resolve`
+- “Validate Skill graph” → MCP tool `skill_graph_validate`
 - “Show recent Usora events” → MCP tool `event_list`
+- “Show Usora telemetry metrics” → MCP tool `telemetry_metrics`
 - “Capture this task” → Usora MCP tool `activity_capture`
 
 ## Initialization
@@ -95,3 +108,5 @@ Record task, context, key_points, approach, result, technologies, outcome, sourc
 Use MCP tools for initialization, Activity capture, Candidate review, and publication. Initialization uses the stable host data directory (or the directory the user relocated to); local/manual MCP runs fall back to `<cwd>/.usora`. The `USORA_HOME` environment variable is not used. Initialization never creates sample data.
 
 Candidates can be explicitly evaluated before publication. Publishing updates the single current Skill in place and records its `revision`, Maintainer, and publication time; do not create version directories.
+
+For Hub schema v2 upgrades, never silently migrate a v1 Hub. If status reports `migration_required`, run `hub_migrate` as a dry run first and only pass `confirm: true` after the user asks to proceed. Prefer compact query tools over deprecated `*_list` tools.

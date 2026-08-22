@@ -1,6 +1,19 @@
 import readline from "node:readline";
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+import path from "node:path";
 import { call } from "./handlers.mjs";
 import { tools } from "./tools.mjs";
+
+const pluginRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
+function readServerVersion() {
+  try {
+    return JSON.parse(readFileSync(path.join(pluginRoot, "plugin.json"), "utf8")).version;
+  } catch {
+    return "2.0.0";
+  }
+}
+const serverVersion = readServerVersion();
 
 function jsonRpcResult(id, value) {
   return { jsonrpc: "2.0", id, result: value };
@@ -50,7 +63,7 @@ function handleRequest(req) {
       return jsonRpcResult(req.id, {
         protocolVersion: req.params?.protocolVersion || "2024-11-05",
         capabilities: { tools: {} },
-        serverInfo: { name: "usora", version: "1.0.0" },
+        serverInfo: { name: "usora", version: serverVersion },
       });
     case "tools/list":
       return jsonRpcResult(req.id, { tools });

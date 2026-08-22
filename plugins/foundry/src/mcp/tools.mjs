@@ -24,6 +24,18 @@ export const tools = [
     inputSchema: { type: "object", properties: {} },
   },
   {
+    name: "hub_migrate",
+    description:
+      "Explicitly migrate a v1 Hub to the current schema. Defaults to dry run; pass confirm=true to back up and migrate.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        dry_run: { type: "boolean" },
+        confirm: { type: "boolean", description: "Required true to write migration changes." },
+      },
+    },
+  },
+  {
     name: "hub_doctor",
     description:
       "Run a lightweight local Hub health check for required directories, counts, config, and missing Skill metadata.",
@@ -49,6 +61,20 @@ export const tools = [
           type: "boolean",
           description: "Required true to delete old installed Usora plugin cache versions. Omit or false for dry run.",
         },
+      },
+    },
+  },
+  {
+    name: "context_budget",
+    description:
+      "Estimate context size for a Foundry intelligence stage using chars/4 token estimates and emit overflow events when limits are exceeded.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        stage: { type: "string", enum: ["pattern_judge", "candidate_resolver", "skill_compiler", "evaluator"] },
+        required: { type: "object" },
+        recommended: { type: "object" },
+        optional: { type: "object" },
       },
     },
   },
@@ -88,15 +114,50 @@ export const tools = [
         outcome: { type: "string" },
         source: { type: "string" },
         project: { type: "string" },
+        metadata: { type: "object" },
       },
     },
   },
   {
     name: "activity_list",
-    description: "List recent Activities from the active Hub without loading archives.",
+    description: "Deprecated: use activity_query. List recent Activities from the active Hub without loading archives.",
     inputSchema: {
       type: "object",
       properties: { limit: { type: "number", description: "Optional result limit, default 20 and max 100." } },
+    },
+  },
+  {
+    name: "activity_digest_list",
+    description: "List compact Activity digests for AI retrieval without full Activity records.",
+    inputSchema: {
+      type: "object",
+      properties: { limit: { type: "number", description: "Optional result limit, default 20 and max 100." } },
+    },
+  },
+  {
+    name: "activity_query",
+    description: "Query Activities; defaults to compact digests and only returns full records when projection=full.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        limit: { type: "number", description: "Optional result limit, default 20 and max 100." },
+        state: { type: "string" },
+        since: { type: "string" },
+        projection: { type: "string", enum: ["digest", "full"] },
+        fields: { type: "array", items: { type: "string" } },
+      },
+    },
+  },
+  {
+    name: "activity_get",
+    description: "Read one full Activity record by id; use only when a digest is insufficient.",
+    inputSchema: {
+      type: "object",
+      required: ["id"],
+      properties: {
+        id: { type: "string" },
+        fields: { type: "array", items: { type: "string" } },
+      },
     },
   },
   {
@@ -108,17 +169,154 @@ export const tools = [
       properties: {
         title: { type: "string" },
         summary: { type: "string" },
-        evidence: { type: "array", items: { type: "string" } },
+        domain: { type: "string" },
+        topic: { type: "string" },
+        tags: { type: "array", items: { type: "string" } },
+        technologies: { type: "array", items: { type: "string" } },
+        fingerprint: { type: "string" },
+        pattern_fingerprint: { type: "string" },
+        occurrences: { type: "number" },
+        confidence: { type: "number" },
+        evidence: {
+          type: "array",
+          items: {
+            anyOf: [
+              { type: "string" },
+              {
+                type: "object",
+                properties: {
+                  activity_id: { type: "string" },
+                  reason: { type: "string" },
+                },
+              },
+            ],
+          },
+        },
         source: { type: "string" },
       },
     },
   },
   {
+    name: "candidate_match",
+    description: "Return local Candidate and Skill metadata matches without reading Skill content.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        title: { type: "string" },
+        summary: { type: "string" },
+        topic: { type: "string" },
+        tags: { type: "array", items: { type: "string" } },
+        technologies: { type: "array", items: { type: "string" } },
+        fingerprint: { type: "string" },
+        pattern_fingerprint: { type: "string" },
+        limit: { type: "number" },
+      },
+    },
+  },
+  {
+    name: "candidate_resolve",
+    description:
+      "Resolve a Candidate proposal locally: match an existing Candidate/Skill, create a new Candidate, or drop low-evidence input.",
+    inputSchema: {
+      type: "object",
+      required: ["title", "summary"],
+      properties: {
+        title: { type: "string" },
+        summary: { type: "string" },
+        domain: { type: "string" },
+        topic: { type: "string" },
+        tags: { type: "array", items: { type: "string" } },
+        technologies: { type: "array", items: { type: "string" } },
+        fingerprint: { type: "string" },
+        pattern_fingerprint: { type: "string" },
+        occurrences: { type: "number" },
+        confidence: { type: "number" },
+        high_value: { type: "boolean" },
+        threshold: { type: "number" },
+        evidence: {
+          type: "array",
+          items: {
+            anyOf: [
+              { type: "string" },
+              {
+                type: "object",
+                properties: {
+                  activity_id: { type: "string" },
+                  reason: { type: "string" },
+                },
+              },
+            ],
+          },
+        },
+        source: { type: "string" },
+      },
+    },
+  },
+  {
+    name: "pattern_index",
+    description: "Update the local Pattern index from Activity digests. Defaults to incremental NEW Activity indexing.",
+    inputSchema: {
+      type: "object",
+      properties: { mode: { type: "string", enum: ["incremental", "rebuild"] } },
+    },
+  },
+  {
+    name: "pattern_query",
+    description: "Query local Pattern metadata without loading full Activities.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        limit: { type: "number", description: "Optional result limit, default 20 and max 100." },
+        state: { type: "string" },
+        since: { type: "string" },
+        eligible: { type: "boolean" },
+        fields: { type: "array", items: { type: "string" } },
+      },
+    },
+  },
+  {
+    name: "pattern_get",
+    description: "Read one Pattern metadata record by fingerprint.",
+    inputSchema: {
+      type: "object",
+      required: ["fingerprint"],
+      properties: {
+        fingerprint: { type: "string" },
+        fields: { type: "array", items: { type: "string" } },
+      },
+    },
+  },
+  {
     name: "candidate_list",
-    description: "List recent Candidates.",
+    description: "Deprecated: use candidate_query. List recent Candidates.",
     inputSchema: {
       type: "object",
       properties: { limit: { type: "number", description: "Optional result limit, default 20 and max 100." } },
+    },
+  },
+  {
+    name: "candidate_query",
+    description: "Query Candidate records with limit/state/since and optional field projection.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        limit: { type: "number", description: "Optional result limit, default 20 and max 100." },
+        state: { type: "string" },
+        since: { type: "string" },
+        fields: { type: "array", items: { type: "string" } },
+      },
+    },
+  },
+  {
+    name: "candidate_get",
+    description: "Read one Candidate record by id.",
+    inputSchema: {
+      type: "object",
+      required: ["id"],
+      properties: {
+        id: { type: "string" },
+        fields: { type: "array", items: { type: "string" } },
+      },
     },
   },
   {
@@ -145,6 +343,45 @@ export const tools = [
         content: { type: "string" },
         description: { type: "string" },
         candidate_id: { type: "string" },
+      },
+    },
+  },
+  {
+    name: "skill_generate",
+    description: "Generate a deterministic Skill draft from a passing Candidate without loading full Activities.",
+    inputSchema: {
+      type: "object",
+      required: ["candidate_id"],
+      properties: {
+        candidate_id: { type: "string" },
+        name: { type: "string" },
+        description: { type: "string" },
+      },
+    },
+  },
+  {
+    name: "skill_evolve",
+    description:
+      "Apply or recommend a SkillDelta. With a passing candidate_id, defaults to PATCH an existing similar Skill before creating a new draft.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        name: { type: "string" },
+        candidate_id: { type: "string" },
+        pattern_fingerprint: { type: "string" },
+        action: { type: "string", enum: ["CREATE", "PATCH", "NOOP", "SPLIT", "MERGE"] },
+        reason: { type: "string" },
+        evidence: { type: "array", items: { type: "object" } },
+        target_skill: { type: "string" },
+        threshold: { type: "number" },
+        changes: {
+          type: "object",
+          properties: {
+            content: { type: "string" },
+            content_append: { type: "string" },
+            description: { type: "string" },
+          },
+        },
       },
     },
   },
@@ -179,11 +416,101 @@ export const tools = [
   },
   {
     name: "skill_list",
-    description: "List recent Skill metadata without loading SKILL.md content.",
+    description: "Deprecated: use skill_query. List recent Skill metadata without loading SKILL.md content.",
     inputSchema: {
       type: "object",
       properties: { limit: { type: "number", description: "Optional result limit, default 20 and max 100." } },
     },
+  },
+  {
+    name: "skill_index",
+    description: "Query or rebuild the local Skill metadata-only index.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        mode: { type: "string", enum: ["query", "rebuild"] },
+        limit: { type: "number", description: "Optional result limit, default 20 and max 100." },
+        state: { type: "string" },
+        candidate_id: { type: "string" },
+        since: { type: "string" },
+        q: { type: "string" },
+        fields: { type: "array", items: { type: "string" } },
+      },
+    },
+  },
+  {
+    name: "skill_query",
+    description: "Query Skill metadata from the local index without reading SKILL.md.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        limit: { type: "number", description: "Optional result limit, default 20 and max 100." },
+        state: { type: "string" },
+        candidate_id: { type: "string" },
+        since: { type: "string" },
+        q: { type: "string" },
+        fields: { type: "array", items: { type: "string" } },
+      },
+    },
+  },
+  {
+    name: "skill_get",
+    description: "Read one Skill metadata record plus SKILL.md content by name.",
+    inputSchema: { type: "object", required: ["name"], properties: { name: { type: "string" } } },
+  },
+  {
+    name: "usage_capture",
+    description: "Record one runtime Skill usage outcome and update Skill usage metrics. Outcome may be unknown.",
+    inputSchema: {
+      type: "object",
+      required: ["skill"],
+      properties: {
+        session_id: { type: "string" },
+        skill: { type: "string" },
+        activity_id: { type: "string" },
+        outcome: { type: "string", enum: ["success", "partial", "failure", "unknown"] },
+        validation_evidence: { type: "array", items: { type: "string" } },
+        project: { type: "string" },
+        used_at: { type: "string" },
+      },
+    },
+  },
+  {
+    name: "governance_scan",
+    description: "Scan Skill metadata for unused, low-success, duplicate, superseded, and stale Skills.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        limit: { type: "number", description: "Optional result limit, default 20 and max 100." },
+        min_success_rate: { type: "number" },
+        duplicate_threshold: { type: "number" },
+        stale_days: { type: "number" },
+      },
+    },
+  },
+  {
+    name: "governance_resolve",
+    description:
+      "Apply an auditable governance resolution. MERGE, DEPRECATE, and RETIRE require the configured Maintainer.",
+    inputSchema: {
+      type: "object",
+      required: ["skill", "action"],
+      properties: {
+        skill: { type: "string" },
+        action: { type: "string", enum: ["KEEP", "EVOLVE", "MERGE", "DEPRECATE", "RETIRE"] },
+        target_skill: { type: "string" },
+        reason: { type: "string" },
+        actor: { type: "string" },
+        related_to: { type: "string" },
+        depends_on: { type: "string" },
+        conflicts_with: { type: "string" },
+      },
+    },
+  },
+  {
+    name: "skill_graph_validate",
+    description: "Validate Skill graph references: related_to, depends_on, supersedes, and conflicts_with.",
+    inputSchema: { type: "object", properties: {} },
   },
   {
     name: "event_list",
@@ -192,5 +519,11 @@ export const tools = [
       type: "object",
       properties: { limit: { type: "number", description: "Optional result limit, default 20 and max 100." } },
     },
+  },
+  {
+    name: "telemetry_metrics",
+    description:
+      "Summarize IntelligenceRun and CandidateResolved telemetry with trend metrics; token counts are chars/4 estimates only.",
+    inputSchema: { type: "object", properties: {} },
   },
 ];

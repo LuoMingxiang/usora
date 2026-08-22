@@ -34,11 +34,13 @@ Activity -> Candidate -> Skill Draft -> Evaluation -> Publish
 
 - 初始化本地 Usora 存储。
 - 按 session 合并 Activity 记录。
+- 查询紧凑 Activity digest，并用本地重复检查解析 Candidate。
 - 创建并评估 Candidates。
 - 配置 Maintainer 和自动化策略。
-- 创建、评估、发布并原地修订 Skills。
-- 查看近期 Activities、Candidates、Skills 和生命周期事件。
-- 按名称读取一个 Skill。
+- 从已通过评估的 Candidate 生成 Skill 草稿，再评估、发布并原地修订 Skills。
+- 使用紧凑默认值查询 Activities、Patterns、Candidates 和 Skills。
+- 仅在必要时读取完整 Activity 或 Skill Markdown。
+- 查看 telemetry metrics 和生命周期事件。
 - 检查本地 Hub 健康状态。
 - 预览或删除旧版本 Usora 插件安装缓存。
 - 归档已处理 Activities。
@@ -95,6 +97,7 @@ Evaluate this Candidate
 Skill 生命周期：
 
 ```text
+Generate a Skill from an approved Candidate
 Create a Skill draft
 Evaluate this Skill
 Publish this Skill
@@ -165,6 +168,10 @@ Capture this session into Usora
 ## 数据
 
 默认数据目录会跨插件升级保持稳定：Codex 使用 `~/.codex/plugins/data/usora/.usora`，CodeBuddy 使用 `~/.codebuddy/plugins/data/usora/.usora`。本地/手动 MCP 运行时 fallback 到 `<cwd>/.usora`。目前不支持 `USORA_HOME` 环境变量。
+
+Usora Foundry 2.0 使用 Hub schema v2。v1 Hub 不会被静默迁移：`hub_init`、`hub_status` 和 `hub_doctor` 会在检测到 v1 Hub 时返回 `migration_required`，写入工具会拒绝创建新的 v2 记录，直到迁移完成。先运行不带 `confirm` 的 `hub_migrate` 做 dry run；确认后再运行 `hub_migrate` 并传入 `confirm: true`，它会在 `<hub>/backups/` 下创建备份，然后迁移 Activities、Candidates、Skills 和 config。
+
+旧的 `activity_list`、`candidate_list` 和 `skill_list` 已 deprecated。优先使用 `activity_query`、`candidate_query` 和 `skill_query`；它们默认返回紧凑 digest/metadata。只有需要完整记录或 Markdown 内容时才使用 `activity_get` 或 `skill_get`。
 
 如需移动数据，调用 `hub_config` 并传入 `path`，可以是绝对路径，也可以是相对 workspace 的路径。Usora 会把已有记录移动到新目录，清理旧记录文件夹，并把新位置以 `hub_path` 写入 `config.json`。
 

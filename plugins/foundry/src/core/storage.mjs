@@ -58,12 +58,30 @@ export async function resolveHome(config) {
  */
 export const processSessionId = `session-${Date.now().toString(16).padStart(12, "0")}-${crypto.randomBytes(16).toString("hex")}`;
 
+export const HUB_SCHEMA_VERSION = 2;
+export const ACTIVITY_SCHEMA_VERSION = 2;
+export const SESSION_RECORD_SCHEMA_VERSION = 1;
+export const CANDIDATE_SCHEMA_VERSION = 2;
+export const PATTERN_SCHEMA_VERSION = 1;
+export const SKILL_METADATA_SCHEMA_VERSION = 2;
+export const EVENT_SCHEMA_VERSION = 1;
+
 /**
  * Sub-directories created under the Hub root.
  *
  * @type {string[]}
  */
-export const DIRS = ["activities", "candidates", "skills", "archive", "events"];
+export const DIRS = [
+  "activities",
+  "candidates",
+  "skills",
+  "usage",
+  "archive",
+  "events",
+  "sessions",
+  "indexes",
+  "backups",
+];
 
 /**
  * Valid values for `config.automation_policy`.
@@ -199,7 +217,7 @@ export async function writeJson(file, value) {
  */
 export async function writeEvent(type, data) {
   const file = path.join(await dirPath("events"), `${Date.now()}-${newId("event")}.json`);
-  await writeJson(file, { type, timestamp: now(), data });
+  await writeJson(file, { schema_version: EVENT_SCHEMA_VERSION, type, timestamp: now(), data });
 }
 
 /**
@@ -216,7 +234,9 @@ export async function loadConfig() {
   return readJson(path.join(anchorHome, "config.json"), {
     maintainer: "codex",
     automation_policy: "manual_approval",
-    version: 1,
+    version: HUB_SCHEMA_VERSION,
+    hub_schema_version: HUB_SCHEMA_VERSION,
+    intelligence: { candidate_min_occurrences: 2 },
   });
 }
 
@@ -227,7 +247,15 @@ export async function loadConfig() {
  * @returns {Promise<object>} The saved config (with normalized `version`).
  */
 export async function saveConfig(value) {
-  const next = { ...value, version: value.version || 1 };
+  const next = {
+    ...value,
+    version: value.version || HUB_SCHEMA_VERSION,
+    hub_schema_version: value.hub_schema_version || HUB_SCHEMA_VERSION,
+    intelligence: {
+      candidate_min_occurrences: 2,
+      ...value.intelligence,
+    },
+  };
   await fs.mkdir(anchorHome, { recursive: true });
   await writeJson(path.join(anchorHome, "config.json"), next);
   return next;

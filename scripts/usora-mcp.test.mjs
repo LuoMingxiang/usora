@@ -94,7 +94,7 @@ test("hub_init uses the default .usora directory and merges activities", async (
   assert.equal(init.hub, path.join(cwd, ".usora"));
   assert.equal(init.data_path, path.join(cwd, ".usora"));
   assert.equal(init.initialized, true);
-  for (const dir of ["activities", "candidates", "skills", "archive", "events"]) {
+  for (const dir of ["activities", "candidates", "skills", "archive", "events", "sessions", "indexes", "backups"]) {
     await access(path.join(cwd, ".usora", dir));
   }
 
@@ -104,7 +104,8 @@ test("hub_init uses the default .usora directory and merges activities", async (
   const activity = JSON.parse(await readFile(path.join(cwd, ".usora", "activities", file), "utf8"));
   assert.equal(activity.result, "updated");
   assert.deepEqual(activity.key_points, ["created", "updated"]);
-  assert.equal(activity.updates.length, 2);
+  assert.equal(activity.recent_updates.length, 2);
+  assert.equal(activity.history.update_count, 2);
 });
 
 test("hub_init uses host plugin data when CodeBuddy provides it", async (t) => {
@@ -361,7 +362,8 @@ test("session hook captures canonical Activity in the configured Hub", async (t)
   assert.equal(activity.task, "Review");
   assert.equal(activity.result, "Fixed");
   assert.equal(activity.metadata.transcript_path, path.join(cwd, "transcript.jsonl"));
-  assert.equal(activity.updates.length, 2);
+  assert.equal(activity.recent_updates.length, 2);
+  assert.equal(activity.history.update_count, 2);
 });
 
 test("session hook extracts a small Activity summary from CodeBuddy transcript files", async (t) => {
@@ -413,9 +415,9 @@ test("session hook extracts a small Activity summary from CodeBuddy transcript f
   const activity = JSON.parse(await readFile(path.join(hub, "activities", file), "utf8"));
   assert.equal(activity.task, "old task");
   assert.equal(activity.result, "final result");
-  assert.deepEqual(activity.key_points, ["old task", "final task"]);
-  assert.equal(activity.metadata.enrichment, "heuristic");
-  assert.equal(activity.updates[0].summary, "final result");
+  assert.deepEqual(activity.key_points, ["old task"]);
+  assert.equal(activity.metadata.enrichment, "compiler");
+  assert.equal(activity.recent_updates[0].summary, "final result");
 });
 
 test("hub_status suggests the next lifecycle action from counts", async (t) => {

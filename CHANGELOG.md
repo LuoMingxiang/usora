@@ -1,3 +1,14 @@
+# 2.0.0 (2026-08-22)
+
+### ⚠ BREAKING CHANGES
+
+- Hub schema v2 requires explicit `hub_migrate` for existing v1 data before write tools create new records.
+- Legacy `activity_list`, `candidate_list`, and `skill_list` are deprecated in favor of compact query/get APIs.
+
+### Features
+
+- add Activity digests, Pattern index, Candidate resolution, Skill metadata retrieval/generation, context telemetry, and v1→v2 Hub migration.
+
 # 1.0.0 (2026-08-19)
 
 ### Bug Fixes
