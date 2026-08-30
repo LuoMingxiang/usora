@@ -100,18 +100,28 @@ assert.doesNotMatch(await readFile(path.join(pluginRoot, "dist/mcp.js"), "utf8")
 assert.equal(codebuddyMcp.mcpServers.practice.command, "node");
 assert.deepEqual(codebuddyMcp.mcpServers.practice.args, ["${CODEBUDDY_PLUGIN_ROOT}/dist/mcp.js"]);
 
+assert.equal(codebuddyMarketplace.displayName, "Usora Plugin Marketplace");
 assert.equal(codebuddyMarketplace.metadata.version, codex.version);
 assert.equal(codebuddyMarketplace.metadata.pluginRoot, undefined);
-assert.equal(claudeMarketplace.metadata.version, codex.version);
-assert.equal(claudeMarketplace.metadata.pluginRoot, undefined);
+assert.equal(codebuddyMarketplace.owner.name, "Veyra");
+const codebuddyEntry = pluginEntry(codebuddyMarketplace);
+assert.equal(codebuddyEntry.version, codex.version);
+assert.equal(codebuddyEntry.source, "./plugins/foundry");
+assert.equal(codebuddyEntry.author.name, "Veyra");
+await exists(codebuddyEntry.source);
 
-// Every host entry must resolve plugins from the `marketplace` distribution branch.
-// A relative source points at the source branch, which ships no `dist/` payload.
-for (const marketplace of [codebuddyMarketplace, claudeMarketplace, agentsMarketplace, rootMarketplace]) {
-  assert.equal(marketplace.displayName, "Usora Plugin Marketplace");
-  assert.equal(marketplace.owner.name, "Veyra");
+assert.equal(claudeMarketplace.displayName, "Usora Plugin Marketplace");
+assert.equal(claudeMarketplace.metadata.version, codex.version);
+assert.equal(claudeMarketplace.metadata.pluginRoot, "plugins");
+assert.equal(claudeMarketplace.owner.name, "Veyra");
+const claudeEntry = pluginEntry(claudeMarketplace);
+assert.equal(claudeEntry.version, codex.version);
+assert.equal(claudeEntry.source, "./foundry");
+assert.equal(claudeEntry.author.name, "Veyra");
+await exists(path.join(claudeMarketplace.metadata.pluginRoot, claudeEntry.source));
+
+for (const marketplace of [agentsMarketplace, rootMarketplace]) {
   const entry = pluginEntry(marketplace);
-  assert.equal(entry.author.name, "Veyra");
   const source = gitSubdirSource(entry.source);
   assert.equal(source.source, "git-subdir");
   assert.equal(source.url, "https://github.com/LuoMingxiang/usora.git");

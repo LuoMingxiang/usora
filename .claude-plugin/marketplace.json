@@ -8,35 +8,21 @@
   "description": "Usora plugins for AI agent hosts.",
   "metadata": {
     "description": "A local-first personal capability layer that turns real AI work into reusable, evolving Skills.",
-    "version": "1.2.0"
-  },
-  "interface": {
-    "displayName": "Usora Plugin Marketplace"
+    "version": "1.2.0",
+    "pluginRoot": "plugins"
   },
   "plugins": [
     {
       "name": "foundry",
-      "source": {
-        "source": "git-subdir",
-        "url": "https://github.com/LuoMingxiang/usora.git",
-        "ref": "marketplace",
-        "path": "./plugins/foundry"
-      },
-      "artifact": {
-        "type": "zip",
-        "url": "https://github.com/LuoMingxiang/usora/releases/download/foundry-v1.2.0/usora-foundry-1.2.0.zip",
-        "checksum": "sha256:a20c50f8620b645390c0a3589dbd4b310222058360160f137210bc10f146f834"
-      },
-      "policy": {
-        "installation": "AVAILABLE",
-        "authentication": "ON_INSTALL"
-      },
-      "category": "Productivity",
+      "source": "./foundry",
+      "description": "Turn practice into reusable AI capability.",
+      "version": "1.2.0",
       "author": {
         "name": "Veyra"
       },
       "license": "MIT",
-      "keywords": ["personal-skill-hub", "mcp", "skills", "local-first", "ai-capability"]
+      "keywords": ["personal-skill-hub", "mcp", "skills", "local-first", "ai-capability"],
+      "category": "Productivity"
     }
   ]
 }

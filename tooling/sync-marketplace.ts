@@ -41,6 +41,12 @@ function authorName(author: unknown): string {
     : "Veyra";
 }
 
+function shortDescription(value: unknown, fallback: string): string {
+  return value && typeof value === "object" && "shortDescription" in value && typeof value.shortDescription === "string"
+    ? value.shortDescription
+    : fallback;
+}
+
 function releaseArtifact(plugin: (typeof plugins)[number]) {
   const fileName = `usora-${plugin.manifest.name}-${plugin.manifest.version}.zip`;
   const checksumFile = `artifacts/usora-${plugin.manifest.name}-${plugin.manifest.version}.sha256`;
@@ -75,31 +81,6 @@ function releaseArtifact(plugin: (typeof plugins)[number]) {
     });
 }
 
-/**
- * Plugins are always resolved from the `marketplace` distribution branch. Relative sources would point at the source
- * branch, which has no `dist/` payload.
- */
-const distributedPlugins = await Promise.all(
-  plugins.map(async (plugin) => {
-    const artifact = await releaseArtifact(plugin);
-    return {
-      name: plugin.manifest.name,
-      source: {
-        source: "git-subdir",
-        url: repoUrl,
-        ref: "marketplace",
-        path: `./${slash(plugin.dir)}`,
-      },
-      ...(artifact ? { artifact } : {}),
-      policy: { installation: "AVAILABLE", authentication: "ON_INSTALL" },
-      category: plugin.manifest.category,
-      author: { name: authorName(plugin.manifest.author) },
-      license: plugin.manifest.license,
-      keywords: plugin.manifest.keywords,
-    };
-  }),
-);
-
 const codexMarketplace = {
   name: template.name,
   displayName: template.displayName,
@@ -107,7 +88,23 @@ const codexMarketplace = {
   owner: template.owner,
   metadata: template.metadata,
   interface: { displayName: template.displayName },
-  plugins: distributedPlugins,
+  plugins: await Promise.all(
+    plugins.map(async (plugin) => {
+      const artifact = await releaseArtifact(plugin);
+      return {
+        name: plugin.manifest.name,
+        source: {
+          source: "git-subdir",
+          url: repoUrl,
+          ref: "marketplace",
+          path: `./${slash(plugin.dir)}`,
+        },
+        ...(artifact ? { artifact } : {}),
+        policy: { installation: "AVAILABLE", authentication: "ON_INSTALL" },
+        category: plugin.manifest.category,
+      };
+    }),
+  ),
 };
 
 for (const plugin of plugins) {
@@ -181,18 +178,33 @@ for (const plugin of plugins) {
   }
 }
 
-const hostMarketplace = {
+const legacyMarketplacePlugins = plugins.map((plugin) => ({
+  name: plugin.manifest.name,
+  source: `./${slash(plugin.dir)}`,
+  description: shortDescription(plugin.manifest.interface, plugin.manifest.description),
+  version: plugin.manifest.version,
+  author: { name: authorName(plugin.manifest.author) },
+  license: plugin.manifest.license,
+  keywords: plugin.manifest.keywords,
+  category: plugin.manifest.category,
+}));
+
+await writeJson(".codebuddy-plugin/marketplace.json", {
   name: template.name,
   displayName: template.displayName,
   owner: template.owner,
   description: template.description,
   metadata: { description: firstDescription, version: firstVersion },
-  interface: { displayName: template.displayName },
-  plugins: distributedPlugins,
-};
-
-await writeJson(".codebuddy-plugin/marketplace.json", hostMarketplace);
-await writeJson(".claude-plugin/marketplace.json", hostMarketplace);
+  plugins: legacyMarketplacePlugins,
+});
+await writeJson(".claude-plugin/marketplace.json", {
+  name: template.name,
+  displayName: template.displayName,
+  owner: template.owner,
+  description: template.description,
+  metadata: { description: firstDescription, version: firstVersion, pluginRoot: "plugins" },
+  plugins: legacyMarketplacePlugins.map((plugin) => ({ ...plugin, source: plugin.source.replace("./plugins/", "./") })),
+});
 await writeJson("marketplace.json", codexMarketplace);
 await writeJson(".agents/plugins/marketplace.json", codexMarketplace);
 console.log(check ? "marketplace metadata fresh" : "marketplace metadata synced");
