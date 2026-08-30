@@ -1,9 +1,11 @@
 {
   "name": "foundry",
   "version": "1.1.0",
-  "description": "A personal AI capability hub that turns real work into reusable, continuously improving skills.",
+  "description": "A local-first personal capability layer that turns real AI work into reusable, evolving Skills.",
   "author": {
-    "name": "Veyra"
+    "name": "Veyra",
+    "url": "https://github.com/LuoMingxiang",
+    "email": "947617238@qq.com"
   },
   "homepage": "https://github.com/LuoMingxiang/usora",
   "repository": "https://github.com/LuoMingxiang/usora",

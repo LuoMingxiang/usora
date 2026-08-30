@@ -117,6 +117,8 @@ Clean everything
 
 ## 安装
 
+对外发布的安装使用生成后的 marketplace distribution，而不是 source branch。把下面的 `<git-url-for-marketplace-branch>` 替换成宿主能够解析到 `marketplace` 分支的 Git 引用。
+
 宿主使用指南：
 
 - [Codex 使用指南](usage/codex.zh-CN.md)
@@ -125,14 +127,14 @@ Clean everything
 Codex:
 
 ```powershell
-codex plugin marketplace add https://github.com/LuoMingxiang/usora.git
+codex plugin marketplace add <git-url-for-marketplace-branch>
 codex plugin add usora@foundry
 ```
 
 CodeBuddy:
 
 ```powershell
-codebuddy plugin marketplace add https://github.com/LuoMingxiang/usora.git
+codebuddy plugin marketplace add <git-url-for-marketplace-branch>
 codebuddy plugin install usora@foundry
 ```
 
@@ -144,7 +146,7 @@ codebuddy --plugin-dir plugins/foundry
 
 Codex 会通过 `plugins/foundry/.codex-plugin/plugin.json` 加载 Usora Foundry；其中显式声明 `mcpServers: "./.mcp.json"`。`.mcp.json` 保持在插件根目录，让 Codex 从已安装插件中解析 bundled MCP server。
 
-CodeBuddy 会通过 `plugins/foundry/.codebuddy-plugin/plugin.json` 加载 Usora Foundry；其中显式声明 `skills` 和 `mcpServers: "./.codebuddy-plugin/mcp.json"`。这个 MCP 配置使用 `${CODEBUDDY_PLUGIN_ROOT}`，避免 VS Code 插件把 `scripts/usora-mcp.mjs` 解析到 VS Code 安装目录。加载后可以试：
+CodeBuddy 会通过 `plugins/foundry/.codebuddy-plugin/plugin.json` 加载 Usora Foundry；其中显式声明 `skills` 和 `mcpServers: "./.codebuddy-plugin/mcp.json"`。这个 MCP 配置使用 `${CODEBUDDY_PLUGIN_ROOT}`，避免 VS Code 插件把 `dist/mcp.js` 解析到 VS Code 安装目录。加载后可以试：
 
 ```text
 Show Usora status
@@ -158,12 +160,14 @@ Capture this session into Usora
   "mcpServers": {
     "practice": {
       "command": "node",
-      "args": ["scripts/usora-mcp.mjs"],
+      "args": ["dist/mcp.js"],
       "cwd": "/absolute/path/to/usora/plugins/foundry"
     }
   }
 }
 ```
+
+如果你是在维护平台本身，脚手架、manifest 归属、分发模式和 host adapter 规则请看[插件平台说明](plugin/create/README.zh-CN.md)。
 
 ## 数据
 
@@ -218,15 +222,15 @@ Next useful action: <next_action label>
 
 ## 升级与卸载
 
-Codex 和 CodeBuddy 会把插件安装到本地插件缓存，并加载已安装副本，而不是实时读取源码目录。Usora 的 marketplace entry 指向 GitHub `master`，所以本地变更必须 commit 并 push 后，才会成为可安装版本。
+Codex 和 CodeBuddy 会把插件安装到本地插件缓存，并加载已安装副本，而不是实时读取源码目录。Usora 的已发布安装会解析生成后的 marketplace distribution，所以本地变更只有在发布流程完成打包并回写 marketplace metadata 后，才会成为可安装版本。
 
 如果 pull 或 push 后看不到新的 Usora build，按这个发布流程走：
 
 1. 在本地完成插件改动。
 2. 运行 `bun run check`。
 3. 用 Conventional Commit 信息提交。
-4. Push 到 `master`。
-5. 让 Release workflow 执行 `semantic-release`；它会 bump 版本、同步插件元数据、更新 `CHANGELOG.md`、打 tag，并提交生成文件。
+4. Push source branch。
+5. 让 Release workflow 执行 `bun run release:ci --publish`；它会根据 Conventional Commits 自动计算插件版本，写回插件 manifest，打包 artifact，发布 GitHub Release，并更新 marketplace branch。
 6. 打开 `/plugins`，找到 Usora，然后 upgrade 或 reinstall。
 7. 如果旧 MCP tools 仍然出现，刷新或重启 Codex，并打开一个新 task。
 8. 新版本安装成功后，如有需要，通过 Usora MCP tool 清理旧 Usora cache 目录：

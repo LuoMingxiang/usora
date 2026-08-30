@@ -1,7 +1,7 @@
 {
   "practice": {
     "command": "node",
-    "args": ["scripts/usora-mcp.mjs"],
+    "args": ["dist/mcp.js"],
     "cwd": "."
   }
 }

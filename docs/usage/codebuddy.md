@@ -21,13 +21,13 @@ The MCP config starts:
   "mcpServers": {
     "practice": {
       "command": "node",
-      "args": ["${CODEBUDDY_PLUGIN_ROOT}/scripts/usora-mcp.mjs"]
+      "args": ["${CODEBUDDY_PLUGIN_ROOT}/dist/mcp.js"]
     }
   }
 }
 ```
 
-`CODEBUDDY_PLUGIN_ROOT` must resolve to the installed Usora plugin root. Without it, CodeBuddy may resolve `scripts/usora-mcp.mjs` relative to VS Code's install directory and fail with `MODULE_NOT_FOUND`.
+`CODEBUDDY_PLUGIN_ROOT` must resolve to the installed Usora plugin root. Without it, CodeBuddy may resolve `dist/mcp.js` relative to VS Code's install directory and fail with `MODULE_NOT_FOUND`.
 
 CodeBuddy may clone marketplace sources under `~/.codebuddy/plugins/marketplaces`. That is fine. Usora stores Hub data in `~/.codebuddy/plugins/data/usora/.usora`, so upgrades do not clear the Hub and Usora does not create Hub data in the current project.
 
@@ -48,7 +48,7 @@ git push origin master
 codebuddy plugin update usora@foundry
 ```
 
-The Release workflow runs `semantic-release`, syncs plugin metadata, and tags the release before the update.
+The Release workflow runs the plugin-aware release scripts, syncs plugin metadata, and tags the release before the update.
 
 ## Cache Cleanup
 

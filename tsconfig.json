@@ -1,0 +1,11 @@
+{
+  "extends": "./tsconfig.base.json",
+  "include": [
+    "commitlint.config.ts",
+    "packages/**/*.ts",
+    "plugins/**/*.ts",
+    "scripts/**/*.ts",
+    "tooling/**/*.ts",
+    "vitest.config.ts"
+  ]
+}

@@ -14,6 +14,24 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  discover:
+    runs-on: ubuntu-latest
+    outputs:
+      plugins: ${{ steps.plugins.outputs.plugins }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.14
+      - uses: actions/cache@v4
+        with:
+          path: ~/.bun/install/cache
+          key: bun-${{ runner.os }}-${{ hashFiles('bun.lock', 'package.json', 'plugins/*/package.json', 'packages/*/package.json') }}
+          restore-keys: bun-${{ runner.os }}-
+      - run: bun install --no-save
+      - id: plugins
+        run: echo "plugins=$(bun tooling/discover-plugins.ts --names)" >> "$GITHUB_OUTPUT"
+
   check:
     runs-on: ubuntu-latest
     steps:
@@ -21,8 +39,35 @@ jobs:
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: 1.3.14
+      - uses: actions/cache@v4
+        with:
+          path: ~/.bun/install/cache
+          key: bun-${{ runner.os }}-${{ hashFiles('bun.lock', 'package.json', 'plugins/*/package.json', 'packages/*/package.json') }}
+          restore-keys: bun-${{ runner.os }}-
       - run: bun install --no-save
       - run: bun run check
+
+  plugin:
+    needs: discover
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        plugin: ${{ fromJson(needs.discover.outputs.plugins) }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.14
+      - uses: actions/cache@v4
+        with:
+          path: ~/.bun/install/cache
+          key: bun-${{ runner.os }}-${{ hashFiles('bun.lock', 'package.json', 'plugins/*/package.json', 'packages/*/package.json') }}
+          restore-keys: bun-${{ runner.os }}-
+      - run: bun install --no-save
+      - run: bun tooling/build-plugin.ts ${{ matrix.plugin }}
+      - run: bun tooling/package-plugin.ts --check ${{ matrix.plugin }}
+      - run: bun tooling/clean-runtime-test.ts ${{ matrix.plugin }}
 
   codeql:
     runs-on: ubuntu-latest

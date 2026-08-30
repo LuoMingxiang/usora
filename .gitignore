@@ -1,7 +1,5 @@
 # Usora runtime data
 .usora/
-usora-foundry-complete-implementation-plan-*.md
-VITEST_MIGRATION_PLAN.md
 # OS
 .DS_Store
 Thumbs.db
@@ -13,6 +11,10 @@ Thumbs.db
 
 # Node
 node_modules/
+artifacts/
+release-notification.md
+release-plan.json
+plugins/*/dist/
 package-lock.json
 pnpm-lock.yaml
 bun.lock
@@ -25,3 +27,5 @@ yarn-error.log*
 .env
 .env.*
 *.local
+usora-typescript-multi-plugin-migration-plan.md
+usora-typescript-multi-plugin-migration-plan-zh-CN.md

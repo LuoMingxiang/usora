@@ -5,7 +5,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/session-hook.mjs\"",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/dist/session-hook.js\"",
             "timeout": 30
           }
         ]

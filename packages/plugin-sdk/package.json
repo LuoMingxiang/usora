@@ -1,0 +1,11 @@
+{
+  "name": "@usora/plugin-sdk",
+  "version": "0.1.0",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@usora/types": "workspace:*"
+  }
+}

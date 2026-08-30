@@ -14,7 +14,7 @@ MCP 配置使用：
 {
   "practice": {
     "command": "node",
-    "args": ["scripts/usora-mcp.mjs"],
+    "args": ["dist/mcp.js"],
     "cwd": "."
   }
 }
@@ -36,7 +36,7 @@ Usora 的 marketplace entry 指向 GitHub `master`。本地改动必须 commit �
 git push origin master
 ```
 
-Release workflow 会运行 `semantic-release`、同步插件元数据并打 tag。然后在 `/plugins` 里升级 Usora。如果 UI 提示 upgrade failed 但版本号已经变化，打开新 task 检查预期的 Usora tools 是否可用。
+Release workflow 会运行 plugin-aware release scripts、同步插件元数据并打 tag。然后在 `/plugins` 里升级 Usora。如果 UI 提示 upgrade failed 但版本号已经变化，打开新 task 检查预期的 Usora tools 是否可用。
 
 ## 缓存清理
 
