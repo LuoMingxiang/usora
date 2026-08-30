@@ -41,7 +41,7 @@ Capture this session into Usora
 
 ## Upgrade
 
-Usora's marketplace entry points to GitHub `master`. Local changes only become installable after commit and push.
+Usora's CodeBuddy marketplace can be added from GitHub `master`, but the Foundry plugin payload points to the generated `marketplace` branch. Local changes only become installable after the release flow publishes that distribution branch.
 
 ```powershell
 git push origin master

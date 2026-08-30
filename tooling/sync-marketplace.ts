@@ -189,13 +189,29 @@ const legacyMarketplacePlugins = plugins.map((plugin) => ({
   category: plugin.manifest.category,
 }));
 
+const distributionMarketplacePlugins = plugins.map((plugin) => ({
+  name: plugin.manifest.name,
+  source: {
+    source: "git-subdir",
+    url: repoUrl,
+    ref: "marketplace",
+    path: `./${slash(plugin.dir)}`,
+  },
+  description: shortDescription(plugin.manifest.interface, plugin.manifest.description),
+  version: plugin.manifest.version,
+  author: { name: authorName(plugin.manifest.author) },
+  license: plugin.manifest.license,
+  keywords: plugin.manifest.keywords,
+  category: plugin.manifest.category,
+}));
+
 await writeJson(".codebuddy-plugin/marketplace.json", {
   name: template.name,
   displayName: template.displayName,
   owner: template.owner,
   description: template.description,
   metadata: { description: firstDescription, version: firstVersion },
-  plugins: legacyMarketplacePlugins,
+  plugins: distributionMarketplacePlugins,
 });
 await writeJson(".claude-plugin/marketplace.json", {
   name: template.name,
