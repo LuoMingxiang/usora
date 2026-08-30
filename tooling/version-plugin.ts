@@ -102,7 +102,7 @@ export async function createVersionPlan(
     }
   }
 
-  if (options.changed || options.commits) {
+  if (options.changed || options.commits || process.env.CHANGED_FILES || process.env.COMMIT_MESSAGES) {
     await addBumps(options.commits || commitMessages(), new Set(await calculateAffectedPlugins(changed, root)));
   } else {
     for (const plugin of plugins) {
