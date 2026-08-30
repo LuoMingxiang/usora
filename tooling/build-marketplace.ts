@@ -31,6 +31,7 @@ async function copyDistribution(source: string, target: string): Promise<void> {
 await rm(out, { recursive: true, force: true });
 await mkdir(out, { recursive: true });
 await cp(path.join(root, "marketplace.json"), path.join(out, "marketplace.json"));
+await cp(path.join(root, ".codebuddy-plugin"), path.join(out, ".codebuddy-plugin"), { recursive: true });
 
 for (const plugin of await discoverPlugins(root)) {
   const target = path.join(out, plugin.dir);

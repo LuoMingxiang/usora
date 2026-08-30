@@ -106,12 +106,9 @@ assert.equal(codebuddyMarketplace.metadata.pluginRoot, undefined);
 assert.equal(codebuddyMarketplace.owner.name, "Veyra");
 const codebuddyEntry = pluginEntry(codebuddyMarketplace);
 assert.equal(codebuddyEntry.version, codex.version);
-const codebuddySource = gitSubdirSource(codebuddyEntry.source);
-assert.equal(codebuddySource.source, "git-subdir");
-assert.equal(codebuddySource.url, "https://github.com/LuoMingxiang/usora.git");
-assert.equal(codebuddySource.ref, "marketplace");
-assert.equal(codebuddySource.path, `./${pluginDir}`);
+assert.equal(codebuddyEntry.source, "./plugins/foundry");
 assert.equal(codebuddyEntry.author.name, "Veyra");
+await exists(codebuddyEntry.source);
 
 assert.equal(claudeMarketplace.displayName, "Usora Plugin Marketplace");
 assert.equal(claudeMarketplace.metadata.version, codex.version);

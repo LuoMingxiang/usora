@@ -72,17 +72,16 @@ test("packaged artifact excludes source files", async () => {
   }
 });
 
-test("CodeBuddy marketplace installs packaged distributions", async () => {
+test("CodeBuddy marketplace uses relative sources CodeBuddy can load", async () => {
   const marketplace = JSON.parse(await readFile(path.resolve(".codebuddy-plugin/marketplace.json"), "utf8"));
   const entries = new Map(marketplace.plugins.map((entry: { name: string }) => [entry.name, entry]));
 
   for (const plugin of await discoverPlugins()) {
     const entry = entries.get(plugin.manifest.name) as {
-      source?: { source?: string; url?: string; ref?: string; path?: string };
+      source?: string;
     };
-    assert.equal(entry.source?.source, "git-subdir");
-    assert.equal(entry.source?.ref, "marketplace");
-    assert.equal(entry.source?.path, `./${plugin.dir.replaceAll("\\", "/")}`);
+    assert.equal(entry.source, `./${plugin.dir.replaceAll("\\", "/")}`);
+    await access(path.resolve("artifacts/marketplace", entry.source, plugin.manifest.entrypoints.mcp ?? ""));
   }
 });
 

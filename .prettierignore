@@ -1,5 +1,6 @@
 .git
 .usora
 node_modules
+plugins/*/dist/*.js
 plugins/usora/assets
 usora-foundry-complete-implementation-plan-*.md

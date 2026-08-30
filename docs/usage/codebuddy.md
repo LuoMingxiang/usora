@@ -41,7 +41,7 @@ Capture this session into Usora
 
 ## Upgrade
 
-Usora's CodeBuddy marketplace can be added from GitHub `master`, but the Foundry plugin payload points to the generated `marketplace` branch. Local changes only become installable after the release flow publishes that distribution branch.
+CodeBuddy installs from the repository default branch, so Foundry's built MCP entrypoints are committed for this host. Local changes only become installable after commit and push.
 
 ```powershell
 git push origin master
