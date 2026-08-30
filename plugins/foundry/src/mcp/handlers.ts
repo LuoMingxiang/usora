@@ -19,6 +19,7 @@ import { handleEventList } from "../core/events.ts";
 import { handleContextBudget, handleTelemetryMetrics } from "../core/context-budget.ts";
 import { handleGovernanceResolve, handleGovernanceScan, handleSkillGraphValidate } from "../core/governance.ts";
 import { handleHubCleanup, handleHubConfig, handleHubDoctor, handleHubInit, handleHubStatus } from "../core/hub.ts";
+import { handleHubQuery } from "../core/hub-query.ts";
 import { handleHubMigrate, migrationStatus } from "../core/migration.ts";
 import { handlePatternGet, handlePatternIndex, handlePatternQuery } from "../core/patterns.ts";
 import { handlePluginCacheCleanup } from "../core/cache.ts";
@@ -51,6 +52,7 @@ const HANDLERS: Record<string, ToolHandler> = {
   hub_config: handleHubConfig,
   hub_status: handleHubStatus,
   hub_doctor: handleHubDoctor,
+  hub_query: handleHubQuery,
   hub_cleanup: handleHubCleanup,
   plugin_cache_cleanup: handlePluginCacheCleanup,
   context_budget: handleContextBudget,
@@ -92,6 +94,7 @@ const MIGRATION_ALLOWED = new Set([
   "hub_migrate",
   "hub_status",
   "hub_doctor",
+  "hub_query",
   "event_list",
   "telemetry_metrics",
   "plugin_cache_cleanup",

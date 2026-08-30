@@ -25,6 +25,24 @@ export const hubTools = [
     inputSchema: { type: "object", properties: {} },
   },
   {
+    name: "hub_query",
+    description:
+      "Query a registered host Hub without accepting arbitrary filesystem paths. Use it to inspect another host's Activities, Sessions, Events, Candidates, Skills, or Indexes from the current Usora MCP process. Pass host (codex or codebuddy), collection, optional limit, and optional fields.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        host: { type: "string", enum: ["codex", "codebuddy"], description: "Registered host to query." },
+        collection: {
+          type: "string",
+          enum: ["activities", "sessions", "events", "candidates", "skills", "indexes"],
+          description: "Fixed Hub collection to read.",
+        },
+        limit: { type: "number" },
+        fields: { type: "array", items: { type: "string" } },
+      },
+    },
+  },
+  {
     name: "hub_migrate",
     description:
       "Explicitly migrate a v1 Hub to the current schema. Defaults to dry run; pass confirm=true to back up and migrate.",
