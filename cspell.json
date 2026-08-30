@@ -1,0 +1,6 @@
+{
+  "version": "0.2",
+  "language": "en",
+  "words": ["codebuddy", "commitlint", "oxlint", "Usora", "Veyra"],
+  "ignorePaths": ["node_modules", "dist", "build", ".git"]
+}

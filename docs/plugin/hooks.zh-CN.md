@@ -9,22 +9,22 @@
 
 新增内容
 
-- `hooks/session-hook.mjs` 从 stdin 读取 SessionEnd 事件 JSON，尽力提取会话元数据，并通过 Usora 的 canonical Activity 流程记录。
+- `dist/session-hook.js` 从 stdin 读取 SessionEnd 事件 JSON，尽力提取会话元数据，并通过 Usora 的 canonical Activity 流程记录。
 - `hooks/codebuddy-hooks.json` 使用 `${CODEBUDDY_PLUGIN_ROOT}` 注册 CodeBuddy 命令 hook。
 - `hooks/codex-hooks.json` 使用 `${CLAUDE_PLUGIN_ROOT}` 注册 Codex 命令 hook。
 - `.codex-plugin/plugin.json` 与 `.codebuddy-plugin/plugin.json` 都指向各自宿主的 hook 文件。
 
 工作原理
 
-当 CodeBuddy 或 Codex 触发 `SessionEnd` 时，宿主会调用 `hooks/session-hook.mjs`，并在 stdin 上提供事件 JSON。脚本复用已有的 Activity 合并逻辑，因此同一个 `session_id` 的重复事件只会更新 Hub 中的一条 Activity。
+当 CodeBuddy 或 Codex 触发 `SessionEnd` 时，宿主会调用 `dist/session-hook.js`，并在 stdin 上提供事件 JSON。脚本复用已有的 Activity 合并逻辑，因此同一个 `session_id` 的重复事件只会更新 Hub 中的一条 Activity。
 
 本地测试
 
 在仓库根目录运行：
 
 ```bash
-echo '{"session_id":"abc123","cwd":"/path/to/repo","timestamp":"2026-08-19T00:00:00Z"}' | node plugins/foundry/hooks/session-hook.mjs
-printf '%s\n' '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"hub_status","arguments":{}}}' | node plugins/foundry/scripts/usora-mcp.mjs
+echo '{"session_id":"abc123","cwd":"/path/to/repo","timestamp":"2026-08-19T00:00:00Z"}' | node plugins/foundry/dist/session-hook.js
+printf '%s\n' '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"hub_status","arguments":{}}}' | node plugins/foundry/dist/mcp.js
 ```
 
 注意事项

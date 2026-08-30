@@ -2,7 +2,7 @@
   "mcpServers": {
     "practice": {
       "command": "node",
-      "args": ["${CODEBUDDY_PLUGIN_ROOT}/scripts/usora-mcp.mjs"]
+      "args": ["${CODEBUDDY_PLUGIN_ROOT}/dist/mcp.js"]
     }
   }
 }

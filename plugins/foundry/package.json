@@ -1,0 +1,15 @@
+{
+  "name": "@usora/foundry",
+  "version": "1.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "bun ../../tooling/build-plugin.ts foundry",
+    "package": "bun ../../tooling/package-plugin.ts foundry",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@usora/plugin-sdk": "workspace:*",
+    "@usora/types": "workspace:*"
+  }
+}

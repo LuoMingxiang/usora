@@ -3,23 +3,44 @@
   "version": "1.1.0",
   "private": true,
   "type": "module",
+  "workspaces": [
+    "plugins/*",
+    "packages/*"
+  ],
   "scripts": {
-    "benchmark:foundry": "node scripts/foundry-token-benchmark.mjs",
-    "check": "bun run format:check && bun run lint && bun run test && bun run validate",
-    "doctor": "node scripts/validate-plugin.mjs",
+    "affected": "bun tooling/affected-plugins.ts",
+    "benchmark:foundry": "bun scripts/foundry-token-benchmark.ts",
+    "build": "bun tooling/build-plugin.ts",
+    "build:foundry": "bun tooling/build-plugin.ts foundry",
+    "check": "bun run format:check && bun run lint && bun run typecheck && bun run build && bun run package:check && bun run runtime:check && bun run marketplace:check && bun run test && bun run validate",
+    "discover": "bun tooling/discover-plugins.ts",
+    "doctor": "bun scripts/validate-plugin.ts",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "lint": "oxlint --deny-warnings .",
+    "marketplace:build": "bun tooling/sync-marketplace.ts && bun tooling/build-marketplace.ts",
+    "marketplace:check": "bun tooling/sync-marketplace.ts --check && bun tooling/build-marketplace.ts --check",
+    "package": "bun tooling/package-plugin.ts",
+    "package:check": "bun tooling/package-plugin.ts --check",
+    "package:foundry": "bun tooling/package-plugin.ts foundry",
+    "plugin:create": "bun tooling/create-plugin.ts",
     "prepare": "husky",
-    "release": "semantic-release",
-    "sync": "node scripts/sync-plugin-metadata.mjs && prettier --write plugins/foundry/plugin.json common/marketplace.json marketplace.json .agents/plugins/marketplace.json .claude-plugin/marketplace.json .codebuddy-plugin/marketplace.json plugins/foundry/.mcp.json plugins/foundry/.codex-plugin/plugin.json plugins/foundry/.codebuddy-plugin/plugin.json plugins/foundry/.codebuddy-plugin/mcp.json package.json",
-    "sync:release": "node scripts/sync-release-version.mjs && prettier --write plugins/foundry/plugin.json marketplace.json .agents/plugins/marketplace.json .claude-plugin/marketplace.json .codebuddy-plugin/marketplace.json plugins/foundry/.codex-plugin/plugin.json plugins/foundry/.codebuddy-plugin/plugin.json package.json",
+    "release": "bun run release:plugins",
+    "release:ci": "bun tooling/release-ci.ts",
+    "release:marketplace": "bun tooling/publish-marketplace-branch.ts",
+    "release:plan": "bun tooling/release-plan.ts",
+    "release:plugins": "bun tooling/release-plugin.ts",
+    "release:version": "bun tooling/version-plugin.ts",
+    "runtime:check": "bun tooling/clean-runtime-test.ts",
+    "sync": "bun tooling/sync-marketplace.ts && prettier --write marketplace.json .agents/plugins/marketplace.json",
+    "sync:release": "bun tooling/sync-marketplace.ts && prettier --write marketplace.json .agents/plugins/marketplace.json",
     "test": "vitest run",
     "test:watch": "vitest",
-    "validate": "node scripts/validate-plugin.mjs"
+    "typecheck": "tsc --noEmit",
+    "validate": "bun scripts/validate-plugin.ts"
   },
   "lint-staged": {
-    "*.{js,mjs,cjs}": [
+    "*.{js,cjs,ts,mts}": [
       "prettier --write",
       "oxlint --fix --deny-warnings"
     ],
@@ -28,18 +49,14 @@
   "devDependencies": {
     "@commitlint/cli": "^21.2.2",
     "@commitlint/config-conventional": "^21.2.2",
-    "@semantic-release/changelog": "^6.0.3",
-    "@semantic-release/exec": "^7.1.0",
-    "@semantic-release/git": "^10.0.1",
-    "@semantic-release/github": "^12.0.9",
-    "@semantic-release/npm": "^13.1.5",
+    "@types/node": "^24.10.1",
     "husky": "^9.1.7",
     "lint-staged": "^16.4.0",
     "oxlint": "^1.78.0",
     "prettier": "3.6.2",
     "prettier-plugin-jsdoc": "^1.8.1",
     "prettier-plugin-packagejson": "^3.0.2",
-    "semantic-release": "^25.0.9",
+    "typescript": "^5.9.3",
     "vitest": "^4.1.11"
   },
   "packageManager": "bun@1.3.14"

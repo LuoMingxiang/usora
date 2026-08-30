@@ -14,7 +14,7 @@
     {
       "name": "foundry",
       "source": "./plugins/foundry",
-      "description": "Turn AI work practice into a local-first reusable Skill Hub.",
+      "description": "Turn practice into reusable AI capability.",
       "version": "1.1.0",
       "author": {
         "name": "Veyra"

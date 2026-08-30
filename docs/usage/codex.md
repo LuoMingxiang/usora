@@ -14,7 +14,7 @@ The MCP config starts:
 {
   "practice": {
     "command": "node",
-    "args": ["scripts/usora-mcp.mjs"],
+    "args": ["dist/mcp.js"],
     "cwd": "."
   }
 }
@@ -36,7 +36,7 @@ Usora's marketplace entry points to GitHub `master`. Local changes only become i
 git push origin master
 ```
 
-The Release workflow runs `semantic-release`, syncs plugin metadata, and tags the release. Then upgrade Usora in `/plugins`. If the UI says upgrade failed but the version changed, open a new task and check whether the expected Usora tools are available.
+The Release workflow runs the plugin-aware release scripts, syncs plugin metadata, and tags the release. Then upgrade Usora in `/plugins`. If the UI says upgrade failed but the version changed, open a new task and check whether the expected Usora tools are available.
 
 ## Cache Cleanup
 

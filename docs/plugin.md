@@ -117,6 +117,8 @@ Clean everything
 
 ## Installation
 
+Published installs use the generated marketplace distribution, not the source branch. Replace `<git-url-for-marketplace-branch>` with the Git reference your host resolves to the generated `marketplace` branch.
+
 Host-specific guides:
 
 - [Codex usage](usage/codex.md)
@@ -125,14 +127,14 @@ Host-specific guides:
 Codex:
 
 ```powershell
-codex plugin marketplace add https://github.com/LuoMingxiang/usora.git
+codex plugin marketplace add <git-url-for-marketplace-branch>
 codex plugin add usora@foundry
 ```
 
 CodeBuddy:
 
 ```powershell
-codebuddy plugin marketplace add https://github.com/LuoMingxiang/usora.git
+codebuddy plugin marketplace add <git-url-for-marketplace-branch>
 codebuddy plugin install usora@foundry
 ```
 
@@ -144,7 +146,7 @@ codebuddy --plugin-dir plugins/foundry
 
 Codex loads Usora Foundry through `plugins/foundry/.codex-plugin/plugin.json`, which declares `mcpServers: "./.mcp.json"`. Keep `.mcp.json` at the plugin root so Codex resolves the bundled MCP server from the installed plugin.
 
-CodeBuddy loads Usora Foundry through `plugins/foundry/.codebuddy-plugin/plugin.json`, which declares `skills` and `mcpServers: "./.codebuddy-plugin/mcp.json"`. That MCP config uses `${CODEBUDDY_PLUGIN_ROOT}` so the VS Code extension does not resolve `scripts/usora-mcp.mjs` relative to the VS Code install directory. After loading, try:
+CodeBuddy loads Usora Foundry through `plugins/foundry/.codebuddy-plugin/plugin.json`, which declares `skills` and `mcpServers: "./.codebuddy-plugin/mcp.json"`. That MCP config uses `${CODEBUDDY_PLUGIN_ROOT}` so the VS Code extension does not resolve `dist/mcp.js` relative to the VS Code install directory. After loading, try:
 
 ```text
 Show Usora status
@@ -158,12 +160,14 @@ Manual MCP fallback for hosts that support MCP but not plugin marketplaces:
   "mcpServers": {
     "practice": {
       "command": "node",
-      "args": ["scripts/usora-mcp.mjs"],
+      "args": ["dist/mcp.js"],
       "cwd": "/absolute/path/to/usora/plugins/foundry"
     }
   }
 }
 ```
+
+For contributor-facing platform details, including scaffolding, manifest ownership, distribution modes, and host adapter rules, see [Plugin platform notes](plugin/create/README.md).
 
 ## Data
 
@@ -219,15 +223,15 @@ If the host does not provide a stable `session_id`, Usora generates a process-sc
 
 ## Upgrading and Uninstalling
 
-Codex and CodeBuddy install plugins into their local plugin caches and load the installed copy, not the live source directory. For Usora, the marketplace entry points at GitHub `master`, so local changes only become installable after they are committed and pushed.
+Codex and CodeBuddy install plugins into their local plugin caches and load the installed copy, not the live source directory. For Usora, published installs resolve the generated marketplace distribution, so local changes only become installable after the release flow packages the plugin and republishes marketplace metadata.
 
 If a new Usora build is not visible after pulling or pushing changes, use this release loop:
 
 1. Finish the plugin change locally.
 2. Run `bun run check`.
 3. Commit with a Conventional Commit message.
-4. Push to `master`.
-5. Let the Release workflow run `semantic-release`; it bumps versions, syncs plugin metadata, updates `CHANGELOG.md`, tags the release, and commits generated files.
+4. Push the source branch.
+5. Let the Release workflow run `bun run release:ci --publish`; it calculates the plugin version from Conventional Commits, writes the plugin manifests, packages the artifact, publishes the GitHub Release, and updates the marketplace branch.
 6. Open `/plugins`, find Usora, and upgrade or reinstall it.
 7. Refresh or restart Codex and open a new task if older MCP tools still appear.
 8. After the new version is installed, clean old Usora cache directories if needed through the Usora MCP tool:
