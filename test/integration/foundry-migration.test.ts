@@ -7,8 +7,12 @@ import { test } from "vitest";
 
 const mcpScript = path.resolve("plugins/foundry/dist/mcp.js");
 
-async function run(cwd, requests) {
-  const child = spawn(process.execPath, [mcpScript], { cwd, env: process.env, stdio: ["pipe", "pipe", "inherit"] });
+async function run(cwd, requests, env = {}) {
+  const child = spawn(process.execPath, [mcpScript], {
+    cwd,
+    env: { ...process.env, HOME: cwd, USERPROFILE: cwd, ...env },
+    stdio: ["pipe", "pipe", "inherit"],
+  });
   const output = await new Promise((resolve, reject) => {
     let text = "";
     child.stdout.on("data", (chunk) => {
@@ -112,4 +116,35 @@ test("v1 Hub requires explicit migration before v2 writes", async (t) => {
   assert.equal(JSON.parse(await readFile(path.join(hub, "config.json"), "utf8")).maintainer, "owner");
   assert.ok((await readdir(path.join(hub, "backups"))).some((dir) => dir.startsWith("migration-v1-to-v2-")));
   assert.ok(payload(migratedResponses[4]).events.some((event) => event.type === "HubMigrated"));
+});
+
+test("migration copies shared knowledge without moving Activity or Session and reports Skill conflicts", async (t) => {
+  const cwd = await mkdtemp(path.join(os.tmpdir(), "usora-shared-migration-"));
+  const knowledge = path.join(cwd, "knowledge");
+  t.onTestFinished(() => rm(cwd, { recursive: true, force: true }));
+  const hub = await writeV1Hub(cwd);
+  await mkdir(path.join(hub, "sessions"), { recursive: true });
+  await writeFile(path.join(hub, "sessions", "session-v1.json"), JSON.stringify({ id: "session-v1" }));
+  await mkdir(path.join(knowledge, "skills", "legacy-skill"), { recursive: true });
+  await mkdir(path.join(knowledge, "indexes"), { recursive: true });
+  await mkdir(path.join(knowledge, "candidates"), { recursive: true });
+  await writeFile(
+    path.join(knowledge, "skills", "legacy-skill", "skill.json"),
+    JSON.stringify({ name: "legacy-skill", content: "# Different" }),
+  );
+  await writeFile(path.join(knowledge, "skills", "legacy-skill", "SKILL.md"), "# Different\n");
+
+  const responses = await run(cwd, [initialize, call(2, "hub_migrate", { confirm: true })], { USORA_HOME: knowledge });
+  const migrated = payload(responses[1]);
+  assert.equal(migrated.shared_knowledge.conflicts.length, 1);
+  assert.equal(migrated.shared_knowledge.conflicts[0].type, "skill");
+  assert.equal(await readFile(path.join(hub, "activities", "activity-v1.json"), "utf8").then(Boolean), true);
+  assert.equal(await readFile(path.join(hub, "sessions", "session-v1.json"), "utf8").then(Boolean), true);
+  assert.equal(await readFile(path.join(knowledge, "skills", "legacy-skill", "SKILL.md"), "utf8"), "# Different\n");
+
+  const report = JSON.parse(await readFile(path.join(knowledge, "indexes", "migration-report.json"), "utf8"));
+  assert.equal(report.conflicts[0].id, "legacy-skill");
+
+  const rerun = await run(cwd, [initialize, call(3, "hub_migrate", { confirm: true })], { USORA_HOME: knowledge });
+  assert.equal(payload(rerun[1]).migrated, false);
 });

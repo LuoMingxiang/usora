@@ -1,5 +1,6 @@
 import path from "node:path";
-import { dirPath, loadConfig, readJson, writeEvent, writeJson } from "./storage.ts";
+import { withKnowledgeLock } from "./lock.ts";
+import { knowledgeDirPath, loadConfig, readJson, writeEvent, writeJson } from "./storage.ts";
 import { readSkillMetadata, rebuildSkillIndex } from "./skill-index.ts";
 import { listLimit, safeName } from "./validation.ts";
 
@@ -80,7 +81,7 @@ function successRate(skill: SkillMeta): number | null {
 
 async function skillRecord(name: unknown): Promise<{ file: string; meta: SkillMeta }> {
   const skillName = safeName(name, "name");
-  const file = path.join(await dirPath("skills"), skillName, "skill.json");
+  const file = path.join(await knowledgeDirPath("skills"), skillName, "skill.json");
   const meta = await readJson(file);
   if (!isRecord(meta)) throw Error("Skill not found");
   return { file, meta };
@@ -144,6 +145,10 @@ function requireAction(value: unknown): GovernanceAction {
 }
 
 export async function handleGovernanceResolve(args: GovernanceResolveArgs = {}) {
+  return withKnowledgeLock("skills", () => resolveGovernance(args));
+}
+
+async function resolveGovernance(args: GovernanceResolveArgs = {}) {
   const action = requireAction(args.action);
   const config = await loadConfig();
   if (DESTRUCTIVE.has(action) && config.maintainer !== (args.actor || "codex")) {

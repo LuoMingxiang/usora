@@ -37,7 +37,7 @@ AI assistants often solve the same local workflow problems again and again, but 
 - **Discover reusable Candidates**: promote repeated patterns into reviewable improvement ideas.
 - **Publish Skills deliberately**: keep the Maintainer in control of what becomes reusable behavior.
 - **Evolve personal capability**: let your past practice become future AI assistance.
-- **Stay local-first**: use plain local files under your workspace by default, with no Python, database, or separate CLI required.
+- **Stay local-first**: use plain local files with host-local practice data and shared Usora knowledge, with no Python, database, or separate CLI required.
 
 ## Current MVP
 
@@ -48,7 +48,8 @@ AI assistants often solve the same local workflow problems again and again, but 
 - Generate Skill drafts only from approved Candidates, then evaluate and publish Skills in place.
 - Inspect compact Activities, Candidates, Skills, telemetry metrics, and lifecycle events.
 - Explicitly migrate v1 Hubs to the current schema before writing new records.
-- Archive processed Activities.
+- Archive processed host-local Activities.
+- Aggregate Codex and CodeBuddy practice into shared Patterns, Candidates, and Skills during distillation.
 
 ## Quick Start
 
@@ -61,7 +62,7 @@ Show Usora status
 
 In the first minute, success means you can see the local Hub path, record counts, and a next useful action. After real work, ask Codex to capture the session; repeated patterns can later become Candidates and published Skills.
 
-By default, Usora uses a stable host data directory (`~/.codex/plugins/data/usora/.usora` or `~/.codebuddy/plugins/data/usora/.usora`) and falls back to `<cwd>/.usora` only for local/manual MCP runs. Plugin upgrades should not clear the Hub. To move the data later, ask Codex to move Usora data to another path; the plugin migrates existing records and saves the new location in `config.json`.
+By default, Usora keeps raw practice data in a stable host directory (`~/.codex/plugins/data/usora/.usora` or `~/.codebuddy/plugins/data/usora/.usora`) and stores shared knowledge in `~/.usora`. Local/manual MCP runs fall back to `<cwd>/.usora`. Set `USORA_HOME` to move shared Patterns, Candidates, Skills, indexes, events, and usage data. `hub_status` reports the resolved practice paths, shared knowledge paths, and Activity Source availability.
 
 For plugin-specific usage, storage layout, and cleanup details, see the [plugin guide](docs/plugin.md).
 

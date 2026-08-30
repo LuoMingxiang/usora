@@ -171,15 +171,37 @@ Capture this session into Usora
 
 ## 数据
 
-默认数据目录会跨插件升级保持稳定：Codex 使用 `~/.codex/plugins/data/usora/.usora`，CodeBuddy 使用 `~/.codebuddy/plugins/data/usora/.usora`。本地/手动 MCP 运行时 fallback 到 `<cwd>/.usora`。目前不支持 `USORA_HOME` 环境变量。
+Usora 会把原始实践数据留在各 AI Host，并只共享沉淀后的知识。Session 和 Activity 继续保存在稳定的宿主目录：Codex 使用 `~/.codex/plugins/data/usora/.usora`，CodeBuddy 使用 `~/.codebuddy/plugins/data/usora/.usora`。Pattern、Candidate、Skill、Skill index、event 和 usage 记录保存在共享 Knowledge Home，默认是 `~/.usora`。本地/手动 MCP 运行时 fallback 到 `<cwd>/.usora`。设置 `USORA_HOME` 可以覆盖共享 Knowledge Home。
 
-Usora Foundry 2.0 使用 Hub schema v2。v1 Hub 不会被静默迁移：`hub_init`、`hub_status` 和 `hub_doctor` 会在检测到 v1 Hub 时返回 `migration_required`，写入工具会拒绝创建新的 v2 记录，直到迁移完成。先运行不带 `confirm` 的 `hub_migrate` 做 dry run；确认后再运行 `hub_migrate` 并传入 `confirm: true`，它会在 `<hub>/backups/` 下创建备份，然后迁移 Activities、Candidates、Skills 和 config。
+### Foundry 知识架构
+
+存储边界是：
+
+```text
+Host Practice
+- sessions
+- activities
+
+Shared Knowledge
+- indexes/patterns.json
+- candidates
+- skills
+- usage
+- events
+- backups
+```
+
+沉淀时，Foundry 会发现已注册的 Activity Source，读取可用的 Host Activity 目录，规范化来源信息，并把 evidence 合并成共享 Pattern。新增 AI 时，只需要新增一个 Activity Source 来解析该 AI 的 Usora Activity 目录并返回带 fingerprint 的 Activity；Pattern、Candidate、Skill pipeline 不需要增加 Host 分支。
+
+迁移会让 Session 和 Activity 留在原 Host 目录。它按 fingerprint 合并旧 Pattern，把无冲突的 Candidate 和 Skill 复制到 Knowledge Home，去重内容相同的 Skill，并把冲突写入 migration report，不会静默覆盖。
+
+Usora Foundry 2.0 使用 Hub schema v2。v1 Hub 不会被静默迁移：`hub_init`、`hub_status` 和 `hub_doctor` 会在检测到 v1 Hub 时返回 `migration_required`，写入工具会拒绝创建新的 v2 记录，直到迁移完成。先运行不带 `confirm` 的 `hub_migrate` 做 dry run；确认后再运行 `hub_migrate` 并传入 `confirm: true`，它会在 `<hub>/backups/` 下创建备份，原地更新 Host-local Activity schema，并把旧 Pattern、Candidate、Skill 合并到共享 Knowledge Home。Session 和 Activity 不会被移动到共享知识层。
 
 旧的 `activity_list`、`candidate_list` 和 `skill_list` 已 deprecated。优先使用 `activity_query`、`candidate_query` 和 `skill_query`；它们默认返回紧凑 digest/metadata。只有需要完整记录或 Markdown 内容时才使用 `activity_get` 或 `skill_get`。
 
-如需移动数据，调用 `hub_config` 并传入 `path`，可以是绝对路径，也可以是相对 workspace 的路径。Usora 会把已有记录移动到新目录，清理旧记录文件夹，并把新位置以 `hub_path` 写入 `config.json`。
+如需移动 Host-local 实践数据，调用 `hub_config` 并传入 `path`，可以是绝对路径，也可以是相对 workspace 的路径。Usora 会把 Host-owned 记录移动到新目录，清理旧记录文件夹，并把新位置以 `hub_path` 写入 `config.json`。如需移动共享知识，设置 `USORA_HOME`。
 
-`hub_status` 会返回解析后的 `hub` 目录、明确的 `data_path` 和 `config_path`。它也会返回 `next_action`，作为轻量生命周期提示：
+`hub_status` 是回答数据位置问题的事实来源。它会返回解析后的 Host-local `hub` / `data_path`、共享 `knowledge_path`、`config_path`、Practice 路径、Knowledge 路径、路径解析来源，以及已注册 Activity Source 的可用状态。它也会返回 `next_action`，作为轻量生命周期提示：
 
 ```text
 capture_activity -> Capture this session

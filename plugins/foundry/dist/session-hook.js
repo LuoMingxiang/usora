@@ -121,6 +121,9 @@ var lowerRuntimePluginRoot = runtimePluginRoot.toLowerCase();
 var isCodeBuddyInstall = lowerRuntimePluginRoot.includes(path2.join(".codebuddy", "plugins", "marketplaces").toLowerCase());
 var isCodexInstall = lowerRuntimePluginRoot.includes(path2.join(".codex", "plugins", "cache").toLowerCase());
 var anchorHome = process.env.CODEBUDDY_PLUGIN_DATA ? path2.resolve(process.env.CODEBUDDY_PLUGIN_DATA, ".usora") : process.env.PLUGIN_DATA ? path2.resolve(process.env.PLUGIN_DATA, ".usora") : process.env.CODEBUDDY_PLUGIN_ROOT || isCodeBuddyInstall ? path2.join(os.homedir(), ".codebuddy", "plugins", "data", "usora", ".usora") : process.env.CLAUDE_PLUGIN_ROOT || isCodexInstall ? path2.join(os.homedir(), ".codex", "plugins", "data", "usora", ".usora") : path2.resolve(process.cwd(), ".usora");
+var hostHomeSource = process.env.CODEBUDDY_PLUGIN_DATA || process.env.PLUGIN_DATA ? "host_plugin_data" : process.env.CODEBUDDY_PLUGIN_ROOT || process.env.CLAUDE_PLUGIN_ROOT || isCodeBuddyInstall || isCodexInstall ? "host_plugin_data" : "development";
+var knowledgeHome = process.env.USORA_HOME ? path2.resolve(process.env.USORA_HOME) : hostHomeSource === "development" ? anchorHome : path2.join(os.homedir(), ".usora");
+var _knowledgeHomeSource = process.env.USORA_HOME ? "environment" : hostHomeSource === "development" ? "development" : "default";
 var processSessionId = `session-${Date.now().toString(16).padStart(12, "0")}-${crypto.randomBytes(16).toString("hex")}`;
 var HUB_SCHEMA_VERSION = 2;
 var ACTIVITY_SCHEMA_VERSION = 2;
@@ -137,6 +140,8 @@ var DIRS = [
   "indexes",
   "backups"
 ];
+var HOST_DIRS = ["activities", "sessions", "runtime", "archive"];
+var KNOWLEDGE_DIRS = ["candidates", "skills", "usage", "archive", "events", "indexes", "backups"];
 function isObject(value) {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
 }
@@ -146,12 +151,25 @@ async function resolveHome(config) {
   const cfg = config || await loadConfig();
   return typeof cfg.hub_path === "string" && cfg.hub_path ? path2.resolve(cfg.hub_path) : anchorHome;
 }
-async function dirPath(dir) {
-  return path2.join(await resolveHome(), dir);
+async function resolveHostHome(config) {
+  return resolveHome(config);
+}
+async function resolveKnowledgeHome() {
+  return knowledgeHome;
+}
+async function hostDirPath(dir) {
+  return path2.join(await resolveHostHome(), dir);
+}
+async function knowledgeDirPath(dir) {
+  return path2.join(await resolveKnowledgeHome(), dir);
 }
 async function ensure() {
-  const home = await resolveHome();
-  await Promise.all(DIRS.map((dir) => fs2.mkdir(path2.join(home, dir), { recursive: true })));
+  const host = await resolveHostHome();
+  const knowledge = await resolveKnowledgeHome();
+  await Promise.all([
+    ...HOST_DIRS.map((dir) => fs2.mkdir(path2.join(host, dir), { recursive: true })),
+    ...KNOWLEDGE_DIRS.map((dir) => fs2.mkdir(path2.join(knowledge, dir), { recursive: true }))
+  ]);
 }
 async function readJson(file, fallback = null) {
   try {
@@ -212,7 +230,7 @@ async function writeJson(file, value) {
   await fs2.rename(tmp, file);
 }
 async function writeEvent(type, data) {
-  const file = path2.join(await dirPath("events"), `${Date.now()}-${newId("event")}.json`);
+  const file = path2.join(await knowledgeDirPath("events"), `${Date.now()}-${newId("event")}.json`);
   await writeJson(file, { schema_version: EVENT_SCHEMA_VERSION, type, timestamp: now(), data });
 }
 function normalizeConfig(value) {
@@ -318,7 +336,7 @@ function isRecord(value) {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
 }
 async function findActivityBySession(sessionId) {
-  const dir = await dirPath("activities");
+  const dir = await hostDirPath("activities");
   for (const file of await fs3.readdir(dir).catch(() => [])) {
     if (!file.endsWith(".json"))
       continue;
@@ -412,7 +430,7 @@ async function captureActivity(args, options = {}) {
   item.fingerprint = fingerprint.value;
   item.digest = buildActivityDigest(item);
   const file = existing?.file || `${item.id}.json`;
-  await writeJson(path3.join(await dirPath("activities"), file), item);
+  await writeJson(path3.join(await hostDirPath("activities"), file), item);
   await writeEvent(existing ? "ActivityUpdated" : "ActivityCreated", item);
   return { ...item, merged: Boolean(existing) };
 }
@@ -565,7 +583,7 @@ async function writeSessionRecord(sessionId, record) {
     updated_at: timestamp,
     ...record
   };
-  await writeJson(path4.join(await dirPath("sessions"), sessionFile(item.id)), item);
+  await writeJson(path4.join(await hostDirPath("sessions"), sessionFile(item.id)), item);
   return item;
 }
 

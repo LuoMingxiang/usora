@@ -1,5 +1,6 @@
 import path from "node:path";
-import { dirPath, newId, now, readJson, writeEvent, writeJson } from "./storage.ts";
+import { withKnowledgeLock } from "./lock.ts";
+import { knowledgeDirPath, newId, now, readJson, writeEvent, writeJson } from "./storage.ts";
 import { rebuildSkillIndex } from "./skill-index.ts";
 import { safeName } from "./validation.ts";
 
@@ -35,11 +36,15 @@ function bump(meta: SkillMetadata, outcome: UsageOutcome): void {
 }
 
 export async function handleUsageCapture(args: UsageCaptureArgs = {}) {
+  return withKnowledgeLock("skills", () => captureUsage(args));
+}
+
+async function captureUsage(args: UsageCaptureArgs = {}) {
   const skill = safeName(args.skill, "skill");
   const outcome = args.outcome || "unknown";
   if (!OUTCOMES.includes(outcome)) throw Error("outcome must be success, partial, failure, or unknown");
 
-  const skillFile = path.join(await dirPath("skills"), skill, "skill.json");
+  const skillFile = path.join(await knowledgeDirPath("skills"), skill, "skill.json");
   const meta = await readJson(skillFile);
   if (!isRecord(meta)) throw Error("Skill not found");
 
@@ -55,7 +60,7 @@ export async function handleUsageCapture(args: UsageCaptureArgs = {}) {
     project: args.project || null,
     used_at: usedAt,
   };
-  await writeJson(path.join(await dirPath("usage"), `${usage.id}.json`), usage);
+  await writeJson(path.join(await knowledgeDirPath("usage"), `${usage.id}.json`), usage);
 
   bump(meta, outcome);
   meta.last_used_at = usedAt;

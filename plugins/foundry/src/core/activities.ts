@@ -2,8 +2,8 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import {
   ACTIVITY_SCHEMA_VERSION,
-  dirPath,
   ensure,
+  hostDirPath,
   newId,
   now,
   processSessionId,
@@ -83,7 +83,7 @@ function isRecord(value: unknown): value is ActivityRecord {
  * @returns {Promise<{ file: string; item: object } | null>} Match, or `null` if none.
  */
 async function findActivityBySession(sessionId: string): Promise<{ file: string; item: ActivityRecord } | null> {
-  const dir = await dirPath("activities");
+  const dir = await hostDirPath("activities");
   for (const file of await fs.readdir(dir).catch(() => [])) {
     if (!file.endsWith(".json")) continue;
     const item = await readJson(path.join(dir, file));
@@ -94,7 +94,7 @@ async function findActivityBySession(sessionId: string): Promise<{ file: string;
 }
 
 async function readActivities(): Promise<ActivityRecord[]> {
-  const activitiesDir = await dirPath("activities");
+  const activitiesDir = await hostDirPath("activities");
   const items: ActivityRecord[] = [];
   for (const file of await fs.readdir(activitiesDir).catch(() => [])) {
     if (!file.endsWith(".json")) continue;
@@ -225,7 +225,7 @@ export async function captureActivity(args: ActivityCaptureArgs, options: { requ
   item.digest = buildActivityDigest(item);
 
   const file = existing?.file || `${item.id}.json`;
-  await writeJson(path.join(await dirPath("activities"), file), item);
+  await writeJson(path.join(await hostDirPath("activities"), file), item);
   await writeEvent(existing ? "ActivityUpdated" : "ActivityCreated", item);
   return { ...item, merged: Boolean(existing) };
 }
@@ -276,7 +276,7 @@ export async function handleActivityQuery(args: ActivityQueryArgs = {}) {
 
 export async function handleActivityGet(args: ActivityQueryArgs = {}) {
   const id = safeName(args.id, "id");
-  const activity = await readJson(path.join(await dirPath("activities"), `${id}.json`));
+  const activity = await readJson(path.join(await hostDirPath("activities"), `${id}.json`));
   if (!isRecord(activity)) throw Error("Activity not found");
   return pickFields(activity, args.fields);
 }

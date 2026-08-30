@@ -37,7 +37,7 @@ AI 助手常常会反复解决同一类本地工作流问题，但真正有价�
 - **发现 Candidate**：把重复出现的模式提升为可审阅的改进候选。
 - **审慎发布 Skill**：由 Maintainer 决定哪些经验可以进入可复用行为。
 - **演进个人能力**：让过去的实践成为未来 AI 协作的老师。
-- **坚持本地优先**：默认使用工作区中的本地文件，不需要 Python、数据库或单独 CLI。
+- **坚持本地优先**：使用本地文件保存 Host-local 实践数据与 Usora 共享知识，不需要 Python、数据库或单独 CLI。
 
 ## 当前 MVP
 
@@ -48,7 +48,8 @@ AI 助手常常会反复解决同一类本地工作流问题，但真正有价�
 - 只从已通过评估的 Candidate 生成 Skill 草稿，然后评估并发布 Skill。
 - 查看紧凑 Activity、Candidate、Skill、telemetry 指标和生命周期事件。
 - 写入新记录前显式迁移 v1 Hub 到当前 schema。
-- 归档已处理 Activity。
+- 归档已处理的 Host-local Activity。
+- 沉淀时聚合 Codex 与 CodeBuddy 的实践，并生成共享 Pattern、Candidate 与 Skill。
 
 ## 快速开始
 
@@ -61,7 +62,7 @@ AI 助手常常会反复解决同一类本地工作流问题，但真正有价�
 
 第一分钟的成功标准很简单：你能看到本地 Hub 路径、记录数量和下一步建议。完成真实工作后，再让 Codex 记录这个任务；重复出现的模式之后可以进入 Candidate，并由 Maintainer 发布为 Skill。
 
-默认情况下，Usora 会使用稳定的宿主数据目录（`~/.codex/plugins/data/usora/.usora` 或 `~/.codebuddy/plugins/data/usora/.usora`）；只有本地/手动 MCP 运行时才 fallback 到 `<cwd>/.usora`。插件升级不应该清空 Hub。之后如果想迁移数据目录，可以让 Codex 把 Usora 数据移到新的路径；插件会迁移已有记录，并把新位置保存到 `config.json`。
+默认情况下，Usora 会把原始实践数据保存在稳定的宿主目录（`~/.codex/plugins/data/usora/.usora` 或 `~/.codebuddy/plugins/data/usora/.usora`），把共享知识保存在 `~/.usora`。只有本地/手动 MCP 运行时才 fallback 到 `<cwd>/.usora`。设置 `USORA_HOME` 可以移动共享的 Pattern、Candidate、Skill、index、event 与 usage 数据。`hub_status` 会返回实际解析后的实践路径、共享知识路径和 Activity Source 可用状态。
 
 更详细的插件使用、数据结构和清理说明见 [插件说明](docs/plugin.zh-CN.md)。
 

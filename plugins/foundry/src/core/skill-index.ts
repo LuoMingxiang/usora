@@ -1,6 +1,6 @@
 import fs from "node:fs/promises";
 import path from "node:path";
-import { dirPath, now, readJson, writeJson } from "./storage.ts";
+import { knowledgeDirPath, now, readJson, writeJson } from "./storage.ts";
 import { listLimit } from "./validation.ts";
 
 const SKILL_INDEX_FILE = "skills.json";
@@ -69,11 +69,11 @@ export function skillSummary(meta: SkillMetadata): SkillMetadata {
 }
 
 async function skillIndexPath(): Promise<string> {
-  return path.join(await dirPath("indexes"), SKILL_INDEX_FILE);
+  return path.join(await knowledgeDirPath("indexes"), SKILL_INDEX_FILE);
 }
 
 export async function readSkillMetadata(): Promise<SkillMetadata[]> {
-  const skillsDir = await dirPath("skills");
+  const skillsDir = await knowledgeDirPath("skills");
   const items: SkillMetadata[] = [];
   for (const dir of await fs.readdir(skillsDir).catch(() => [])) {
     const meta = await readJson(path.join(skillsDir, dir, "skill.json"));

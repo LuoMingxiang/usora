@@ -1,8 +1,9 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { checkContextBudget, recordIntelligenceRun } from "./context-budget.ts";
+import { withKnowledgeLock } from "./lock.ts";
 import { linkPatternCandidate } from "./patterns.ts";
-import { CANDIDATE_SCHEMA_VERSION, dirPath, newId, now, readJson, writeEvent, writeJson } from "./storage.ts";
+import { CANDIDATE_SCHEMA_VERSION, knowledgeDirPath, newId, now, readJson, writeEvent, writeJson } from "./storage.ts";
 import { listLimit, safeName } from "./validation.ts";
 
 type JsonRecord = Record<string, unknown>;
@@ -18,6 +19,9 @@ type CandidateRecord = JsonRecord & {
   technologies?: unknown;
   fingerprint?: unknown;
   pattern_fingerprint?: unknown;
+  activity_refs?: unknown;
+  source_hosts?: unknown;
+  contributing_sources?: unknown;
   evidence?: unknown;
   occurrences?: number;
   state?: string;
@@ -123,7 +127,7 @@ function scoreMatch(target: CandidateRecord, item: CandidateRecord): { score: nu
 }
 
 async function readCandidates(): Promise<CandidateRecord[]> {
-  const candidatesDir = await dirPath("candidates");
+  const candidatesDir = await knowledgeDirPath("candidates");
   const items: CandidateRecord[] = [];
   for (const file of await fs.readdir(candidatesDir).catch(() => [])) {
     if (!file.endsWith(".json")) continue;
@@ -134,7 +138,7 @@ async function readCandidates(): Promise<CandidateRecord[]> {
 }
 
 async function readSkills(): Promise<CandidateRecord[]> {
-  const skillsDir = await dirPath("skills");
+  const skillsDir = await knowledgeDirPath("skills");
   const items: CandidateRecord[] = [];
   for (const dir of await fs.readdir(skillsDir).catch(() => [])) {
     const item = await readJson(path.join(skillsDir, dir, "skill.json"));
@@ -171,6 +175,10 @@ function pickFields(item: CandidateRecord, fields: unknown): Record<string, unkn
  * @throws {Error} When `title` or `summary` is missing.
  */
 export async function handleCandidateCreate(args: CandidateArgs) {
+  return withKnowledgeLock("candidates", () => createCandidate(args));
+}
+
+async function createCandidate(args: CandidateArgs) {
   if (!args.title || !args.summary) {
     throw Error("title and summary are required");
   }
@@ -189,6 +197,7 @@ export async function handleCandidateCreate(args: CandidateArgs) {
     confidence: args.confidence ?? null,
     source: args.source || "codex",
     evidence,
+    contributing_sources: asArray(args.contributing_sources || args.source_hosts),
     resolution: args.resolution || null,
     resolution_reason: args.resolution_reason || "",
     merge_target: args.merge_target || null,
@@ -196,7 +205,7 @@ export async function handleCandidateCreate(args: CandidateArgs) {
     updated_at: now(),
     state: args.state || "OPEN",
   };
-  await writeJson(path.join(await dirPath("candidates"), `${item.id}.json`), item);
+  await writeJson(path.join(await knowledgeDirPath("candidates"), `${item.id}.json`), item);
   await writeEvent("CandidateCreated", item);
   return item;
 }
@@ -249,12 +258,16 @@ export async function handleCandidateQuery(args: CandidateArgs = {}) {
 
 export async function handleCandidateGet(args: CandidateArgs = {}) {
   const id = safeName(args.id, "id");
-  const candidate = await readJson(path.join(await dirPath("candidates"), `${id}.json`));
+  const candidate = await readJson(path.join(await knowledgeDirPath("candidates"), `${id}.json`));
   if (!isRecord(candidate)) throw Error("Candidate not found");
   return pickFields(candidate, args.fields);
 }
 
 export async function handleCandidateResolve(args: CandidateArgs = {}) {
+  return withKnowledgeLock("candidates", () => resolveCandidate(args));
+}
+
+async function resolveCandidate(args: CandidateArgs = {}) {
   if (!args.title || !args.summary) {
     throw Error("title and summary are required");
   }
@@ -350,7 +363,11 @@ export async function handleCandidateResolve(args: CandidateArgs = {}) {
  * @throws {Error} When the Candidate does not exist.
  */
 export async function handleCandidateEvaluate(args: CandidateArgs) {
-  const file = path.join(await dirPath("candidates"), `${safeName(args.id, "id")}.json`);
+  return withKnowledgeLock("candidates", () => evaluateCandidate(args));
+}
+
+async function evaluateCandidate(args: CandidateArgs) {
+  const file = path.join(await knowledgeDirPath("candidates"), `${safeName(args.id, "id")}.json`);
   const item = await readJson(file);
   if (!isRecord(item)) throw Error("Candidate not found");
 

@@ -1,6 +1,6 @@
 import fs from "node:fs/promises";
 import path from "node:path";
-import { dirPath, now, readJson, writeEvent } from "./storage.ts";
+import { knowledgeDirPath, now, readJson, writeEvent } from "./storage.ts";
 
 export const STAGE_BUDGETS = {
   pattern_judge: { required: 1200, recommended: 1200, optional: 600 },
@@ -117,7 +117,7 @@ export async function handleContextBudget(args: ContextBudgetArgs = {}) {
 }
 
 async function readEvents(): Promise<StoredEvent[]> {
-  const eventsDir = await dirPath("events");
+  const eventsDir = await knowledgeDirPath("events");
   const items: StoredEvent[] = [];
   for (const file of await fs.readdir(eventsDir).catch(() => [])) {
     if (!file.endsWith(".json")) continue;
@@ -131,7 +131,9 @@ export async function handleTelemetryMetrics() {
   const events = await readEvents();
   const runs = events.filter((event) => event.type === "IntelligenceRun").map((event) => event.data || {});
   const resolved = events.filter((event) => event.type === "CandidateResolved").map((event) => event.data || {});
-  const rawPatternIndex = await readJson(path.join(await dirPath("indexes"), "patterns.json")).catch(() => null);
+  const rawPatternIndex = await readJson(path.join(await knowledgeDirPath("indexes"), "patterns.json")).catch(
+    () => null,
+  );
   const patternIndex = isRecord(rawPatternIndex) ? (rawPatternIndex as { patterns?: unknown }) : {};
   const patterns = Array.isArray(patternIndex.patterns) ? (patternIndex.patterns as PatternRecord[]) : [];
   return {

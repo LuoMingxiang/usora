@@ -87,7 +87,9 @@ If the installed MCP server does not return `next_action` yet, infer it from cou
 
 ## Relocating data
 
-When the user wants to move their data to a different directory, call `hub_config` with `path` set to the new directory (absolute or relative to the workspace). This MOVES all existing records (activities, candidates, skills, archive, events) into the new directory and clears the old directory, then persists the new location in `config.hub_path`. Confirm back the `data_path`, `hub`, `moved_from`, and `config_path` from the result. The `USORA_HOME` environment variable is not used.
+When the user asks where Usora data lives, call `hub_status` and use its resolved paths. Do not infer paths from defaults. Report host-local Practice data separately from shared Knowledge data.
+
+When the user wants to move host-local Practice data to a different directory, call `hub_config` with `path` set to the new directory (absolute or relative to the workspace). This moves host-owned records and persists the new location in `config.hub_path`. Confirm back the `data_path`, `hub`, `moved_from`, and `config_path` from the result. Shared Knowledge uses `knowledge_path`; set `USORA_HOME` before startup to move shared Patterns, Candidates, Skills, indexes, events, and usage data.
 
 ## Uninstalling / cleanup behavior
 
@@ -105,7 +107,7 @@ Record task, context, key_points, approach, result, technologies, outcome, sourc
 
 ## Sync behavior
 
-Use MCP tools for initialization, Activity capture, Candidate review, and publication. Initialization uses the stable host data directory (or the directory the user relocated to); local/manual MCP runs fall back to `<cwd>/.usora`. The `USORA_HOME` environment variable is not used. Initialization never creates sample data.
+Use MCP tools for initialization, Activity capture, Candidate review, and publication. Initialization uses the stable host data directory (or the directory the user relocated to) for Sessions and Activities; local/manual MCP runs fall back to `<cwd>/.usora`. Shared knowledge defaults to `~/.usora` and can be overridden with `USORA_HOME`. Initialization never creates sample data.
 
 Candidates can be explicitly evaluated before publication. Publishing updates the single current Skill in place and records its `revision`, Maintainer, and publication time; do not create version directories.
 

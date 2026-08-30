@@ -1,9 +1,12 @@
 import fs from "node:fs/promises";
 import path from "node:path";
-import { transitionActivityState } from "./activities.ts";
 import { checkContextBudget, recordIntelligenceRun } from "./context-budget.ts";
-import { PATTERN_SCHEMA_VERSION, dirPath, loadConfig, readJson, writeEvent, writeJson } from "./storage.ts";
+import { withKnowledgeLock } from "./lock.ts";
+import { PATTERN_SCHEMA_VERSION, knowledgeDirPath, loadConfig, readJson, writeEvent, writeJson } from "./storage.ts";
 import { listLimit } from "./validation.ts";
+import type { ActivitySourceRecord } from "../sources/activity-source.ts";
+import { discoverActivitySources } from "../sources/registry.ts";
+import { loadIngestionState, saveIngestionState } from "../sources/ingestion-state.ts";
 
 const PATTERNS_FILE = "patterns.json";
 
@@ -16,6 +19,8 @@ type PatternRecord = Record<string, unknown> & {
   high_value?: boolean;
   technologies?: unknown[];
   activity_ids: unknown[];
+  activity_refs?: Array<{ source: string; id: string }>;
+  source_hosts?: string[];
   occurrences: number;
   project_ids: unknown[];
   projects: number;
@@ -44,10 +49,6 @@ type PatternIndex = {
   schema_version: number;
   patterns: PatternRecord[];
 };
-type ActivityFileRecord = {
-  file: string;
-  item: ActivityRecord;
-};
 type PatternQueryArgs = {
   mode?: string;
   limit?: unknown;
@@ -74,7 +75,7 @@ function unique(values: unknown[]): unknown[] {
 }
 
 async function patternsPath(): Promise<string> {
-  return path.join(await dirPath("indexes"), PATTERNS_FILE);
+  return path.join(await knowledgeDirPath("indexes"), PATTERNS_FILE);
 }
 
 async function readPatterns(): Promise<PatternIndex> {
@@ -96,18 +97,25 @@ export async function linkPatternCandidate(fingerprint: unknown, candidateId: un
   return pattern;
 }
 
-async function readActivities({ includeIndexed = false } = {}): Promise<ActivityFileRecord[]> {
-  const activitiesDir = await dirPath("activities");
-  const items: ActivityFileRecord[] = [];
+async function readLegacyActivities({ includeIndexed = false } = {}): Promise<ActivitySourceRecord[]> {
+  const activitiesDir = path.join(path.dirname(await knowledgeDirPath("indexes")), "activities");
+  const items: ActivitySourceRecord[] = [];
   for (const file of await fs.readdir(activitiesDir).catch(() => [])) {
     if (!file.endsWith(".json")) continue;
     const item = await readJson(path.join(activitiesDir, file));
     if (!isRecord(item) || !item.fingerprint || !isRecord(item.digest)) continue;
     if (!includeIndexed && item.state !== "NEW") continue;
     if (item.state === "ARCHIVED") continue;
-    items.push({ file, item: item as ActivityRecord });
+    items.push({ source: { id: "local", host: "local" }, activity: item as ActivityRecord });
   }
   return items;
+}
+
+async function readActivities({ includeIndexed = false } = {}): Promise<ActivitySourceRecord[]> {
+  const sources = await discoverActivitySources();
+  if (sources.length === 0) return readLegacyActivities({ includeIndexed });
+  const records = (await Promise.all(sources.map((source) => source.readActivities()))).flat();
+  return includeIndexed ? records : records.filter(({ activity }) => activity.state === "NEW");
 }
 
 function stringOrNull(value: unknown): string | null {
@@ -128,15 +136,16 @@ function pickFields(item: PatternRecord, fields: unknown): Record<string, unknow
 }
 
 function patternFromActivity(activity: ActivityRecord): PatternRecord {
+  const digest = isRecord(activity.digest) ? activity.digest : {};
   return {
     schema_version: PATTERN_SCHEMA_VERSION,
     fingerprint: activity.fingerprint as string,
     fingerprint_version: activity.fingerprint_version,
-    domain: activity.digest?.domain || activity.domain || null,
-    topic: activity.digest?.topic || activity.topic || null,
-    type: stringOrNull(activity.digest?.type || activity.type || activity.metadata?.type),
-    high_value: Boolean(activity.digest?.high_value || activity.high_value || activity.metadata?.high_value),
-    technologies: arrayValue(activity.digest?.technologies || activity.technologies),
+    domain: digest.domain || activity.domain || null,
+    topic: digest.topic || activity.topic || null,
+    type: stringOrNull(digest.type || activity.type || activity.metadata?.type),
+    high_value: Boolean(digest.high_value || activity.high_value || activity.metadata?.high_value),
+    technologies: arrayValue(digest.technologies || activity.technologies),
     activity_ids: [],
     occurrences: 0,
     project_ids: [],
@@ -148,14 +157,24 @@ function patternFromActivity(activity: ActivityRecord): PatternRecord {
   };
 }
 
-function upsertPattern(patterns: PatternRecord[], activity: ActivityRecord): PatternRecord {
+function upsertPattern(patterns: PatternRecord[], record: ActivitySourceRecord): boolean {
+  const { source } = record;
+  const activity = record.activity as ActivityRecord;
+  const digest = isRecord(activity.digest) ? activity.digest : {};
   let pattern = patterns.find((item) => item.fingerprint === activity.fingerprint);
   if (!pattern) {
     pattern = patternFromActivity(activity);
     patterns.push(pattern);
   }
+  const ref = { source: source.id, id: String(activity.id || "") };
+  const refKey = `${ref.source}:${ref.id}`;
+  const existingRefs = Array.isArray(pattern.activity_refs) ? pattern.activity_refs : [];
+  const existingKeys = new Set(existingRefs.map((item) => `${item.source}:${item.id}`));
+  if (!ref.id || existingKeys.has(refKey)) return false;
+  pattern.activity_refs = [...existingRefs, ref];
+  pattern.source_hosts = unique([...(pattern.source_hosts || []), source.host]) as string[];
   pattern.activity_ids = unique([...pattern.activity_ids, activity.id]);
-  pattern.occurrences = pattern.activity_ids.length;
+  pattern.occurrences = pattern.activity_refs.length;
   pattern.project_ids = unique([...(pattern.project_ids || []), activity.project]);
   pattern.projects = pattern.project_ids.length;
   pattern.first_seen =
@@ -163,30 +182,49 @@ function upsertPattern(patterns: PatternRecord[], activity: ActivityRecord): Pat
   pattern.last_seen =
     [pattern.last_seen, activity.updated_at || activity.started_at].filter(Boolean).sort().at(-1) || null;
   pattern.high_value = Boolean(
-    pattern.high_value || activity.digest?.high_value || activity.high_value || activity.metadata?.high_value,
+    pattern.high_value || digest.high_value || activity.high_value || activity.metadata?.high_value,
   );
-  return pattern;
+  return true;
 }
 
-async function updateActivityState(file: string, activity: ActivityRecord): Promise<void> {
-  transitionActivityState(activity, "INDEXED");
-  await writeJson(path.join(await dirPath("activities"), file), activity);
+async function advanceIngestionState(records: ActivitySourceRecord[]): Promise<void> {
+  const state = await loadIngestionState();
+  for (const { source, activity } of records) {
+    const current = state.sources[source.id] || {};
+    const seenAt = activity.updated_at || activity.started_at || current.last_seen_at || null;
+    const recent = [activity.id, ...(current.recent_ids || [])].filter(
+      (id): id is string => typeof id === "string" && id.length > 0,
+    );
+    const next: { last_seen_at?: string | null; recent_ids: string[] } = {
+      recent_ids: [...new Set(recent)].slice(0, 100),
+    };
+    next.last_seen_at =
+      [current.last_seen_at, seenAt]
+        .filter((item): item is string => typeof item === "string")
+        .sort()
+        .at(-1) || null;
+    state.sources[source.id] = next;
+  }
+  await saveIngestionState(state);
 }
 
 export async function indexNewActivities() {
   const started = Date.now();
   const records = await readActivities();
   const index = await readPatterns();
-  for (const { item } of records) upsertPattern(index.patterns, item);
+  let indexed = 0;
+  for (const record of records) {
+    if (upsertPattern(index.patterns, record)) indexed++;
+  }
   await writePatterns(index);
-  for (const { file, item } of records) await updateActivityState(file, item);
+  await advanceIngestionState(records);
   const result = {
     mode: "incremental",
-    indexed: records.length,
+    indexed,
     patterns: index.patterns.length,
   };
   await writeEvent("PatternIndexUpdated", result);
-  const input = { digests: records.map(({ item }) => item.digest || item), patterns: index.patterns };
+  const input = { digests: records.map(({ activity }) => activity.digest || activity), patterns: index.patterns };
   const budget = await checkContextBudget("pattern_judge", {
     required: { digests: input.digests },
     recommended: { patterns: index.patterns },
@@ -195,7 +233,7 @@ export async function indexNewActivities() {
     stage: "pattern_judge",
     input,
     output: result,
-    evidence_loaded: records.length,
+    evidence_loaded: indexed,
     skills_loaded: 0,
     full_activity_load: true,
     full_skill_load: false,
@@ -209,15 +247,19 @@ export async function rebuildPatternIndex() {
   const started = Date.now();
   const records = await readActivities({ includeIndexed: true });
   const index: PatternIndex = { schema_version: PATTERN_SCHEMA_VERSION, patterns: [] };
-  for (const { item } of records) upsertPattern(index.patterns, item);
+  let indexed = 0;
+  for (const record of records) {
+    if (upsertPattern(index.patterns, record)) indexed++;
+  }
   await writePatterns(index);
+  await advanceIngestionState(records);
   const result = {
     mode: "rebuild",
-    indexed: records.length,
+    indexed,
     patterns: index.patterns.length,
   };
   await writeEvent("PatternIndexUpdated", result);
-  const input = { digests: records.map(({ item }) => item.digest || item), patterns: index.patterns };
+  const input = { digests: records.map(({ activity }) => activity.digest || activity), patterns: index.patterns };
   const budget = await checkContextBudget("pattern_judge", {
     required: { digests: input.digests },
     recommended: { patterns: index.patterns },
@@ -226,7 +268,7 @@ export async function rebuildPatternIndex() {
     stage: "pattern_judge",
     input,
     output: result,
-    evidence_loaded: records.length,
+    evidence_loaded: indexed,
     skills_loaded: 0,
     full_activity_load: true,
     full_skill_load: false,
@@ -262,7 +304,7 @@ export async function queryPatterns(args: PatternQueryArgs = {}) {
 }
 
 export async function handlePatternIndex(args: PatternQueryArgs = {}) {
-  return args.mode === "rebuild" ? rebuildPatternIndex() : indexNewActivities();
+  return withKnowledgeLock("patterns", () => (args.mode === "rebuild" ? rebuildPatternIndex() : indexNewActivities()));
 }
 
 export async function handlePatternQuery(args: PatternQueryArgs = {}) {

@@ -476,6 +476,29 @@ test("hub_status works before explicit hub_init", async (t) => {
   assert.equal(status.next_action, "capture_activity");
 });
 
+test("hub_status reports resolved practice and shared knowledge locations", async (t) => {
+  const cwd = await mkdtemp(path.join(os.tmpdir(), "usora-mcp-"));
+  const knowledgeHome = path.join(cwd, "shared-knowledge");
+  const codebuddyHome = path.join(cwd, "codebuddy-home");
+  t.onTestFinished(() => rm(cwd, { recursive: true, force: true }));
+
+  await mkdir(path.join(codebuddyHome, "activities"), { recursive: true });
+  const responses = await run(
+    cwd,
+    [initialize, { jsonrpc: "2.0", id: 2, method: "tools/call", params: { name: "hub_status", arguments: {} } }],
+    { USORA_HOME: knowledgeHome, USORA_CODEBUDDY_HOME: codebuddyHome },
+  );
+
+  const status = JSON.parse(responses[1].result.content[0].text);
+  assert.equal(status.data_path, path.join(cwd, ".usora"));
+  assert.equal(status.knowledge_path, knowledgeHome);
+  assert.equal(status.locations.practice.activities, path.join(cwd, ".usora", "activities"));
+  assert.equal(status.locations.knowledge.patterns, path.join(knowledgeHome, "indexes", "patterns.json"));
+  assert.equal(status.locations.resolution.knowledge_home_source, "environment");
+  assert.equal(status.locations.resolution.knowledge_home_source_key, "USORA_HOME");
+  assert.ok(status.locations.activity_sources.some((source) => source.id === "codebuddy" && source.available));
+});
+
 test("hub_config returns data_path without relocation", async (t) => {
   const cwd = await mkdtemp(path.join(os.tmpdir(), "usora-mcp-"));
   t.onTestFinished(() => rm(cwd, { recursive: true, force: true }));
