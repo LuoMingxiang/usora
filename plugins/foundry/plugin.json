@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "name": "foundry",
   "displayName": "Usora Foundry",
-  "version": "1.4.0",
+  "version": "1.5.0",
   "description": "A local-first personal capability layer that turns real AI work into reusable, evolving Skills.",
   "runtime": {
     "node": ">=20"
