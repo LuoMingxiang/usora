@@ -499,6 +499,75 @@ test("hub_status reports resolved practice and shared knowledge locations", asyn
   assert.ok(status.locations.activity_sources.some((source) => source.id === "codebuddy" && source.available));
 });
 
+test("hub_query reads registered host Hub collections without arbitrary paths", async (t) => {
+  const cwd = await mkdtemp(path.join(os.tmpdir(), "usora-hub-query-"));
+  const codebuddyHome = path.join(cwd, "codebuddy-home");
+  t.onTestFinished(() => rm(cwd, { recursive: true, force: true }));
+
+  for (const dir of ["activities", "sessions", "events", "candidates", "skills/demo-skill", "indexes"]) {
+    await mkdir(path.join(codebuddyHome, dir), { recursive: true });
+  }
+  await writeFile(
+    path.join(codebuddyHome, "activities", "activity-a.json"),
+    JSON.stringify({ id: "activity-a", task: "CodeBuddy task", updated_at: "2026-08-30T01:00:00.000Z" }),
+  );
+  await writeFile(path.join(codebuddyHome, "sessions", "session-a.json"), JSON.stringify({ id: "session-a" }));
+  await writeFile(path.join(codebuddyHome, "events", "event-a.json"), JSON.stringify({ type: "EventA" }));
+  await writeFile(path.join(codebuddyHome, "candidates", "candidate-a.json"), JSON.stringify({ id: "candidate-a" }));
+  await writeFile(
+    path.join(codebuddyHome, "skills", "demo-skill", "skill.json"),
+    JSON.stringify({ name: "demo-skill", content: "hidden" }),
+  );
+  await writeFile(path.join(codebuddyHome, "indexes", "patterns.json"), JSON.stringify({ patterns: [] }));
+
+  const responses = await run(
+    cwd,
+    [
+      initialize,
+      { jsonrpc: "2.0", id: 2, method: "tools/list", params: {} },
+      {
+        jsonrpc: "2.0",
+        id: 3,
+        method: "tools/call",
+        params: { name: "hub_query", arguments: { host: "codebuddy", collection: "activities", fields: ["id"] } },
+      },
+      {
+        jsonrpc: "2.0",
+        id: 4,
+        method: "tools/call",
+        params: { name: "hub_query", arguments: { host: "codebuddy", collection: "skills", fields: ["name"] } },
+      },
+      ...["sessions", "events", "candidates", "indexes"].map((collection, index) => ({
+        jsonrpc: "2.0",
+        id: 10 + index,
+        method: "tools/call",
+        params: { name: "hub_query", arguments: { host: "codebuddy", collection, limit: 1 } },
+      })),
+      {
+        jsonrpc: "2.0",
+        id: 5,
+        method: "tools/call",
+        params: { name: "hub_query", arguments: { host: "codebuddy", collection: "../activities" } },
+      },
+    ],
+    { HOME: cwd, USERPROFILE: cwd, USORA_CODEBUDDY_HOME: codebuddyHome },
+  );
+
+  assert.ok(responses[1].result.tools.some((tool) => tool.name === "hub_query"));
+  const activities = JSON.parse(responses[2].result.content[0].text);
+  assert.equal(activities.available, true);
+  assert.equal(activities.count, 1);
+  assert.equal(activities.records[0].id, "activity-a");
+  assert.equal(activities.records[0].host, "codebuddy");
+
+  const skills = JSON.parse(responses[3].result.content[0].text);
+  assert.equal(skills.records[0].name, "demo-skill");
+  for (const response of responses.slice(4, 8)) {
+    assert.equal(JSON.parse(response.result.content[0].text).count, 1);
+  }
+  assert.match(responses[8].error.message, /collection must be one of/);
+});
+
 test("hub_config returns data_path without relocation", async (t) => {
   const cwd = await mkdtemp(path.join(os.tmpdir(), "usora-mcp-"));
   t.onTestFinished(() => rm(cwd, { recursive: true, force: true }));

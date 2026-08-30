@@ -4,7 +4,7 @@
 import readline from "node:readline";
 import { readFileSync } from "node:fs";
 import { fileURLToPath as fileURLToPath3 } from "node:url";
-import path19 from "node:path";
+import path20 from "node:path";
 
 // plugins/foundry/src/core/storage.ts
 import fs from "node:fs/promises";
@@ -2000,18 +2000,91 @@ async function handleHubDoctor() {
   };
 }
 
-// plugins/foundry/src/core/cache.ts
+// plugins/foundry/src/core/hub-query.ts
 import fs12 from "node:fs/promises";
 import path16 from "node:path";
+var COLLECTIONS = ["activities", "sessions", "events", "candidates", "skills", "indexes"];
+function isRecord10(value) {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
+function collection(value) {
+  if (typeof value !== "string" || !COLLECTIONS.includes(value)) {
+    throw Error(`collection must be one of: ${COLLECTIONS.join(", ")}`);
+  }
+  return value;
+}
+function pickFields5(item, fields) {
+  if (!Array.isArray(fields) || fields.length === 0)
+    return item;
+  return Object.fromEntries(fields.filter((field) => typeof field === "string" && (field in item)).map((field) => [field, item[field]]));
+}
+async function hostRoots(host) {
+  const seen = new Set;
+  const result = [];
+  for (const source of await describeActivitySources()) {
+    if (source.host !== host || !source.root)
+      continue;
+    const key = path16.resolve(source.root).toLowerCase();
+    if (seen.has(key))
+      continue;
+    seen.add(key);
+    result.push({ id: source.id, host: source.host, root: source.root });
+  }
+  return result;
+}
+async function readJsonDir(dir, fields) {
+  const items = [];
+  for (const file of await fs12.readdir(dir).catch(() => [])) {
+    if (!file.endsWith(".json"))
+      continue;
+    const item = await readJson(path16.join(dir, file));
+    if (isRecord10(item))
+      items.push(pickFields5({ ...item, file }, fields));
+  }
+  return items;
+}
+async function readSkills2(dir, fields) {
+  const items = [];
+  for (const entry of await fs12.readdir(dir).catch(() => [])) {
+    const item = await readJson(path16.join(dir, entry, "skill.json"));
+    if (isRecord10(item))
+      items.push(pickFields5({ ...item, dir: entry }, fields));
+  }
+  return items;
+}
+async function readCollection(root, name, fields) {
+  const dir = path16.join(root, name);
+  return name === "skills" ? readSkills2(dir, fields) : readJsonDir(dir, fields);
+}
+async function handleHubQuery(args = {}) {
+  const host = safeName(args.host || "codex", "host");
+  const name = collection(args.collection || "activities");
+  const limit = listLimit(args.limit);
+  const roots = await hostRoots(host);
+  if (roots.length === 0)
+    return { host, collection: name, available: false, count: 0, records: [] };
+  const records = [];
+  for (const root of roots) {
+    for (const item of await readCollection(root.root, name, args.fields)) {
+      records.push({ source: root.id, host: root.host, root: root.root, ...item });
+    }
+  }
+  records.sort((a, b) => String(b.updated_at || b.timestamp || b.created_at || "").localeCompare(String(a.updated_at || a.timestamp || a.created_at || "")));
+  return { host, collection: name, available: true, count: records.length, records: records.slice(0, limit) };
+}
+
+// plugins/foundry/src/core/cache.ts
+import fs13 from "node:fs/promises";
+import path17 from "node:path";
 import os3 from "node:os";
 import { fileURLToPath as fileURLToPath2 } from "node:url";
 async function handlePluginCacheCleanup(args = {}) {
-  const pluginRoot = path16.resolve(path16.dirname(fileURLToPath2(import.meta.url)), "../..");
-  const cacheRoot = path16.dirname(pluginRoot);
-  const currentVersion = path16.basename(pluginRoot);
-  const home = path16.resolve(os3.homedir()).toLowerCase();
-  const normalizedPluginRoot = path16.resolve(pluginRoot).toLowerCase();
-  const isKnownHostCache = normalizedPluginRoot.startsWith(home) && (normalizedPluginRoot.includes(`${path16.sep}.codex${path16.sep}`) || normalizedPluginRoot.includes(`${path16.sep}.codebuddy${path16.sep}`)) && /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/.test(currentVersion);
+  const pluginRoot = path17.resolve(path17.dirname(fileURLToPath2(import.meta.url)), "../..");
+  const cacheRoot = path17.dirname(pluginRoot);
+  const currentVersion = path17.basename(pluginRoot);
+  const home = path17.resolve(os3.homedir()).toLowerCase();
+  const normalizedPluginRoot = path17.resolve(pluginRoot).toLowerCase();
+  const isKnownHostCache = normalizedPluginRoot.startsWith(home) && (normalizedPluginRoot.includes(`${path17.sep}.codex${path17.sep}`) || normalizedPluginRoot.includes(`${path17.sep}.codebuddy${path17.sep}`)) && /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/.test(currentVersion);
   if (!isKnownHostCache) {
     return {
       ok: false,
@@ -2021,10 +2094,10 @@ async function handlePluginCacheCleanup(args = {}) {
     };
   }
   const oldCaches = [];
-  for (const entry of await fs12.readdir(cacheRoot, { withFileTypes: true }).catch(() => [])) {
+  for (const entry of await fs13.readdir(cacheRoot, { withFileTypes: true }).catch(() => [])) {
     if (!entry.isDirectory() || entry.name === currentVersion)
       continue;
-    const fullPath = path16.join(cacheRoot, entry.name);
+    const fullPath = path17.join(cacheRoot, entry.name);
     if (!isInside2(cacheRoot, fullPath)) {
       throw Error(`Refusing to inspect path outside Usora plugin cache: ${fullPath}`);
     }
@@ -2045,7 +2118,7 @@ async function handlePluginCacheCleanup(args = {}) {
     if (!isInside2(cacheRoot, cache.path)) {
       throw Error(`Refusing to delete path outside Usora plugin cache: ${cache.path}`);
     }
-    await fs12.rm(cache.path, { recursive: true, force: true });
+    await fs13.rm(cache.path, { recursive: true, force: true });
   }
   return {
     ok: true,
@@ -2059,16 +2132,16 @@ async function handlePluginCacheCleanup(args = {}) {
 }
 
 // plugins/foundry/src/core/skills.ts
-import fs13 from "node:fs/promises";
-import path17 from "node:path";
-function isRecord10(value) {
+import fs14 from "node:fs/promises";
+import path18 from "node:path";
+function isRecord11(value) {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
 }
 function asArray2(value) {
   return Array.isArray(value) ? value : [];
 }
 function asRecords(value) {
-  return asArray2(value).filter(isRecord10);
+  return asArray2(value).filter(isRecord11);
 }
 function stringValue(value) {
   return typeof value === "string" ? value : undefined;
@@ -2077,13 +2150,13 @@ function numberValue2(value) {
   return typeof value === "number" ? value : 0;
 }
 async function readCandidate(id) {
-  return readJson(path17.join(await knowledgeDirPath("candidates"), `${safeName(id, "candidate_id")}.json`));
+  return readJson(path18.join(await knowledgeDirPath("candidates"), `${safeName(id, "candidate_id")}.json`));
 }
 async function requirePassingCandidate(candidateId) {
   if (!candidateId)
     throw Error("candidate_id is required");
   const candidate = await readCandidate(candidateId);
-  if (!isRecord10(candidate))
+  if (!isRecord11(candidate))
     throw Error("Candidate not found");
   if (candidate.state !== "EVALUATED" || candidate.evaluation?.result !== "pass") {
     throw Error("Skill requires a passing Candidate evaluation");
@@ -2092,11 +2165,11 @@ async function requirePassingCandidate(candidateId) {
 }
 async function readSkillMeta(name) {
   const skillName2 = safeName(name, "name");
-  const file = path17.join(await knowledgeDirPath("skills"), skillName2, "skill.json");
+  const file = path18.join(await knowledgeDirPath("skills"), skillName2, "skill.json");
   const meta = await readJson(file);
-  if (!isRecord10(meta))
+  if (!isRecord11(meta))
     throw Error("Skill not found");
-  return { skillName: skillName2, file, meta, dir: path17.dirname(file) };
+  return { skillName: skillName2, file, meta, dir: path18.dirname(file) };
 }
 function generatedSkillName(candidate, fallback = "generated-skill") {
   const slug = String(candidate.title || fallback).toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 64);
@@ -2132,8 +2205,8 @@ async function createSkill(args) {
   if (args.candidate_id)
     await requirePassingCandidate(args.candidate_id);
   const skillName2 = safeName(args.name, "name");
-  const dir = path17.join(await knowledgeDirPath("skills"), skillName2);
-  await fs13.mkdir(dir, { recursive: true });
+  const dir = path18.join(await knowledgeDirPath("skills"), skillName2);
+  await fs14.mkdir(dir, { recursive: true });
   const meta = {
     schema_version: SKILL_METADATA_SCHEMA_VERSION,
     name: skillName2,
@@ -2146,11 +2219,11 @@ async function createSkill(args) {
     created_at: now(),
     updated_at: now()
   };
-  await writeJson(path17.join(dir, "skill.json"), meta);
+  await writeJson(path18.join(dir, "skill.json"), meta);
   const content = args.content.endsWith(`
 `) ? args.content : `${args.content}
 `;
-  await fs13.writeFile(path17.join(dir, "SKILL.md"), content, "utf8");
+  await fs14.writeFile(path18.join(dir, "SKILL.md"), content, "utf8");
   await rebuildSkillIndex();
   await writeEvent("SkillDraftCreated", meta);
   return meta;
@@ -2212,14 +2285,14 @@ function skillDelta(args, candidate, action) {
     evidence: asArray2(args.evidence || candidate?.evidence).slice(0, 3),
     source_candidate: candidate?.id || args.candidate_id || null,
     source_pattern: args.pattern_fingerprint || candidate?.fingerprint || null,
-    changes: isRecord10(args.changes) ? args.changes : {},
+    changes: isRecord11(args.changes) ? args.changes : {},
     target_skill: args.target_skill || null,
     created_at: now()
   };
 }
 async function patchSkill(name, delta) {
   const { file, meta, dir } = await readSkillMeta(name);
-  const current = await fs13.readFile(path17.join(dir, "SKILL.md"), "utf8").catch(() => meta.content || "");
+  const current = await fs14.readFile(path18.join(dir, "SKILL.md"), "utf8").catch(() => meta.content || "");
   const append = typeof delta.changes.content_append === "string" ? delta.changes.content_append : "";
   const nextContent = typeof delta.changes.content === "string" ? delta.changes.content : append ? `${current.trimEnd()}
 
@@ -2233,7 +2306,7 @@ ${append.trim()}
   meta.updated_at = now();
   meta.evolution = [...meta.evolution || [], delta].slice(-20);
   await writeJson(file, meta);
-  await fs13.writeFile(path17.join(dir, "SKILL.md"), nextContent.endsWith(`
+  await fs14.writeFile(path18.join(dir, "SKILL.md"), nextContent.endsWith(`
 `) ? nextContent : `${nextContent}
 `, "utf8");
   await rebuildSkillIndex();
@@ -2285,9 +2358,9 @@ async function handleSkillEvaluate(args) {
 }
 async function evaluateSkill(args) {
   const skillName2 = safeName(args.name, "name");
-  const file = path17.join(await knowledgeDirPath("skills"), skillName2, "skill.json");
+  const file = path18.join(await knowledgeDirPath("skills"), skillName2, "skill.json");
   const item = await readJson(file);
-  if (!isRecord10(item))
+  if (!isRecord11(item))
     throw Error("Skill not found");
   const result = args.result;
   if (result !== "pass" && result !== "fail") {
@@ -2315,11 +2388,11 @@ async function publishSkill(args) {
     throw Error("Only the configured Maintainer can publish");
   }
   const skillName2 = safeName(args.name, "name");
-  const file = path17.join(await knowledgeDirPath("skills"), skillName2, "skill.json");
+  const file = path18.join(await knowledgeDirPath("skills"), skillName2, "skill.json");
   const meta = await readJson(file);
-  if (!isRecord10(meta))
+  if (!isRecord11(meta))
     throw Error("Skill not found");
-  const evaluation = isRecord10(meta.evaluation) ? meta.evaluation : {};
+  const evaluation = isRecord11(meta.evaluation) ? meta.evaluation : {};
   if (meta.state !== "EVALUATED" || evaluation.result !== "pass") {
     throw Error("Skill requires a passing evaluation");
   }
@@ -2334,11 +2407,11 @@ async function publishSkill(args) {
 }
 async function handleSkillRead(args) {
   const skillName2 = safeName(args.name, "name");
-  const dir = path17.join(await knowledgeDirPath("skills"), skillName2);
-  const meta = await readJson(path17.join(dir, "skill.json"));
-  if (!isRecord10(meta))
+  const dir = path18.join(await knowledgeDirPath("skills"), skillName2);
+  const meta = await readJson(path18.join(dir, "skill.json"));
+  if (!isRecord11(meta))
     throw Error("Skill not found");
-  const content = await fs13.readFile(path17.join(dir, "SKILL.md"), "utf8").catch(() => meta.content || "");
+  const content = await fs14.readFile(path18.join(dir, "SKILL.md"), "utf8").catch(() => meta.content || "");
   const { content: _storedContent, ...metadata } = meta;
   return { metadata, content };
 }
@@ -2346,9 +2419,9 @@ async function handleSkillList(args = {}) {
   const limit = listLimit(args.limit);
   const skillsDir = await knowledgeDirPath("skills");
   const items = [];
-  for (const dir of await fs13.readdir(skillsDir).catch(() => [])) {
-    const meta = await readJson(path17.join(skillsDir, dir, "skill.json"));
-    if (!isRecord10(meta))
+  for (const dir of await fs14.readdir(skillsDir).catch(() => [])) {
+    const meta = await readJson(path18.join(skillsDir, dir, "skill.json"));
+    if (!isRecord11(meta))
       continue;
     items.push(skillSummary(meta));
   }
@@ -2373,9 +2446,9 @@ async function handleSkillGet(args = {}) {
 }
 
 // plugins/foundry/src/core/usage.ts
-import path18 from "node:path";
+import path19 from "node:path";
 var OUTCOMES = ["success", "partial", "failure", "unknown"];
-function isRecord11(value) {
+function isRecord12(value) {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
 }
 function bump(meta, outcome) {
@@ -2392,9 +2465,9 @@ async function captureUsage(args = {}) {
   const outcome = args.outcome || "unknown";
   if (!OUTCOMES.includes(outcome))
     throw Error("outcome must be success, partial, failure, or unknown");
-  const skillFile = path18.join(await knowledgeDirPath("skills"), skill, "skill.json");
+  const skillFile = path19.join(await knowledgeDirPath("skills"), skill, "skill.json");
   const meta = await readJson(skillFile);
-  if (!isRecord11(meta))
+  if (!isRecord12(meta))
     throw Error("Skill not found");
   const usedAt = args.used_at || now();
   const usage = {
@@ -2408,7 +2481,7 @@ async function captureUsage(args = {}) {
     project: args.project || null,
     used_at: usedAt
   };
-  await writeJson(path18.join(await knowledgeDirPath("usage"), `${usage.id}.json`), usage);
+  await writeJson(path19.join(await knowledgeDirPath("usage"), `${usage.id}.json`), usage);
   bump(meta, outcome);
   meta.last_used_at = usedAt;
   meta.projects_used = [
@@ -2752,6 +2825,23 @@ var hubTools = [
     inputSchema: { type: "object", properties: {} }
   },
   {
+    name: "hub_query",
+    description: "Query a registered host Hub without accepting arbitrary filesystem paths. Use it to inspect another host's Activities, Sessions, Events, Candidates, Skills, or Indexes from the current Usora MCP process. Pass host (codex or codebuddy), collection, optional limit, and optional fields.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        host: { type: "string", enum: ["codex", "codebuddy"], description: "Registered host to query." },
+        collection: {
+          type: "string",
+          enum: ["activities", "sessions", "events", "candidates", "skills", "indexes"],
+          description: "Fixed Hub collection to read."
+        },
+        limit: { type: "number" },
+        fields: { type: "array", items: { type: "string" } }
+      }
+    }
+  },
+  {
     name: "hub_migrate",
     description: "Explicitly migrate a v1 Hub to the current schema. Defaults to dry run; pass confirm=true to back up and migrate.",
     inputSchema: {
@@ -2976,6 +3066,7 @@ var HANDLERS = {
   hub_config: handleHubConfig,
   hub_status: handleHubStatus,
   hub_doctor: handleHubDoctor,
+  hub_query: handleHubQuery,
   hub_cleanup: handleHubCleanup,
   plugin_cache_cleanup: handlePluginCacheCleanup,
   context_budget: handleContextBudget,
@@ -3016,6 +3107,7 @@ var MIGRATION_ALLOWED = new Set([
   "hub_migrate",
   "hub_status",
   "hub_doctor",
+  "hub_query",
   "event_list",
   "telemetry_metrics",
   "plugin_cache_cleanup"
@@ -3049,10 +3141,10 @@ async function call(name, args = {}) {
 }
 
 // plugins/foundry/src/mcp/server.ts
-var pluginRoot = path19.resolve(path19.dirname(fileURLToPath3(import.meta.url)), "..", "..");
+var pluginRoot = path20.resolve(path20.dirname(fileURLToPath3(import.meta.url)), "..", "..");
 function readServerVersion() {
   try {
-    const plugin = JSON.parse(readFileSync(path19.join(pluginRoot, "plugin.json"), "utf8"));
+    const plugin = JSON.parse(readFileSync(path20.join(pluginRoot, "plugin.json"), "utf8"));
     return typeof plugin.version === "string" ? plugin.version : "2.0.0";
   } catch {
     return "2.0.0";

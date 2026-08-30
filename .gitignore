@@ -29,5 +29,4 @@ yarn-error.log*
 .env
 .env.*
 *.local
-usora-typescript-multi-plugin-migration-plan.md
-usora-typescript-multi-plugin-migration-plan-zh-CN.md
+product-docs/*
