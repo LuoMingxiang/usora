@@ -8,14 +8,14 @@
   "description": "Usora plugins for AI agent hosts.",
   "metadata": {
     "description": "A local-first personal capability layer that turns real AI work into reusable, evolving Skills.",
-    "version": "1.1.0"
+    "version": "1.2.0"
   },
   "plugins": [
     {
       "name": "foundry",
       "source": "./plugins/foundry",
       "description": "Turn practice into reusable AI capability.",
-      "version": "1.1.0",
+      "version": "1.2.0",
       "author": {
         "name": "Veyra"
       },
