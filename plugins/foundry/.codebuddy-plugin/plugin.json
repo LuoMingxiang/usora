@@ -1,0 +1,26 @@
+{
+  "name": "foundry",
+  "version": "1.5.0",
+  "description": "A local-first personal capability layer that turns real AI work into reusable, evolving Skills.",
+  "author": {
+    "name": "Veyra",
+    "url": "https://github.com/LuoMingxiang",
+    "email": "947617238@qq.com"
+  },
+  "homepage": "https://github.com/LuoMingxiang/usora",
+  "repository": "https://github.com/LuoMingxiang/usora",
+  "license": "MIT",
+  "keywords": [
+    "personal-skill-hub",
+    "mcp",
+    "skills",
+    "local-first",
+    "ai-capability"
+  ],
+  "category": "Productivity",
+  "skills": [
+    "./skills/usora-skill-hub"
+  ],
+  "mcpServers": "./.codebuddy-plugin/mcp.json",
+  "hooks": "./hooks/codebuddy-hooks.json"
+}

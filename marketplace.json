@@ -1,0 +1,33 @@
+{
+  "name": "usora",
+  "displayName": "Usora Plugin Marketplace",
+  "description": "Usora plugins for AI agent hosts.",
+  "owner": {
+    "name": "Veyra",
+    "url": "https://github.com/LuoMingxiang"
+  },
+  "interface": {
+    "displayName": "Usora Plugin Marketplace"
+  },
+  "plugins": [
+    {
+      "name": "foundry",
+      "source": {
+        "source": "git-subdir",
+        "url": "https://github.com/LuoMingxiang/usora.git",
+        "ref": "marketplace",
+        "path": "./plugins/foundry"
+      },
+      "artifact": {
+        "type": "zip",
+        "url": "https://github.com/LuoMingxiang/usora/releases/download/foundry-v1.5.0/usora-foundry-1.5.0.zip",
+        "checksum": "sha256:833269e75dd0d803dc499de61e735cc08498e973224120a38aab8d4d69fce79c"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    }
+  ]
+}
