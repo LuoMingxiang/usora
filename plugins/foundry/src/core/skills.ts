@@ -1,7 +1,16 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { checkContextBudget, recordIntelligenceRun } from "./context-budget.ts";
-import { SKILL_METADATA_SCHEMA_VERSION, dirPath, loadConfig, now, readJson, writeEvent, writeJson } from "./storage.ts";
+import { withKnowledgeLock } from "./lock.ts";
+import {
+  SKILL_METADATA_SCHEMA_VERSION,
+  knowledgeDirPath,
+  loadConfig,
+  now,
+  readJson,
+  writeEvent,
+  writeJson,
+} from "./storage.ts";
 import { querySkillIndex, rebuildSkillIndex, skillSummary } from "./skill-index.ts";
 import { listLimit, safeName } from "./validation.ts";
 
@@ -84,7 +93,7 @@ function numberValue(value: unknown): number {
 }
 
 async function readCandidate(id: unknown): Promise<CandidateRecord | null> {
-  return readJson(path.join(await dirPath("candidates"), `${safeName(id, "candidate_id")}.json`));
+  return readJson(path.join(await knowledgeDirPath("candidates"), `${safeName(id, "candidate_id")}.json`));
 }
 
 async function requirePassingCandidate(candidateId: unknown): Promise<CandidateRecord> {
@@ -101,7 +110,7 @@ async function readSkillMeta(
   name: unknown,
 ): Promise<{ skillName: string; file: string; meta: SkillMeta; dir: string }> {
   const skillName = safeName(name, "name");
-  const file = path.join(await dirPath("skills"), skillName, "skill.json");
+  const file = path.join(await knowledgeDirPath("skills"), skillName, "skill.json");
   const meta = await readJson(file);
   if (!isRecord(meta)) throw Error("Skill not found");
   return { skillName, file, meta, dir: path.dirname(file) };
@@ -148,12 +157,16 @@ function generatedSkillContent(candidate: CandidateRecord, similarSkills: SkillM
  * @throws {Error} When `name` or `content` is missing, or `name` is invalid.
  */
 export async function handleSkillCreate(args: SkillArgs) {
+  return withKnowledgeLock("skills", () => createSkill(args));
+}
+
+async function createSkill(args: SkillArgs) {
   if (!args.name || !args.content) {
     throw Error("name and content are required");
   }
   if (args.candidate_id) await requirePassingCandidate(args.candidate_id);
   const skillName = safeName(args.name, "name");
-  const dir = path.join(await dirPath("skills"), skillName);
+  const dir = path.join(await knowledgeDirPath("skills"), skillName);
   await fs.mkdir(dir, { recursive: true });
 
   const meta = {
@@ -178,6 +191,10 @@ export async function handleSkillCreate(args: SkillArgs) {
 }
 
 export async function handleSkillGenerate(args: SkillArgs = {}) {
+  return withKnowledgeLock("skills", () => generateSkill(args));
+}
+
+async function generateSkill(args: SkillArgs = {}) {
   const started = Date.now();
   const candidate = await requirePassingCandidate(args.candidate_id);
   const similar = await querySkillIndex({
@@ -263,6 +280,10 @@ async function patchSkill(name: unknown, delta: SkillDelta) {
 }
 
 export async function handleSkillEvolve(args: SkillArgs = {}) {
+  return withKnowledgeLock("skills", () => evolveSkill(args));
+}
+
+async function evolveSkill(args: SkillArgs = {}) {
   if (args.action && !["CREATE", "PATCH", "NOOP", "SPLIT", "MERGE"].includes(args.action)) {
     throw Error("action must be CREATE, PATCH, NOOP, SPLIT, or MERGE");
   }
@@ -314,8 +335,12 @@ export async function handleSkillEvolve(args: SkillArgs = {}) {
  * @throws {Error} When the Skill is missing or `result` is invalid.
  */
 export async function handleSkillEvaluate(args: SkillArgs) {
+  return withKnowledgeLock("skills", () => evaluateSkill(args));
+}
+
+async function evaluateSkill(args: SkillArgs) {
   const skillName = safeName(args.name, "name");
-  const file = path.join(await dirPath("skills"), skillName, "skill.json");
+  const file = path.join(await knowledgeDirPath("skills"), skillName, "skill.json");
   const item = await readJson(file);
   if (!isRecord(item)) throw Error("Skill not found");
   const result = args.result;
@@ -348,13 +373,17 @@ export async function handleSkillEvaluate(args: SkillArgs) {
  * @throws {Error} On a non-Maintainer actor, a missing Skill, or a non-evaluated/failing Skill.
  */
 export async function handleSkillPublish(args: SkillArgs) {
+  return withKnowledgeLock("skills", () => publishSkill(args));
+}
+
+async function publishSkill(args: SkillArgs) {
   const config = await loadConfig();
   if (config.maintainer !== (args.actor || "codex")) {
     throw Error("Only the configured Maintainer can publish");
   }
 
   const skillName = safeName(args.name, "name");
-  const file = path.join(await dirPath("skills"), skillName, "skill.json");
+  const file = path.join(await knowledgeDirPath("skills"), skillName, "skill.json");
   const meta = await readJson(file);
   if (!isRecord(meta)) throw Error("Skill not found");
   const evaluation = isRecord(meta.evaluation) ? meta.evaluation : {};
@@ -382,7 +411,7 @@ export async function handleSkillPublish(args: SkillArgs) {
  */
 export async function handleSkillRead(args: SkillArgs) {
   const skillName = safeName(args.name, "name");
-  const dir = path.join(await dirPath("skills"), skillName);
+  const dir = path.join(await knowledgeDirPath("skills"), skillName);
   const meta = await readJson(path.join(dir, "skill.json"));
   if (!isRecord(meta)) throw Error("Skill not found");
   const content = await fs.readFile(path.join(dir, "SKILL.md"), "utf8").catch(() => meta.content || "");
@@ -398,7 +427,7 @@ export async function handleSkillRead(args: SkillArgs) {
  */
 export async function handleSkillList(args: SkillArgs = {}) {
   const limit = listLimit(args.limit);
-  const skillsDir = await dirPath("skills");
+  const skillsDir = await knowledgeDirPath("skills");
   const items: SkillMeta[] = [];
   for (const dir of await fs.readdir(skillsDir).catch(() => [])) {
     const meta = await readJson(path.join(skillsDir, dir, "skill.json"));

@@ -36,6 +36,29 @@ export const anchorHome = process.env.CODEBUDDY_PLUGIN_DATA
         ? path.join(os.homedir(), ".codex", "plugins", "data", "usora", ".usora")
         : path.resolve(process.cwd(), ".usora");
 
+export type PathResolutionSource = "environment" | "config" | "host_plugin_data" | "default" | "development";
+
+export const hostHome = anchorHome;
+
+export const hostHomeSource: PathResolutionSource =
+  process.env.CODEBUDDY_PLUGIN_DATA || process.env.PLUGIN_DATA
+    ? "host_plugin_data"
+    : process.env.CODEBUDDY_PLUGIN_ROOT || process.env.CLAUDE_PLUGIN_ROOT || isCodeBuddyInstall || isCodexInstall
+      ? "host_plugin_data"
+      : "development";
+
+export const knowledgeHome = process.env.USORA_HOME
+  ? path.resolve(process.env.USORA_HOME)
+  : hostHomeSource === "development"
+    ? anchorHome
+    : path.join(os.homedir(), ".usora");
+
+export const _knowledgeHomeSource: PathResolutionSource = process.env.USORA_HOME
+  ? "environment"
+  : hostHomeSource === "development"
+    ? "development"
+    : "default";
+
 /**
  * Process-scoped session id.
  *
@@ -70,6 +93,9 @@ export const DIRS = [
   "indexes",
   "backups",
 ];
+
+export const HOST_DIRS = ["activities", "sessions", "runtime", "archive"];
+export const KNOWLEDGE_DIRS = ["candidates", "skills", "usage", "archive", "events", "indexes", "backups"];
 
 /**
  * Valid values for `config.automation_policy`.
@@ -126,6 +152,14 @@ export async function resolveHome(config?: Partial<HubConfig>): Promise<string> 
   return typeof cfg.hub_path === "string" && cfg.hub_path ? path.resolve(cfg.hub_path) : anchorHome;
 }
 
+export async function resolveHostHome(config?: Partial<HubConfig>): Promise<string> {
+  return resolveHome(config);
+}
+
+export async function resolveKnowledgeHome(): Promise<string> {
+  return knowledgeHome;
+}
+
 /**
  * Resolve a path inside the Hub root.
  *
@@ -136,14 +170,26 @@ export async function dirPath(dir: string): Promise<string> {
   return path.join(await resolveHome(), dir);
 }
 
+export async function hostDirPath(dir: string): Promise<string> {
+  return path.join(await resolveHostHome(), dir);
+}
+
+export async function knowledgeDirPath(dir: string): Promise<string> {
+  return path.join(await resolveKnowledgeHome(), dir);
+}
+
 /**
  * Create every Hub sub-directory (idempotent).
  *
  * @returns {Promise<void>}
  */
 export async function ensure(): Promise<void> {
-  const home = await resolveHome();
-  await Promise.all(DIRS.map((dir) => fs.mkdir(path.join(home, dir), { recursive: true })));
+  const host = await resolveHostHome();
+  const knowledge = await resolveKnowledgeHome();
+  await Promise.all([
+    ...HOST_DIRS.map((dir) => fs.mkdir(path.join(host, dir), { recursive: true })),
+    ...KNOWLEDGE_DIRS.map((dir) => fs.mkdir(path.join(knowledge, dir), { recursive: true })),
+  ]);
 }
 
 /**
@@ -231,7 +277,7 @@ export async function writeJson(file: string, value: unknown): Promise<void> {
  * @returns {Promise<void>}
  */
 export async function writeEvent(type: string, data: unknown): Promise<void> {
-  const file = path.join(await dirPath("events"), `${Date.now()}-${newId("event")}.json`);
+  const file = path.join(await knowledgeDirPath("events"), `${Date.now()}-${newId("event")}.json`);
   await writeJson(file, { schema_version: EVENT_SCHEMA_VERSION, type, timestamp: now(), data });
 }
 

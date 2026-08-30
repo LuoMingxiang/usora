@@ -1,6 +1,6 @@
 import fs from "node:fs/promises";
 import path from "node:path";
-import { dirPath, readJson } from "./storage.ts";
+import { knowledgeDirPath, readJson } from "./storage.ts";
 import { listLimit } from "./validation.ts";
 
 /**
@@ -20,7 +20,7 @@ type StoredEvent = Record<string, unknown> & {
 
 export async function handleEventList(args: EventListArgs = {}) {
   const limit = listLimit(args.limit);
-  const eventsDir = await dirPath("events");
+  const eventsDir = await knowledgeDirPath("events");
   const items: StoredEvent[] = [];
   for (const file of await fs.readdir(eventsDir).catch(() => [])) {
     if (!file.endsWith(".json")) continue;

@@ -21,7 +21,7 @@ export const hubTools = [
   {
     name: "hub_status",
     description:
-      "Inspect Hub counts and configuration without loading all Activities. Returns the resolved Hub directory, explicit data_path, config path, counts, and next_action lifecycle hint so the user knows where data lives and what to do next.",
+      "Inspect Usora counts, configuration, and resolved data locations without loading all Activities. Use this as the source of truth when users ask where Practice data, Shared Knowledge, Activity, Session, Pattern, Candidate, or Skill data lives. Returns host-local practice paths, shared knowledge paths, path resolution sources, registered Activity Source locations, counts, and next_action.",
     inputSchema: { type: "object", properties: {} },
   },
   {

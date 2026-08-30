@@ -171,15 +171,37 @@ For contributor-facing platform details, including scaffolding, manifest ownersh
 
 ## Data
 
-The default data directory is stable across plugin upgrades: `~/.codex/plugins/data/usora/.usora` for Codex and `~/.codebuddy/plugins/data/usora/.usora` for CodeBuddy. Local/manual MCP runs fall back to `<cwd>/.usora`. The `USORA_HOME` environment variable is not supported.
+Usora keeps raw practice local to each AI host and shares only distilled knowledge. Session and Activity records stay in the stable host directory: `~/.codex/plugins/data/usora/.usora` for Codex and `~/.codebuddy/plugins/data/usora/.usora` for CodeBuddy. Patterns, Candidates, Skills, skill indexes, events, and usage records live in the shared Knowledge Home, which defaults to `~/.usora`. Local/manual MCP runs fall back to `<cwd>/.usora`. Set `USORA_HOME` to override the shared Knowledge Home.
 
-Usora Foundry 2.0 uses Hub schema v2. v1 Hubs are never silently migrated: `hub_init`, `hub_status`, and `hub_doctor` report `migration_required` when a v1 Hub is detected, and write tools reject new v2 records until migration completes. Run `hub_migrate` without `confirm` for a dry run, then run `hub_migrate` with `confirm: true` to create a backup under `<hub>/backups/` and migrate Activities, Candidates, Skills, and config.
+### Foundry Knowledge Architecture
+
+The storage boundary is:
+
+```text
+Host Practice
+- sessions
+- activities
+
+Shared Knowledge
+- indexes/patterns.json
+- candidates
+- skills
+- usage
+- events
+- backups
+```
+
+During distillation, Foundry discovers registered Activity Sources, reads available host Activity directories, normalizes provenance, and merges evidence into shared Patterns. Add a new AI by adding an Activity Source that resolves its Usora Activity directory and returns fingerprinted Activity records; the Pattern, Candidate, and Skill pipeline does not need host-specific branches.
+
+Migration keeps Sessions and Activities in their host directories. It merges legacy Patterns by fingerprint, copies non-conflicting Candidates and Skills into Knowledge Home, deduplicates identical Skills, and writes a migration report for conflicts instead of overwriting.
+
+Usora Foundry 2.0 uses Hub schema v2. v1 Hubs are never silently migrated: `hub_init`, `hub_status`, and `hub_doctor` report `migration_required` when a v1 Hub is detected, and write tools reject new v2 records until migration completes. Run `hub_migrate` without `confirm` for a dry run, then run `hub_migrate` with `confirm: true` to create a backup under `<hub>/backups/`, update host-local Activity schema in place, and merge old Patterns, Candidates, and Skills into the shared Knowledge Home. Sessions and Activities are not moved into shared knowledge.
 
 Legacy `activity_list`, `candidate_list`, and `skill_list` are deprecated. Prefer `activity_query`, `candidate_query`, and `skill_query`; these default to compact digest/metadata results. Use `activity_get` or `skill_get` only when full records or Markdown content are required.
 
-To move data elsewhere, call `hub_config` with a `path` argument, either absolute or relative to the workspace. Usora moves existing records into the new directory, clears the old record folders, and persists the new location in `config.json` as `hub_path`.
+To move host-local practice data elsewhere, call `hub_config` with a `path` argument, either absolute or relative to the workspace. Usora moves host-owned records into the new directory, clears the old record folders, and persists the new location in `config.json` as `hub_path`. To move shared knowledge, set `USORA_HOME`.
 
-`hub_status` reports the resolved `hub` directory, explicit `data_path`, and `config_path`.
+`hub_status` is the source of truth for storage questions. It reports the resolved host-local `hub`/`data_path`, shared `knowledge_path`, `config_path`, Practice paths, Knowledge paths, path resolution source, and registered Activity Source availability.
 It also returns `next_action`, a small lifecycle hint:
 
 ```text

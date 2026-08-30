@@ -4,15 +4,23 @@ import {
   ARCHIVABLE_STATES,
   AUTOMATION_POLICIES,
   DIRS,
+  HOST_DIRS,
   HUB_SCHEMA_VERSION,
+  KNOWLEDGE_DIRS,
   anchorHome,
-  dirPath,
+  _knowledgeHomeSource as knowledgeHomeSource,
+  hostDirPath,
+  hostHomeSource,
+  knowledgeDirPath,
   loadConfig,
   readJson,
   resolveHome,
+  resolveHostHome,
+  resolveKnowledgeHome,
   saveConfig,
 } from "./storage.ts";
 import { migrationStatus } from "./migration.ts";
+import { currentHost, describeActivitySources } from "../sources/registry.ts";
 
 type HubInitArgs = {
   maintainer?: string;
@@ -27,6 +35,37 @@ type HubCleanupArgs = {
 };
 
 type CountMap = Record<string, number>;
+export type DataLocationInfo = {
+  host: string;
+  practice: {
+    root: string;
+    sessions: string;
+    activities: string;
+    archive: string;
+  };
+  knowledge: {
+    root: string;
+    patterns: string;
+    candidates: string;
+    skills: string;
+    indexes: string;
+    events: string;
+    usage: string;
+    backups: string;
+  };
+  resolution: {
+    host_home_source: string;
+    knowledge_home_source: string;
+    knowledge_home_source_key: string | null;
+  };
+  activity_sources: Array<{
+    id: string;
+    host: string;
+    available: boolean;
+    root: string | null;
+    activities: string | null;
+  }>;
+};
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
@@ -47,13 +86,19 @@ export async function handleHubInit(args: HubInitArgs = {}) {
     config.automation_policy = args.automation_policy;
   }
   const saved = await saveConfig(config);
-  const home = await resolveHome(saved);
+  const home = await resolveHostHome(saved);
+  const knowledge = await resolveKnowledgeHome();
   await fs.mkdir(home, { recursive: true });
-  await Promise.all(DIRS.map((dir) => fs.mkdir(path.join(home, dir), { recursive: true })));
+  await fs.mkdir(knowledge, { recursive: true });
+  await Promise.all([
+    ...HOST_DIRS.map((dir) => fs.mkdir(path.join(home, dir), { recursive: true })),
+    ...KNOWLEDGE_DIRS.map((dir) => fs.mkdir(path.join(knowledge, dir), { recursive: true })),
+  ]);
   return {
     initialized: true,
     hub: home,
     data_path: home,
+    knowledge_path: knowledge,
     config_path: path.join(anchorHome, "config.json"),
     hub_schema_version: saved.hub_schema_version || HUB_SCHEMA_VERSION,
     maintainer: saved.maintainer,
@@ -130,11 +175,14 @@ export async function handleHubConfig(args: HubConfigArgs = {}) {
  */
 export async function handleHubStatus() {
   const config = await loadConfig();
-  const home = await resolveHome(config);
-  const count = async (dir: string) => (await fs.readdir(await dirPath(dir)).catch(() => [])).length;
-  const activities = await count("activities");
-  const candidates = await count("candidates");
-  const skills = await count("skills");
+  const home = await resolveHostHome(config);
+  const knowledge = await resolveKnowledgeHome();
+  const hostCount = async (dir: string) => (await fs.readdir(await hostDirPath(dir)).catch(() => [])).length;
+  const knowledgeCount = async (dir: string) => (await fs.readdir(await knowledgeDirPath(dir)).catch(() => [])).length;
+  const locations = await dataLocations();
+  const activities = await hostCount("activities");
+  const candidates = await knowledgeCount("candidates");
+  const skills = await knowledgeCount("skills");
   const nextAction =
     activities === 0
       ? "capture_activity"
@@ -146,6 +194,7 @@ export async function handleHubStatus() {
   return {
     hub: home,
     data_path: home,
+    knowledge_path: knowledge,
     config_path: path.join(anchorHome, "config.json"),
     config,
     hub_schema_version: config.hub_schema_version || HUB_SCHEMA_VERSION,
@@ -153,7 +202,38 @@ export async function handleHubStatus() {
     activities,
     candidates,
     skills,
+    locations,
     next_action: nextAction,
+  };
+}
+
+async function dataLocations(): Promise<DataLocationInfo> {
+  const practiceRoot = await resolveHostHome();
+  const knowledgeRoot = await resolveKnowledgeHome();
+  return {
+    host: currentHost(),
+    practice: {
+      root: practiceRoot,
+      sessions: await hostDirPath("sessions"),
+      activities: await hostDirPath("activities"),
+      archive: await hostDirPath("archive"),
+    },
+    knowledge: {
+      root: knowledgeRoot,
+      patterns: path.join(await knowledgeDirPath("indexes"), "patterns.json"),
+      candidates: await knowledgeDirPath("candidates"),
+      skills: await knowledgeDirPath("skills"),
+      indexes: await knowledgeDirPath("indexes"),
+      events: await knowledgeDirPath("events"),
+      usage: await knowledgeDirPath("usage"),
+      backups: await knowledgeDirPath("backups"),
+    },
+    resolution: {
+      host_home_source: hostHomeSource,
+      knowledge_home_source: knowledgeHomeSource,
+      knowledge_home_source_key: knowledgeHomeSource === "environment" ? "USORA_HOME" : null,
+    },
+    activity_sources: await describeActivitySources(),
   };
 }
 
@@ -213,8 +293,8 @@ async function cleanAll() {
  */
 async function archiveGenerated() {
   let archived = 0;
-  const activitiesDir = await dirPath("activities");
-  const archiveDir = await dirPath("archive");
+  const activitiesDir = await hostDirPath("activities");
+  const archiveDir = await hostDirPath("archive");
   for (const file of await fs.readdir(activitiesDir)) {
     if (!file.endsWith(".json")) continue;
     const source = path.join(activitiesDir, file);
