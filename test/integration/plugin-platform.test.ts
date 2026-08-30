@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
-import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { spawn } from "node:child_process";
+import { access, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { test } from "vitest";
@@ -50,9 +51,74 @@ test("plugin discovery is manifest driven and rejects duplicates", async () => {
 });
 
 test("packaged artifact excludes source files", async () => {
-  const manifest = JSON.parse(await readFile(path.resolve("artifacts/foundry/plugin.json"), "utf8"));
-  assert.equal(manifest.entrypoints.mcp, "dist/mcp.js");
-  await assert.rejects(readFile(path.resolve("artifacts/foundry/src/mcp/server.mjs"), "utf8"));
+  for (const plugin of await discoverPlugins()) {
+    const stage = path.resolve("artifacts", plugin.manifest.name);
+    const manifest = JSON.parse(await readFile(path.join(stage, "plugin.json"), "utf8"));
+    const mcp = JSON.parse(await readFile(path.join(stage, ".mcp.json"), "utf8"));
+
+    for (const item of ["dist/mcp.js", "dist/session-hook.js", "plugin.json", ".mcp.json"]) {
+      await access(path.join(stage, item));
+    }
+    for (const entrypoint of Object.values(manifest.entrypoints)) {
+      assert.equal(typeof entrypoint, "string");
+      await access(path.join(stage, entrypoint as string));
+    }
+    for (const server of Object.values(mcp) as Array<{ args?: string[] }>) {
+      const script = server.args?.find((arg) => arg.endsWith(".js"));
+      assert.ok(script);
+      await access(path.join(stage, script));
+    }
+    await assert.rejects(readFile(path.join(stage, "src/mcp/server.mjs"), "utf8"));
+  }
+});
+
+test("CodeBuddy marketplace installs packaged distributions", async () => {
+  const marketplace = JSON.parse(await readFile(path.resolve(".codebuddy-plugin/marketplace.json"), "utf8"));
+  const entries = new Map(marketplace.plugins.map((entry: { name: string }) => [entry.name, entry]));
+
+  for (const plugin of await discoverPlugins()) {
+    const entry = entries.get(plugin.manifest.name) as {
+      source?: { source?: string; url?: string; ref?: string; path?: string };
+    };
+    assert.equal(entry.source?.source, "git-subdir");
+    assert.equal(entry.source?.ref, "marketplace");
+    assert.equal(entry.source?.path, `./${plugin.dir.replaceAll("\\", "/")}`);
+  }
+});
+
+function runNode(script: string, cwd: string): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const child = spawn(process.execPath, [script], {
+      cwd,
+      env: { ...process.env, NODE_PATH: "" },
+      stdio: ["pipe", "pipe", "pipe"],
+    });
+    let stdout = "";
+    let stderr = "";
+    child.stdout.on("data", (chunk) => {
+      stdout += chunk;
+    });
+    child.stderr.on("data", (chunk) => {
+      stderr += chunk;
+    });
+    child.once("error", reject);
+    child.once("close", (code) => (code === 0 ? resolve(stdout) : reject(Error(stderr || `node exited ${code}`))));
+    child.stdin.end(`${JSON.stringify({ jsonrpc: "2.0", id: 1, method: "tools/list", params: {} })}\n`);
+  });
+}
+
+test("packaged plugins start from an isolated directory", async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), "usora-packaged-runtime-"));
+  try {
+    for (const plugin of await discoverPlugins()) {
+      const stage = path.resolve("artifacts", plugin.manifest.name);
+      const output = await runNode(path.join(stage, plugin.manifest.entrypoints.mcp ?? ""), root);
+      const response = JSON.parse(output.trim());
+      assert.ok(Array.isArray(response.result?.tools));
+    }
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
 });
 
 test("affected plugin analysis classifies plugin, shared, tooling, and docs-only changes", async () => {

@@ -13,7 +13,12 @@
   "plugins": [
     {
       "name": "foundry",
-      "source": "./plugins/foundry",
+      "source": {
+        "source": "git-subdir",
+        "url": "https://github.com/LuoMingxiang/usora.git",
+        "ref": "marketplace",
+        "path": "./plugins/foundry"
+      },
       "description": "Turn practice into reusable AI capability.",
       "version": "1.2.0",
       "author": {

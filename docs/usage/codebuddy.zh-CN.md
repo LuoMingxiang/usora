@@ -41,7 +41,7 @@ Capture this session into Usora
 
 ## 升级
 
-Usora 的 marketplace entry 指向 GitHub `master`。本地改动必须 commit 并 push 后，才会成为可安装版本。
+Usora 的 CodeBuddy marketplace 可以从 GitHub `master` 添加，但 Foundry 插件 payload 指向生成后的 `marketplace` 分支。本地改动必须经过 release 流程发布该分发分支后，才会成为可安装版本。
 
 ```powershell
 git push origin master

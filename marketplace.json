@@ -21,7 +21,7 @@
       "artifact": {
         "type": "zip",
         "url": "https://github.com/LuoMingxiang/usora/releases/download/foundry-v1.2.0/usora-foundry-1.2.0.zip",
-        "checksum": "sha256:a20c50f8620b645390c0a3589dbd4b310222058360160f137210bc10f146f834"
+        "checksum": "sha256:2e40eda449635c8ba31134e5fae6c3338bbc6617040bf684c214bdc76282b852"
       },
       "policy": {
         "installation": "AVAILABLE",
