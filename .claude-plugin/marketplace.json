@@ -8,7 +8,7 @@
   "description": "Usora plugins for AI agent hosts.",
   "metadata": {
     "description": "A local-first personal capability layer that turns real AI work into reusable, evolving Skills.",
-    "version": "1.2.0"
+    "version": "1.3.0"
   },
   "interface": {
     "displayName": "Usora Plugin Marketplace"
@@ -24,8 +24,8 @@
       },
       "artifact": {
         "type": "zip",
-        "url": "https://github.com/LuoMingxiang/usora/releases/download/foundry-v1.2.0/usora-foundry-1.2.0.zip",
-        "checksum": "sha256:a20c50f8620b645390c0a3589dbd4b310222058360160f137210bc10f146f834"
+        "url": "https://github.com/LuoMingxiang/usora/releases/download/foundry-v1.3.0/usora-foundry-1.3.0.zip",
+        "checksum": "sha256:f0782e1c67daefbb9ffc5e4d42c45a27464a5fdef663116a2598077e7138aaaf"
       },
       "policy": {
         "installation": "AVAILABLE",
