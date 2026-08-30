@@ -164,6 +164,11 @@ for (const plugin of plugins) {
     path.join(stage, "package.json"),
     `${JSON.stringify({ name: `@usora/${plugin.manifest.name}`, version: plugin.manifest.version, type: "module", private: true }, null, 2)}\n`,
   );
+  const distributed = JSON.parse(await readFile(path.join(stage, "package.json"), "utf8")) as {
+    dependencies?: unknown;
+  };
+  if (distributed.dependencies)
+    throw Error(`${plugin.manifest.name} distribution package.json must not declare dependencies`);
   await assertNoForbidden(stage);
   const checksum = await digestDir(stage);
   if (!check) {

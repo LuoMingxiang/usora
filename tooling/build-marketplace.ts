@@ -1,4 +1,4 @@
-import { cp, mkdir, readdir, rm, writeFile } from "node:fs/promises";
+import { cp, mkdir, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { discoverPlugins } from "./discover-plugins";
 
@@ -43,10 +43,16 @@ for (const plugin of await discoverPlugins(root)) {
 }
 
 for (const plugin of await discoverPlugins(root)) {
-  const entries = await readdir(path.join(out, plugin.dir));
+  const target = path.join(out, plugin.dir);
+  const entries = await readdir(target);
   for (const entry of entries) {
     if (!allowed.includes(entry)) throw Error(`marketplace distribution contains forbidden item: ${entry}`);
   }
+  const distributed = JSON.parse(await readFile(path.join(target, "package.json"), "utf8")) as {
+    dependencies?: unknown;
+  };
+  if (distributed.dependencies)
+    throw Error(`${plugin.manifest.name} distribution package.json must not declare dependencies`);
 }
 
 console.log(check ? "marketplace distribution clean" : `marketplace distribution built at ${path.relative(root, out)}`);

@@ -27,7 +27,12 @@
         "installation": "AVAILABLE",
         "authentication": "ON_INSTALL"
       },
-      "category": "Productivity"
+      "category": "Productivity",
+      "author": {
+        "name": "Veyra"
+      },
+      "license": "MIT",
+      "keywords": ["personal-skill-hub", "mcp", "skills", "local-first", "ai-capability"]
     }
   ]
 }
