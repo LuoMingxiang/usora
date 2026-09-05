@@ -75,7 +75,7 @@ test("candidate and skill intelligence runs feed telemetry metrics", async (t) =
   ]);
 
   const runs = payload(flow[3])
-    .events.filter((event) => event.type === "IntelligenceRun")
+    .events.filter((event) => event.type === "intelligence.run")
     .map((event) => event.data);
   assert.ok(runs.some((run) => run.stage === "candidate_resolver" && run.input_chars > 0));
   assert.ok(runs.some((run) => run.stage === "skill_compiler" && run.evidence_loaded === 2));
@@ -104,5 +104,5 @@ test("tiny context budgets emit overflow events", async (t) => {
   ]);
 
   assert.equal(payload(responses[1]).overflow, true);
-  assert.ok(payload(responses[2]).events.some((event) => event.type === "ContextBudgetOverflow"));
+  assert.ok(payload(responses[2]).events.some((event) => event.type === "context.budget.overflow"));
 });

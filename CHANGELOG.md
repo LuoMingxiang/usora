@@ -1,3 +1,20 @@
+# Unreleased
+
+### Features
+
+- add provider-neutral integration platform contracts, durable delivery runtime, subscriptions, retry, checkpoint, dead-letter, testing SDK, and extensibility proof.
+- add DingTalk integration plugin foundation with webhook/app transports, rendering, callbacks, identity, authorization, bot commands, resource discovery/read, Practice Source capture, diagnostics, and setup documentation.
+
+### Bug Fixes
+
+- wire DingTalk's installed MCP server to authenticated Stream callbacks, real Foundry commands, event delivery, interactive app cards, and explicit document capture.
+- recover interrupted deliveries under a cross-process lease, honor retry deadlines, and retry failed callbacks without reapplying completed domain actions.
+- reject unsigned, stale, or modified local callback envelopes; resolve interactive targets from persisted cards and check the authoritative Maintainer.
+- document webhook at-least-once semantics and the real-enterprise acceptance steps still requiring credentials and a published card template.
+- recover checkpoints after delivered records survive a crash before checkpoint write.
+- allow clean runtime checks for no-op session hooks in non-Foundry plugins.
+- validate multi-plugin marketplace metadata without assuming the first plugin is Foundry.
+
 # [1.1.0](https://github.com/LuoMingxiang/usora/compare/v1.0.0...v1.1.0) (2026-08-22)
 
 ### Features

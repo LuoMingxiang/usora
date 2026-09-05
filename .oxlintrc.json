@@ -4,5 +4,5 @@
     "node": true,
     "es2024": true
   },
-  "ignorePatterns": ["node_modules/**", ".husky/_/**", ".usora/**"]
+  "ignorePatterns": ["node_modules/**", ".husky/_/**", ".usora/**", "plugins/*/dist/**"]
 }

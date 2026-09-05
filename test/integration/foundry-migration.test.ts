@@ -115,7 +115,7 @@ test("v1 Hub requires explicit migration before v2 writes", async (t) => {
   assert.equal(await readFile(path.join(hub, "skills", "legacy-skill", "SKILL.md"), "utf8"), "# Legacy\n");
   assert.equal(JSON.parse(await readFile(path.join(hub, "config.json"), "utf8")).maintainer, "owner");
   assert.ok((await readdir(path.join(hub, "backups"))).some((dir) => dir.startsWith("migration-v1-to-v2-")));
-  assert.ok(payload(migratedResponses[4]).events.some((event) => event.type === "HubMigrated"));
+  assert.ok(payload(migratedResponses[4]).events.some((event) => event.type === "hub.migrated"));
 });
 
 test("migration copies shared knowledge without moving Activity or Session and reports Skill conflicts", async (t) => {

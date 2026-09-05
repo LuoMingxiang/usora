@@ -184,6 +184,7 @@ export const candidateTools = [
         id: { type: "string" },
         result: { type: "string", enum: ["pass", "fail"] },
         reviewer: { type: "string" },
+        request_id: { type: "string", description: "Stable integration request id for retry deduplication." },
       },
     },
   },

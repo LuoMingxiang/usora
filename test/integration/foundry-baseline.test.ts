@@ -370,7 +370,14 @@ test("hub storage schema v2 writes versioned records and keeps v1 reads working"
   assert.equal(skill.schema_version, 2);
 
   const events = JSON.parse(responses[6].result.content[0].text).events;
-  assert.ok(events.every((event) => event.schema_version === 1));
+  assert.ok(events.every((event) => event.schemaVersion === 1));
+  const [eventFile] = await readdir(path.join(init.hub, "events"));
+  const storedEvent = JSON.parse(await readFile(path.join(init.hub, "events", eventFile), "utf8"));
+  assert.equal(storedEvent.schema_version, undefined);
+  assert.equal(storedEvent.schemaVersion, 1);
+  assert.equal(storedEvent.producer.plugin, "foundry");
+  assert.equal(typeof storedEvent.id, "string");
+  assert.equal(typeof storedEvent.occurredAt, "string");
 
   await writeFile(
     path.join(init.hub, "activities", "activity-legacy.json"),

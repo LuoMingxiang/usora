@@ -90,7 +90,7 @@ test("governance_resolve is auditable and gates destructive actions to Maintaine
 
   assert.equal(payload(resolved[1]).state, "MERGED");
   assert.equal(payload(resolved[3]).ok, true);
-  assert.ok(payload(resolved[4]).events.some((event) => event.type === "GovernanceResolved"));
+  assert.ok(payload(resolved[4]).events.some((event) => event.type === "governance.resolved"));
 
   const duplicate = JSON.parse(
     await readFile(path.join(cwd, ".usora", "skills", "duplicate-skill", "skill.json"), "utf8"),

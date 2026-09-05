@@ -27,6 +27,7 @@ type GovernanceScanArgs = {
   duplicate_threshold?: unknown;
 };
 type GovernanceResolveArgs = {
+  request_id?: string;
   action?: string;
   actor?: string;
   skill?: unknown;
@@ -156,6 +157,15 @@ async function resolveGovernance(args: GovernanceResolveArgs = {}) {
   }
 
   const { file, meta } = await skillRecord(args.skill);
+  const requests =
+    meta.integration_requests && typeof meta.integration_requests === "object"
+      ? (meta.integration_requests as Record<string, unknown>)
+      : {};
+  if (typeof args.request_id === "string" && Object.hasOwn(requests, args.request_id)) {
+    await rebuildSkillIndex();
+    await writeEvent("GovernanceResolved", requests[args.request_id], `${meta.name}:${args.request_id}`);
+    return requests[args.request_id];
+  }
   meta.governance_status = action;
   meta.governance_reason = args.reason || "";
 
@@ -174,10 +184,11 @@ async function resolveGovernance(args: GovernanceResolveArgs = {}) {
   if (args.depends_on) addGraph(meta, "depends_on", args.depends_on);
   if (args.conflicts_with) addGraph(meta, "conflicts_with", args.conflicts_with);
 
+  const result = { action, skill: meta.name, target_skill: args.target_skill || null, state: meta.state };
+  if (typeof args.request_id === "string") meta.integration_requests = { ...requests, [args.request_id]: result };
   await writeJson(file, meta);
   await rebuildSkillIndex();
-  const result = { action, skill: meta.name, target_skill: args.target_skill || null, state: meta.state };
-  await writeEvent("GovernanceResolved", result);
+  await writeEvent("GovernanceResolved", result, args.request_id ? `${meta.name}:${args.request_id}` : undefined);
   return result;
 }
 

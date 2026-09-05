@@ -11,6 +11,25 @@
   },
   "plugins": [
     {
+      "name": "dingtalk",
+      "source": {
+        "source": "git-subdir",
+        "url": "https://github.com/LuoMingxiang/usora.git",
+        "ref": "marketplace",
+        "path": "./plugins/dingtalk"
+      },
+      "artifact": {
+        "type": "zip",
+        "url": "https://github.com/LuoMingxiang/usora/releases/download/dingtalk-v0.1.0/usora-dingtalk-0.1.0.zip",
+        "checksum": "sha256:pending-dingtalk-0.1.0"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    },
+    {
       "name": "foundry",
       "source": {
         "source": "git-subdir",
@@ -21,7 +40,7 @@
       "artifact": {
         "type": "zip",
         "url": "https://github.com/LuoMingxiang/usora/releases/download/foundry-v1.5.0/usora-foundry-1.5.0.zip",
-        "checksum": "sha256:833269e75dd0d803dc499de61e735cc08498e973224120a38aab8d4d69fce79c"
+        "checksum": "sha256:pending-foundry-1.5.0"
       },
       "policy": {
         "installation": "AVAILABLE",

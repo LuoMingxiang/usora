@@ -1,0 +1,18 @@
+{
+  "name": "dingtalk",
+  "version": "0.1.0",
+  "description": "DingTalk integration foundation for Usora's provider-neutral integration platform.",
+  "author": {
+    "name": "Veyra",
+    "url": "https://github.com/LuoMingxiang",
+    "email": "947617238@qq.com"
+  },
+  "homepage": "https://github.com/LuoMingxiang/usora",
+  "repository": "https://github.com/LuoMingxiang/usora",
+  "license": "MIT",
+  "keywords": ["dingtalk", "integration", "usora", "provider"],
+  "category": "Productivity",
+  "skills": ["./skills/dingtalk"],
+  "mcpServers": "./.codebuddy-plugin/mcp.json",
+  "hooks": "./hooks/codebuddy-hooks.json"
+}

@@ -76,7 +76,7 @@ test("skill_evolve patches similar Skills instead of creating duplicates", async
   assert.deepEqual(evolved.source_patterns, []);
   assert.equal(payload(evolvedResponses[3]).count, 1);
   assert.match(payload(evolvedResponses[4]).content, /Screenshot Check/);
-  assert.ok(payload(evolvedResponses[5]).events.some((event) => event.type === "SkillEvolved"));
+  assert.ok(payload(evolvedResponses[5]).events.some((event) => event.type === "skill.evolved"));
 });
 
 test("skill_evolve supports CREATE, NOOP, SPLIT, and MERGE audit paths", async (t) => {
@@ -108,7 +108,7 @@ test("skill_evolve supports CREATE, NOOP, SPLIT, and MERGE audit paths", async (
   assert.equal(payload(responses[2]).name, "fresh-formatter");
   assert.equal(payload(responses[6]).count, 1);
   const events = payload(responses[7]).events;
-  assert.equal(events.filter((event) => event.type === "SkillEvolutionRecommended").length, 3);
+  assert.equal(events.filter((event) => event.type === "skill.evolution.recommended").length, 3);
 });
 
 test("skill_evolve keeps Candidate gate on create paths", async (t) => {

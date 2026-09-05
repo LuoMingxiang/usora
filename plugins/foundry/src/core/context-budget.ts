@@ -1,5 +1,6 @@
 import fs from "node:fs/promises";
 import path from "node:path";
+import { fromLegacyFoundryEvent, isUsoraEvent, type UsoraEvent } from "@usora/integration";
 import { knowledgeDirPath, now, readJson, writeEvent } from "./storage.ts";
 
 export const STAGE_BUDGETS = {
@@ -30,10 +31,7 @@ type IntelligenceRunArgs = {
   cache_hit?: unknown;
   budget?: unknown;
 };
-type StoredEvent = Record<string, unknown> & {
-  type?: string;
-  data?: Record<string, unknown>;
-};
+type StoredEvent = UsoraEvent<Record<string, unknown> | null>;
 type PatternRecord = {
   candidate_id?: unknown;
 };
@@ -122,15 +120,16 @@ async function readEvents(): Promise<StoredEvent[]> {
   for (const file of await fs.readdir(eventsDir).catch(() => [])) {
     if (!file.endsWith(".json")) continue;
     const item = await readJson(path.join(eventsDir, file));
-    if (isRecord(item)) items.push(item);
+    if (!isRecord(item)) continue;
+    items.push(isUsoraEvent(item) ? (item as StoredEvent) : fromLegacyFoundryEvent(item, { plugin: "foundry" }));
   }
   return items;
 }
 
 export async function handleTelemetryMetrics() {
   const events = await readEvents();
-  const runs = events.filter((event) => event.type === "IntelligenceRun").map((event) => event.data || {});
-  const resolved = events.filter((event) => event.type === "CandidateResolved").map((event) => event.data || {});
+  const runs = events.filter((event) => event.type === "intelligence.run").map((event) => event.data || {});
+  const resolved = events.filter((event) => event.type === "candidate.resolved").map((event) => event.data || {});
   const rawPatternIndex = await readJson(path.join(await knowledgeDirPath("indexes"), "patterns.json")).catch(
     () => null,
   );

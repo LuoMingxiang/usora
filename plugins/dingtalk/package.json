@@ -1,0 +1,17 @@
+{
+  "name": "@usora/dingtalk",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "bun ../../tooling/build-plugin.ts dingtalk",
+    "package": "bun ../../tooling/package-plugin.ts dingtalk",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@usora/integration": "workspace:*",
+    "@usora/plugin-sdk": "workspace:*",
+    "@usora/types": "workspace:*",
+    "dingtalk-stream": "2.1.7-beta.1"
+  }
+}

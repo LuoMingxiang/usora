@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "name": "dingtalk",
+  "displayName": "Usora DingTalk",
+  "version": "0.1.0",
+  "description": "DingTalk integration foundation for Usora's provider-neutral integration platform.",
+  "runtime": {
+    "node": ">=20"
+  },
+  "entrypoints": {
+    "mcp": "dist/mcp.js",
+    "sessionHook": "dist/session-hook.js"
+  },
+  "author": {
+    "name": "Veyra",
+    "url": "https://github.com/LuoMingxiang",
+    "email": "947617238@qq.com"
+  },
+  "homepage": "https://github.com/LuoMingxiang/usora",
+  "repository": "https://github.com/LuoMingxiang/usora",
+  "license": "MIT",
+  "keywords": ["dingtalk", "integration", "usora", "provider"],
+  "category": "Productivity",
+  "skills": ["./skills/dingtalk"],
+  "mcpServers": "./.mcp.json",
+  "interface": {
+    "displayName": "Usora DingTalk",
+    "shortDescription": "Connect Usora integration events to DingTalk.",
+    "longDescription": "Usora DingTalk provides the DingTalk plugin foundation for Usora's provider-neutral integration runtime.",
+    "developerName": "Veyra",
+    "category": "Productivity",
+    "websiteURL": "https://github.com/LuoMingxiang/usora",
+    "capabilities": ["DingTalk", "Integration runtime", "Provider foundation"],
+    "defaultPrompt": ["Inspect DingTalk integration status"],
+    "composerIcon": "./assets/logo.txt",
+    "logo": "./assets/logo.txt"
+  }
+}

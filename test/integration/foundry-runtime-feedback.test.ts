@@ -63,7 +63,7 @@ test("usage_capture records outcomes and updates Skill metrics", async (t) => {
   assert.equal(summary.usage_count, 4);
   assert.equal(summary.last_used_at, captured.skill.last_used_at);
   assert.equal((await readdir(path.join(cwd, ".usora", "usage"))).length, 4);
-  assert.ok(payload(responses[7]).events.some((event) => event.type === "UsageCaptured"));
+  assert.ok(payload(responses[7]).events.some((event) => event.type === "usage.captured"));
 });
 
 test("usage_capture validates Skill and outcome", async (t) => {
