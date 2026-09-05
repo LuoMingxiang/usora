@@ -4,22 +4,91 @@
 import readline from "node:readline";
 import { readFileSync } from "node:fs";
 import { fileURLToPath as fileURLToPath3 } from "node:url";
-import path20 from "node:path";
+import path21 from "node:path";
 
 // plugins/foundry/src/core/storage.ts
 import fs from "node:fs/promises";
 import os from "node:os";
-import path from "node:path";
+import path2 from "node:path";
 import crypto from "node:crypto";
 import { fileURLToPath } from "node:url";
-var runtimeDir = path.dirname(fileURLToPath(import.meta.url));
-var runtimePluginRoot = path.basename(runtimeDir) === "dist" ? path.resolve(runtimeDir, "..") : path.resolve(runtimeDir, "..", "..");
+// packages/integration/src/events.ts
+import { randomUUID } from "node:crypto";
+import path from "node:path";
+var USORA_EVENT_SCHEMA_VERSION = 1;
+var LEGACY_FOUNDRY_EVENT_TYPE_MAP = {
+  ActivityCreated: "activity.created",
+  ActivityUpdated: "activity.updated",
+  CandidateCreated: "candidate.created",
+  CandidateResolved: "candidate.resolved",
+  ReviewSubmitted: "candidate.updated",
+  SkillDraftCreated: "skill.draft.created",
+  SkillEvolved: "skill.evolved",
+  SkillEvolutionRecommended: "skill.evolution.recommended",
+  SkillEvaluationCompleted: "skill.evaluation.completed",
+  SkillPublished: "skill.published",
+  GovernanceResolved: "governance.resolved",
+  UsageCaptured: "usage.captured",
+  PatternIndexUpdated: "pattern.index.updated",
+  IntelligenceRun: "intelligence.run",
+  ContextBudgetOverflow: "context.budget.overflow",
+  HubMigrated: "hub.migrated",
+  HubMigrationFailed: "hub.migration.failed"
+};
+function isRecord(value) {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
+function stringValue(value) {
+  return typeof value === "string" && value.length > 0 ? value : null;
+}
+function legacyEventId(input) {
+  const id = stringValue(input.id);
+  if (id)
+    return id;
+  const file = stringValue(input.file);
+  if (file)
+    return path.basename(file, ".json");
+  return `event-${randomUUID()}`;
+}
+function createUsoraEvent(input) {
+  return {
+    id: input.id ?? `event-${randomUUID()}`,
+    schemaVersion: input.schemaVersion ?? USORA_EVENT_SCHEMA_VERSION,
+    occurredAt: input.occurredAt ?? new Date().toISOString(),
+    type: input.type,
+    producer: input.producer,
+    data: input.data,
+    ...input.actor ? { actor: input.actor } : {},
+    ...input.subject ? { subject: input.subject } : {},
+    ...input.metadata ? { metadata: input.metadata } : {}
+  };
+}
+function normalizeEventType(type) {
+  return LEGACY_FOUNDRY_EVENT_TYPE_MAP[type] ?? type;
+}
+function fromLegacyFoundryEvent(input, producer = { plugin: "foundry" }) {
+  return createUsoraEvent({
+    id: legacyEventId(input),
+    schemaVersion: Number(input.schema_version) || USORA_EVENT_SCHEMA_VERSION,
+    type: normalizeEventType(stringValue(input.type) ?? "unknown"),
+    occurredAt: stringValue(input.timestamp) ?? new Date(0).toISOString(),
+    producer,
+    data: input.data ?? null,
+    metadata: { legacyType: input.type ?? null, legacySchemaVersion: input.schema_version ?? null }
+  });
+}
+function isUsoraEvent(value) {
+  return isRecord(value) && typeof value.id === "string" && typeof value.schemaVersion === "number" && typeof value.type === "string" && typeof value.occurredAt === "string" && isRecord(value.producer) && typeof value.producer.plugin === "string" && "data" in value;
+}
+// plugins/foundry/src/core/storage.ts
+var runtimeDir = path2.dirname(fileURLToPath(import.meta.url));
+var runtimePluginRoot = path2.basename(runtimeDir) === "dist" ? path2.resolve(runtimeDir, "..") : path2.resolve(runtimeDir, "..", "..");
 var lowerRuntimePluginRoot = runtimePluginRoot.toLowerCase();
-var isCodeBuddyInstall = lowerRuntimePluginRoot.includes(path.join(".codebuddy", "plugins", "marketplaces").toLowerCase());
-var isCodexInstall = lowerRuntimePluginRoot.includes(path.join(".codex", "plugins", "cache").toLowerCase());
-var anchorHome = process.env.CODEBUDDY_PLUGIN_DATA ? path.resolve(process.env.CODEBUDDY_PLUGIN_DATA, ".usora") : process.env.PLUGIN_DATA ? path.resolve(process.env.PLUGIN_DATA, ".usora") : process.env.CODEBUDDY_PLUGIN_ROOT || isCodeBuddyInstall ? path.join(os.homedir(), ".codebuddy", "plugins", "data", "usora", ".usora") : process.env.CLAUDE_PLUGIN_ROOT || isCodexInstall ? path.join(os.homedir(), ".codex", "plugins", "data", "usora", ".usora") : path.resolve(process.cwd(), ".usora");
+var isCodeBuddyInstall = lowerRuntimePluginRoot.includes(path2.join(".codebuddy", "plugins", "marketplaces").toLowerCase());
+var isCodexInstall = lowerRuntimePluginRoot.includes(path2.join(".codex", "plugins", "cache").toLowerCase());
+var anchorHome = process.env.CODEBUDDY_PLUGIN_DATA ? path2.resolve(process.env.CODEBUDDY_PLUGIN_DATA, ".usora") : process.env.PLUGIN_DATA ? path2.resolve(process.env.PLUGIN_DATA, ".usora") : process.env.CODEBUDDY_PLUGIN_ROOT || isCodeBuddyInstall ? path2.join(os.homedir(), ".codebuddy", "plugins", "data", "usora", ".usora") : process.env.CLAUDE_PLUGIN_ROOT || isCodexInstall ? path2.join(os.homedir(), ".codex", "plugins", "data", "usora", ".usora") : path2.resolve(process.cwd(), ".usora");
 var hostHomeSource = process.env.CODEBUDDY_PLUGIN_DATA || process.env.PLUGIN_DATA ? "host_plugin_data" : process.env.CODEBUDDY_PLUGIN_ROOT || process.env.CLAUDE_PLUGIN_ROOT || isCodeBuddyInstall || isCodexInstall ? "host_plugin_data" : "development";
-var knowledgeHome = process.env.USORA_HOME ? path.resolve(process.env.USORA_HOME) : hostHomeSource === "development" ? anchorHome : path.join(os.homedir(), ".usora");
+var knowledgeHome = process.env.USORA_HOME ? path2.resolve(process.env.USORA_HOME) : hostHomeSource === "development" ? anchorHome : path2.join(os.homedir(), ".usora");
 var _knowledgeHomeSource = process.env.USORA_HOME ? "environment" : hostHomeSource === "development" ? "development" : "default";
 var processSessionId = `session-${Date.now().toString(16).padStart(12, "0")}-${crypto.randomBytes(16).toString("hex")}`;
 var HUB_SCHEMA_VERSION = 2;
@@ -50,7 +119,7 @@ var now = () => new Date().toISOString();
 var newId = (prefix) => `${prefix}-${crypto.randomBytes(5).toString("hex")}`;
 async function resolveHome(config) {
   const cfg = config || await loadConfig();
-  return typeof cfg.hub_path === "string" && cfg.hub_path ? path.resolve(cfg.hub_path) : anchorHome;
+  return typeof cfg.hub_path === "string" && cfg.hub_path ? path2.resolve(cfg.hub_path) : anchorHome;
 }
 async function resolveHostHome(config) {
   return resolveHome(config);
@@ -59,17 +128,17 @@ async function resolveKnowledgeHome() {
   return knowledgeHome;
 }
 async function hostDirPath(dir) {
-  return path.join(await resolveHostHome(), dir);
+  return path2.join(await resolveHostHome(), dir);
 }
 async function knowledgeDirPath(dir) {
-  return path.join(await resolveKnowledgeHome(), dir);
+  return path2.join(await resolveKnowledgeHome(), dir);
 }
 async function ensure() {
   const host = await resolveHostHome();
   const knowledge = await resolveKnowledgeHome();
   await Promise.all([
-    ...HOST_DIRS.map((dir) => fs.mkdir(path.join(host, dir), { recursive: true })),
-    ...KNOWLEDGE_DIRS.map((dir) => fs.mkdir(path.join(knowledge, dir), { recursive: true }))
+    ...HOST_DIRS.map((dir) => fs.mkdir(path2.join(host, dir), { recursive: true })),
+    ...KNOWLEDGE_DIRS.map((dir) => fs.mkdir(path2.join(knowledge, dir), { recursive: true }))
   ]);
 }
 async function readJson(file, fallback = null) {
@@ -88,31 +157,31 @@ async function exists(file) {
   }
 }
 function isInside(parent, child) {
-  const rel = path.relative(parent, child);
-  return rel === "" || !!rel && !rel.startsWith("..") && !path.isAbsolute(rel);
+  const rel = path2.relative(parent, child);
+  return rel === "" || !!rel && !rel.startsWith("..") && !path2.isAbsolute(rel);
 }
 async function copyHubData(sourceHome, targetHome) {
-  if (path.resolve(sourceHome) === path.resolve(targetHome))
+  if (path2.resolve(sourceHome) === path2.resolve(targetHome))
     return;
   for (const dir of DIRS) {
-    const src = path.join(sourceHome, dir);
+    const src = path2.join(sourceHome, dir);
     if (!await exists(src))
       continue;
-    await fs.mkdir(path.join(targetHome, dir), { recursive: true });
-    await fs.cp(src, path.join(targetHome, dir), { recursive: true, force: false, errorOnExist: false });
+    await fs.mkdir(path2.join(targetHome, dir), { recursive: true });
+    await fs.cp(src, path2.join(targetHome, dir), { recursive: true, force: false, errorOnExist: false });
   }
 }
 async function migrateLegacyConfig() {
-  const currentConfig = path.join(anchorHome, "config.json");
+  const currentConfig = path2.join(anchorHome, "config.json");
   if (await exists(currentConfig))
     return null;
-  const legacyHomes = [path.join(runtimePluginRoot, ".usora"), path.resolve(process.cwd(), ".usora")];
+  const legacyHomes = [path2.join(runtimePluginRoot, ".usora"), path2.resolve(process.cwd(), ".usora")];
   for (const legacyHome of legacyHomes) {
-    const config = await readJson(path.join(legacyHome, "config.json"));
+    const config = await readJson(path2.join(legacyHome, "config.json"));
     if (!isObject(config))
       continue;
-    const legacyHub = typeof config.hub_path === "string" && config.hub_path ? path.resolve(config.hub_path) : legacyHome;
-    if (legacyHome !== path.join(runtimePluginRoot, ".usora") && !isInside(runtimePluginRoot, legacyHub))
+    const legacyHub = typeof config.hub_path === "string" && config.hub_path ? path2.resolve(config.hub_path) : legacyHome;
+    if (legacyHome !== path2.join(runtimePluginRoot, ".usora") && !isInside(runtimePluginRoot, legacyHub))
       continue;
     await copyHubData(legacyHub, anchorHome);
     const next = { ...config };
@@ -131,8 +200,18 @@ async function writeJson(file, value) {
   await fs.rename(tmp, file);
 }
 async function writeEvent(type, data) {
-  const file = path.join(await knowledgeDirPath("events"), `${Date.now()}-${newId("event")}.json`);
-  await writeJson(file, { schema_version: EVENT_SCHEMA_VERSION, type, timestamp: now(), data });
+  const id = newId("event");
+  const normalizedType = normalizeEventType(type);
+  const file = path2.join(await knowledgeDirPath("events"), `${Date.now()}-${id}.json`);
+  await writeJson(file, createUsoraEvent({
+    id,
+    schemaVersion: EVENT_SCHEMA_VERSION,
+    type: normalizedType,
+    occurredAt: now(),
+    producer: { plugin: "foundry" },
+    data,
+    ...normalizedType === type ? {} : { metadata: { legacyType: type } }
+  }));
 }
 function normalizeConfig(value) {
   return {
@@ -151,7 +230,7 @@ async function loadConfig() {
   const migrated = await migrateLegacyConfig();
   if (migrated)
     return migrated;
-  const config = await readJson(path.join(anchorHome, "config.json"), {
+  const config = await readJson(path2.join(anchorHome, "config.json"), {
     maintainer: "codex",
     automation_policy: "manual_approval",
     version: HUB_SCHEMA_VERSION,
@@ -163,13 +242,13 @@ async function loadConfig() {
 async function saveConfig(value) {
   const next = normalizeConfig(value);
   await fs.mkdir(anchorHome, { recursive: true });
-  await writeJson(path.join(anchorHome, "config.json"), next);
+  await writeJson(path2.join(anchorHome, "config.json"), next);
   return next;
 }
 
 // plugins/foundry/src/core/activities.ts
 import fs2 from "node:fs/promises";
-import path3 from "node:path";
+import path4 from "node:path";
 
 // plugins/foundry/src/core/intelligence/digest.ts
 var LIMITS = {
@@ -231,7 +310,7 @@ function buildActivityFingerprint(activity) {
 }
 
 // plugins/foundry/src/core/validation.ts
-import path2 from "node:path";
+import path3 from "node:path";
 function requireString(value, field) {
   if (typeof value !== "string") {
     throw Error(`${field} is required`);
@@ -246,8 +325,8 @@ function safeName(value, field) {
   return name;
 }
 function isInside2(parent, child) {
-  const rel = path2.relative(parent, child);
-  return Boolean(rel) && !rel.startsWith("..") && !path2.isAbsolute(rel);
+  const rel = path3.relative(parent, child);
+  return Boolean(rel) && !rel.startsWith("..") && !path3.isAbsolute(rel);
 }
 function mergeUnique(left, right) {
   return [...new Set([...left || [], ...right || []])];
@@ -258,7 +337,7 @@ function listLimit(value) {
 
 // plugins/foundry/src/core/activities.ts
 var RECENT_UPDATE_LIMIT = 10;
-function isRecord(value) {
+function isRecord2(value) {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
 }
 async function findActivityBySession(sessionId) {
@@ -266,8 +345,8 @@ async function findActivityBySession(sessionId) {
   for (const file of await fs2.readdir(dir).catch(() => [])) {
     if (!file.endsWith(".json"))
       continue;
-    const item = await readJson(path3.join(dir, file));
-    if (!isRecord(item))
+    const item = await readJson(path4.join(dir, file));
+    if (!isRecord2(item))
       continue;
     if (item?.session_id === sessionId)
       return { file, item };
@@ -280,8 +359,8 @@ async function readActivities() {
   for (const file of await fs2.readdir(activitiesDir).catch(() => [])) {
     if (!file.endsWith(".json"))
       continue;
-    const item = await readJson(path3.join(activitiesDir, file));
-    if (isRecord(item))
+    const item = await readJson(path4.join(activitiesDir, file));
+    if (isRecord2(item))
       items.push(item);
   }
   return items;
@@ -373,7 +452,7 @@ async function captureActivity(args, options = {}) {
   item.fingerprint = fingerprint.value;
   item.digest = buildActivityDigest(item);
   const file = existing?.file || `${item.id}.json`;
-  await writeJson(path3.join(await hostDirPath("activities"), file), item);
+  await writeJson(path4.join(await hostDirPath("activities"), file), item);
   await writeEvent(existing ? "ActivityUpdated" : "ActivityCreated", item);
   return { ...item, merged: Boolean(existing) };
 }
@@ -415,19 +494,19 @@ async function handleActivityQuery(args = {}) {
 }
 async function handleActivityGet(args = {}) {
   const id = safeName(args.id, "id");
-  const activity = await readJson(path3.join(await hostDirPath("activities"), `${id}.json`));
-  if (!isRecord(activity))
+  const activity = await readJson(path4.join(await hostDirPath("activities"), `${id}.json`));
+  if (!isRecord2(activity))
     throw Error("Activity not found");
   return pickFields(activity, args.fields);
 }
 
 // plugins/foundry/src/core/candidates.ts
 import fs7 from "node:fs/promises";
-import path10 from "node:path";
+import path11 from "node:path";
 
 // plugins/foundry/src/core/context-budget.ts
 import fs3 from "node:fs/promises";
-import path4 from "node:path";
+import path5 from "node:path";
 var STAGE_BUDGETS = {
   pattern_judge: { required: 1200, recommended: 1200, optional: 600 },
   candidate_resolver: { required: 1600, recommended: 1600, optional: 800 },
@@ -447,7 +526,7 @@ function average(values) {
 function numberValue(value) {
   return typeof value === "number" ? value : 0;
 }
-function isRecord2(value) {
+function isRecord3(value) {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
 }
 function partReport(stage, parts = {}) {
@@ -507,18 +586,19 @@ async function readEvents() {
   for (const file of await fs3.readdir(eventsDir).catch(() => [])) {
     if (!file.endsWith(".json"))
       continue;
-    const item = await readJson(path4.join(eventsDir, file));
-    if (isRecord2(item))
-      items.push(item);
+    const item = await readJson(path5.join(eventsDir, file));
+    if (!isRecord3(item))
+      continue;
+    items.push(isUsoraEvent(item) ? item : fromLegacyFoundryEvent(item, { plugin: "foundry" }));
   }
   return items;
 }
 async function handleTelemetryMetrics() {
-  const events = await readEvents();
-  const runs = events.filter((event) => event.type === "IntelligenceRun").map((event) => event.data || {});
-  const resolved = events.filter((event) => event.type === "CandidateResolved").map((event) => event.data || {});
-  const rawPatternIndex = await readJson(path4.join(await knowledgeDirPath("indexes"), "patterns.json")).catch(() => null);
-  const patternIndex = isRecord2(rawPatternIndex) ? rawPatternIndex : {};
+  const events2 = await readEvents();
+  const runs = events2.filter((event) => event.type === "intelligence.run").map((event) => event.data || {});
+  const resolved = events2.filter((event) => event.type === "candidate.resolved").map((event) => event.data || {});
+  const rawPatternIndex = await readJson(path5.join(await knowledgeDirPath("indexes"), "patterns.json")).catch(() => null);
+  const patternIndex = isRecord3(rawPatternIndex) ? rawPatternIndex : {};
   const patterns = Array.isArray(patternIndex.patterns) ? patternIndex.patterns : [];
   return {
     runs: runs.length,
@@ -535,7 +615,7 @@ async function handleTelemetryMetrics() {
 
 // plugins/foundry/src/core/lock.ts
 import fs4 from "node:fs/promises";
-import path5 from "node:path";
+import path6 from "node:path";
 var STALE_LOCK_MS = 30000;
 var heldLocks = new Set;
 async function sleep(ms) {
@@ -544,9 +624,9 @@ async function sleep(ms) {
 async function withKnowledgeLock(name, fn) {
   if (heldLocks.has(name))
     return fn();
-  const locksDir = path5.join(await knowledgeDirPath("indexes"), "locks");
+  const locksDir = path6.join(await knowledgeDirPath("indexes"), "locks");
   await fs4.mkdir(locksDir, { recursive: true });
-  const file = path5.join(locksDir, `${name}.lock`);
+  const file = path6.join(locksDir, `${name}.lock`);
   for (let attempt = 0;attempt < 100; attempt++) {
     let handle = null;
     try {
@@ -577,16 +657,16 @@ async function withKnowledgeLock(name, fn) {
 
 // plugins/foundry/src/core/patterns.ts
 import fs6 from "node:fs/promises";
-import path9 from "node:path";
+import path10 from "node:path";
 
 // plugins/foundry/src/sources/registry.ts
 import os2 from "node:os";
-import path7 from "node:path";
+import path8 from "node:path";
 
 // plugins/foundry/src/sources/local-activity-source.ts
 import fs5 from "node:fs/promises";
-import path6 from "node:path";
-function isRecord3(value) {
+import path7 from "node:path";
+function isRecord4(value) {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
 }
 async function exists2(dir) {
@@ -612,7 +692,7 @@ class LocalActivitySource {
   }
   async activitiesPath() {
     const root = await this.root();
-    return root ? path6.join(root, "activities") : null;
+    return root ? path7.join(root, "activities") : null;
   }
   async discover() {
     const dir = await this.activitiesPath();
@@ -626,8 +706,8 @@ class LocalActivitySource {
     for (const file of await fs5.readdir(dir).catch(() => [])) {
       if (!file.endsWith(".json"))
         continue;
-      const activity = await readJson(path6.join(dir, file));
-      if (!isRecord3(activity) || !activity.fingerprint || !isRecord3(activity.digest))
+      const activity = await readJson(path7.join(dir, file));
+      if (!isRecord4(activity) || !activity.fingerprint || !isRecord4(activity.digest))
         continue;
       if (activity.state === "ARCHIVED")
         continue;
@@ -637,18 +717,18 @@ class LocalActivitySource {
   }
 }
 async function currentHostRoot() {
-  return path6.dirname(await hostDirPath("activities"));
+  return path7.dirname(await hostDirPath("activities"));
 }
 
 // plugins/foundry/src/sources/registry.ts
 function envPath(name) {
-  return process.env[name] ? path7.resolve(process.env[name]) : null;
+  return process.env[name] ? path8.resolve(process.env[name]) : null;
 }
 function codebuddyRoot() {
-  return path7.join(os2.homedir(), ".codebuddy", "plugins", "data", "usora", ".usora");
+  return path8.join(os2.homedir(), ".codebuddy", "plugins", "data", "usora", ".usora");
 }
 function codexRoot() {
-  return path7.join(os2.homedir(), ".codex", "plugins", "data", "usora", ".usora");
+  return path8.join(os2.homedir(), ".codex", "plugins", "data", "usora", ".usora");
 }
 function currentHost() {
   return process.env.CODEBUDDY_PLUGIN_DATA || process.env.CODEBUDDY_PLUGIN_ROOT ? "codebuddy" : "codex";
@@ -668,7 +748,7 @@ async function discoverActivitySources() {
     const root = await source.root();
     if (!root)
       continue;
-    const key = path7.resolve(root).toLowerCase();
+    const key = path8.resolve(root).toLowerCase();
     if (seen.has(key))
       continue;
     seen.add(key);
@@ -682,7 +762,7 @@ async function describeActivitySources() {
   const result = [];
   for (const source of activitySources()) {
     const root = await source.root();
-    const key = root ? path7.resolve(root).toLowerCase() : `${source.id}:missing`;
+    const key = root ? path8.resolve(root).toLowerCase() : `${source.id}:missing`;
     if (seen.has(key))
       continue;
     seen.add(key);
@@ -698,9 +778,9 @@ async function describeActivitySources() {
 }
 
 // plugins/foundry/src/sources/ingestion-state.ts
-import path8 from "node:path";
+import path9 from "node:path";
 async function ingestionStatePath() {
-  return path8.join(await knowledgeDirPath("indexes"), "ingestion.json");
+  return path9.join(await knowledgeDirPath("indexes"), "ingestion.json");
 }
 async function loadIngestionState() {
   const state = await readJson(await ingestionStatePath());
@@ -712,20 +792,20 @@ async function saveIngestionState(state) {
 
 // plugins/foundry/src/core/patterns.ts
 var PATTERNS_FILE = "patterns.json";
-function isRecord4(value) {
+function isRecord5(value) {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
 }
 function asPatternIndex(value) {
-  if (!isRecord4(value) || !Array.isArray(value.patterns)) {
+  if (!isRecord5(value) || !Array.isArray(value.patterns)) {
     return { schema_version: PATTERN_SCHEMA_VERSION, patterns: [] };
   }
-  return { schema_version: PATTERN_SCHEMA_VERSION, patterns: value.patterns.filter(isRecord4) };
+  return { schema_version: PATTERN_SCHEMA_VERSION, patterns: value.patterns.filter(isRecord5) };
 }
 function unique(values) {
   return [...new Set(values.filter(Boolean))];
 }
 async function patternsPath() {
-  return path9.join(await knowledgeDirPath("indexes"), PATTERNS_FILE);
+  return path10.join(await knowledgeDirPath("indexes"), PATTERNS_FILE);
 }
 async function readPatterns() {
   return asPatternIndex(await readJson(await patternsPath(), { schema_version: PATTERN_SCHEMA_VERSION, patterns: [] }));
@@ -746,13 +826,13 @@ async function linkPatternCandidate(fingerprint, candidateId) {
   return pattern;
 }
 async function readLegacyActivities({ includeIndexed = false } = {}) {
-  const activitiesDir = path9.join(path9.dirname(await knowledgeDirPath("indexes")), "activities");
+  const activitiesDir = path10.join(path10.dirname(await knowledgeDirPath("indexes")), "activities");
   const items = [];
   for (const file of await fs6.readdir(activitiesDir).catch(() => [])) {
     if (!file.endsWith(".json"))
       continue;
-    const item = await readJson(path9.join(activitiesDir, file));
-    if (!isRecord4(item) || !item.fingerprint || !isRecord4(item.digest))
+    const item = await readJson(path10.join(activitiesDir, file));
+    if (!isRecord5(item) || !item.fingerprint || !isRecord5(item.digest))
       continue;
     if (!includeIndexed && item.state !== "NEW")
       continue;
@@ -781,7 +861,7 @@ function pickFields2(item, fields) {
   return Object.fromEntries(fields.filter((field) => typeof field === "string" && (field in item)).map((field) => [field, item[field]]));
 }
 function patternFromActivity(activity) {
-  const digest = isRecord4(activity.digest) ? activity.digest : {};
+  const digest = isRecord5(activity.digest) ? activity.digest : {};
   return {
     schema_version: PATTERN_SCHEMA_VERSION,
     fingerprint: activity.fingerprint,
@@ -804,7 +884,7 @@ function patternFromActivity(activity) {
 function upsertPattern(patterns, record) {
   const { source } = record;
   const activity = record.activity;
-  const digest = isRecord4(activity.digest) ? activity.digest : {};
+  const digest = isRecord5(activity.digest) ? activity.digest : {};
   let pattern = patterns.find((item) => item.fingerprint === activity.fingerprint);
   if (!pattern) {
     pattern = patternFromActivity(activity);
@@ -944,7 +1024,7 @@ async function handlePatternGet(args = {}) {
 }
 
 // plugins/foundry/src/core/candidates.ts
-function isRecord5(value) {
+function isRecord6(value) {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
 }
 function asArray(value) {
@@ -954,7 +1034,7 @@ function text(value) {
   return typeof value === "string" ? value : "";
 }
 function normalizeEvidence(evidence = []) {
-  return asArray(evidence).map((item) => typeof item === "string" ? { activity_id: item, reason: "" } : { ...isRecord5(item) ? item : {} });
+  return asArray(evidence).map((item) => typeof item === "string" ? { activity_id: item, reason: "" } : { ...isRecord6(item) ? item : {} });
 }
 function words(value) {
   return new Set(String(value || "").toLowerCase().replace(/[^\p{L}\p{N}]+/gu, " ").trim().split(/\s+/).filter(Boolean));
@@ -1008,8 +1088,8 @@ async function readCandidates() {
   for (const file of await fs7.readdir(candidatesDir).catch(() => [])) {
     if (!file.endsWith(".json"))
       continue;
-    const item = await readJson(path10.join(candidatesDir, file));
-    if (isRecord5(item))
+    const item = await readJson(path11.join(candidatesDir, file));
+    if (isRecord6(item))
       items.push(item);
   }
   return items;
@@ -1018,8 +1098,8 @@ async function readSkills() {
   const skillsDir = await knowledgeDirPath("skills");
   const items = [];
   for (const dir of await fs7.readdir(skillsDir).catch(() => [])) {
-    const item = await readJson(path10.join(skillsDir, dir, "skill.json"));
-    if (!isRecord5(item))
+    const item = await readJson(path11.join(skillsDir, dir, "skill.json"));
+    if (!isRecord6(item))
       continue;
     const { content: _content, ...summary } = item;
     items.push(summary);
@@ -1064,7 +1144,7 @@ async function createCandidate(args) {
     updated_at: now(),
     state: args.state || "OPEN"
   };
-  await writeJson(path10.join(await knowledgeDirPath("candidates"), `${item.id}.json`), item);
+  await writeJson(path11.join(await knowledgeDirPath("candidates"), `${item.id}.json`), item);
   await writeEvent("CandidateCreated", item);
   return item;
 }
@@ -1108,8 +1188,8 @@ async function handleCandidateQuery(args = {}) {
 }
 async function handleCandidateGet(args = {}) {
   const id = safeName(args.id, "id");
-  const candidate = await readJson(path10.join(await knowledgeDirPath("candidates"), `${id}.json`));
-  if (!isRecord5(candidate))
+  const candidate = await readJson(path11.join(await knowledgeDirPath("candidates"), `${id}.json`));
+  if (!isRecord6(candidate))
     throw Error("Candidate not found");
   return pickFields3(candidate, args.fields);
 }
@@ -1207,9 +1287,9 @@ async function handleCandidateEvaluate(args) {
   return withKnowledgeLock("candidates", () => evaluateCandidate(args));
 }
 async function evaluateCandidate(args) {
-  const file = path10.join(await knowledgeDirPath("candidates"), `${safeName(args.id, "id")}.json`);
+  const file = path11.join(await knowledgeDirPath("candidates"), `${safeName(args.id, "id")}.json`);
   const item = await readJson(file);
-  if (!isRecord5(item))
+  if (!isRecord6(item))
     throw Error("Candidate not found");
   item.evaluation = {
     result: args.result,
@@ -1224,7 +1304,14 @@ async function evaluateCandidate(args) {
 
 // plugins/foundry/src/core/events.ts
 import fs8 from "node:fs/promises";
-import path11 from "node:path";
+import path12 from "node:path";
+function normalizeStoredEvent(item, file) {
+  if (!item || typeof item !== "object" || Array.isArray(item))
+    return null;
+  if (isUsoraEvent(item))
+    return { ...item, file };
+  return { ...fromLegacyFoundryEvent({ ...item, file }), file };
+}
 async function handleEventList(args = {}) {
   const limit = listLimit(args.limit);
   const eventsDir = await knowledgeDirPath("events");
@@ -1232,22 +1319,23 @@ async function handleEventList(args = {}) {
   for (const file of await fs8.readdir(eventsDir).catch(() => [])) {
     if (!file.endsWith(".json"))
       continue;
-    const item = await readJson(path11.join(eventsDir, file));
-    if (item && typeof item === "object" && !Array.isArray(item))
-      items.push({ ...item, file });
+    const item = await readJson(path12.join(eventsDir, file));
+    const event = normalizeStoredEvent(item, file);
+    if (event)
+      items.push(event);
   }
-  items.sort((a, b) => (b.timestamp || "").localeCompare(a.timestamp || ""));
+  items.sort((a, b) => b.occurredAt.localeCompare(a.occurredAt));
   return { count: items.length, events: items.slice(0, limit) };
 }
 
 // plugins/foundry/src/core/governance.ts
-import path13 from "node:path";
+import path14 from "node:path";
 
 // plugins/foundry/src/core/skill-index.ts
 import fs9 from "node:fs/promises";
-import path12 from "node:path";
+import path13 from "node:path";
 var SKILL_INDEX_FILE = "skills.json";
-function isRecord6(value) {
+function isRecord7(value) {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
 }
 function words2(value) {
@@ -1272,14 +1360,14 @@ function skillSummary(meta) {
   return summary;
 }
 async function skillIndexPath() {
-  return path12.join(await knowledgeDirPath("indexes"), SKILL_INDEX_FILE);
+  return path13.join(await knowledgeDirPath("indexes"), SKILL_INDEX_FILE);
 }
 async function readSkillMetadata() {
   const skillsDir = await knowledgeDirPath("skills");
   const items = [];
   for (const dir of await fs9.readdir(skillsDir).catch(() => [])) {
-    const meta = await readJson(path12.join(skillsDir, dir, "skill.json"));
-    if (isRecord6(meta))
+    const meta = await readJson(path13.join(skillsDir, dir, "skill.json"));
+    if (isRecord7(meta))
       items.push(skillSummary(meta));
   }
   return items;
@@ -1321,7 +1409,7 @@ async function handleSkillIndex(args = {}) {
 // plugins/foundry/src/core/governance.ts
 var RESOLUTIONS = ["KEEP", "EVOLVE", "MERGE", "DEPRECATE", "RETIRE"];
 var DESTRUCTIVE = new Set(["MERGE", "DEPRECATE", "RETIRE"]);
-function isRecord7(value) {
+function isRecord8(value) {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
 }
 function arrayOfStrings(value) {
@@ -1331,7 +1419,7 @@ function skillName(skill) {
   return typeof skill.name === "string" ? skill.name : "";
 }
 async function skillsForGovernance() {
-  return (await readSkillMetadata()).filter(isRecord7);
+  return (await readSkillMetadata()).filter(isRecord8);
 }
 function words3(value) {
   return new Set(String(value || "").toLowerCase().replace(/[^\p{L}\p{N}]+/gu, " ").trim().split(/\s+/).filter(Boolean));
@@ -1353,9 +1441,9 @@ function successRate(skill) {
 }
 async function skillRecord(name) {
   const skillName2 = safeName(name, "name");
-  const file = path13.join(await knowledgeDirPath("skills"), skillName2, "skill.json");
+  const file = path14.join(await knowledgeDirPath("skills"), skillName2, "skill.json");
   const meta = await readJson(file);
-  if (!isRecord7(meta))
+  if (!isRecord8(meta))
     throw Error("Skill not found");
   return { file, meta };
 }
@@ -1464,19 +1552,19 @@ async function handleSkillGraphValidate() {
 
 // plugins/foundry/src/core/hub.ts
 import fs11 from "node:fs/promises";
-import path15 from "node:path";
+import path16 from "node:path";
 
 // plugins/foundry/src/core/migration.ts
 import fs10 from "node:fs/promises";
-import path14 from "node:path";
-function isRecord8(value) {
+import path15 from "node:path";
+function isRecord9(value) {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
 }
 function needsMigration(config) {
   return Number(config?.hub_schema_version || config?.version || 1) < HUB_SCHEMA_VERSION;
 }
 async function countJsonFiles(home, dir) {
-  const root = path14.join(home, dir);
+  const root = path15.join(home, dir);
   let count = 0;
   for (const file of await fs10.readdir(root).catch(() => [])) {
     if (file.endsWith(".json"))
@@ -1486,36 +1574,36 @@ async function countJsonFiles(home, dir) {
 }
 async function backupHub(home) {
   const stamp = new Date().toISOString().replace(/[:.]/g, "-");
-  const backup = path14.join(home, "backups", `migration-v1-to-v2-${stamp}`);
+  const backup = path15.join(home, "backups", `migration-v1-to-v2-${stamp}`);
   await fs10.mkdir(backup, { recursive: true });
   for (const dir of DIRS) {
     if (dir === "backups")
       continue;
-    await fs10.cp(path14.join(home, dir), path14.join(backup, dir), { recursive: true, force: true }).catch(() => {});
+    await fs10.cp(path15.join(home, dir), path15.join(backup, dir), { recursive: true, force: true }).catch(() => {});
   }
-  await fs10.cp(path14.join(anchorHome, "config.json"), path14.join(backup, "config.json"), { force: true });
+  await fs10.cp(path15.join(anchorHome, "config.json"), path15.join(backup, "config.json"), { force: true });
   return backup;
 }
 async function ensureKnowledgeDirs(home) {
-  await Promise.all(KNOWLEDGE_DIRS.map((dir) => fs10.mkdir(path14.join(home, dir), { recursive: true })));
+  await Promise.all(KNOWLEDGE_DIRS.map((dir) => fs10.mkdir(path15.join(home, dir), { recursive: true })));
 }
 async function restoreHub(home, backup) {
   for (const dir of DIRS) {
     if (dir === "backups")
       continue;
-    await fs10.rm(path14.join(home, dir), { recursive: true, force: true });
-    await fs10.cp(path14.join(backup, dir), path14.join(home, dir), { recursive: true, force: true }).catch(() => {});
+    await fs10.rm(path15.join(home, dir), { recursive: true, force: true });
+    await fs10.cp(path15.join(backup, dir), path15.join(home, dir), { recursive: true, force: true }).catch(() => {});
   }
-  await fs10.cp(path14.join(backup, "config.json"), path14.join(anchorHome, "config.json"), { force: true });
+  await fs10.cp(path15.join(backup, "config.json"), path15.join(anchorHome, "config.json"), { force: true });
 }
 async function migrateActivities(home) {
-  const root = path14.join(home, "activities");
+  const root = path15.join(home, "activities");
   let count = 0;
   for (const file of await fs10.readdir(root).catch(() => [])) {
     if (!file.endsWith(".json"))
       continue;
-    const item = await readJson(path14.join(root, file));
-    if (!isRecord8(item))
+    const item = await readJson(path15.join(root, file));
+    if (!isRecord9(item))
       continue;
     item.schema_version = ACTIVITY_SCHEMA_VERSION;
     item.state ||= "NEW";
@@ -1528,19 +1616,19 @@ async function migrateActivities(home) {
       key_points: item.key_points || [],
       segments: []
     };
-    await writeJson(path14.join(root, file), item);
+    await writeJson(path15.join(root, file), item);
     count += 1;
   }
   return count;
 }
 async function migrateCandidates(home) {
-  const root = path14.join(home, "candidates");
+  const root = path15.join(home, "candidates");
   let count = 0;
   for (const file of await fs10.readdir(root).catch(() => [])) {
     if (!file.endsWith(".json"))
       continue;
-    const item = await readJson(path14.join(root, file));
-    if (!isRecord8(item))
+    const item = await readJson(path15.join(root, file));
+    if (!isRecord9(item))
       continue;
     item.schema_version = CANDIDATE_SCHEMA_VERSION;
     item.domain ||= null;
@@ -1557,18 +1645,18 @@ async function migrateCandidates(home) {
     item.merge_target ||= null;
     item.state ||= "OPEN";
     item.updated_at ||= item.created_at || new Date().toISOString();
-    await writeJson(path14.join(root, file), item);
+    await writeJson(path15.join(root, file), item);
     count += 1;
   }
   return count;
 }
 async function migrateSkills(home) {
-  const root = path14.join(home, "skills");
+  const root = path15.join(home, "skills");
   let count = 0;
   for (const dir of await fs10.readdir(root).catch(() => [])) {
-    const file = path14.join(root, dir, "skill.json");
+    const file = path15.join(root, dir, "skill.json");
     const item = await readJson(file);
-    if (!isRecord8(item))
+    if (!isRecord9(item))
       continue;
     item.schema_version = SKILL_METADATA_SCHEMA_VERSION;
     item.source_candidate ??= null;
@@ -1593,16 +1681,16 @@ async function sourceHomes(hostHome) {
   ];
 }
 async function migratePatternsFromSource(source, target) {
-  const sourceFile = path14.join(source, "indexes", "patterns.json");
+  const sourceFile = path15.join(source, "indexes", "patterns.json");
   const sourceIndex = await readJson(sourceFile);
   if (!Array.isArray(sourceIndex?.patterns))
     return 0;
-  const targetFile = path14.join(target, "indexes", "patterns.json");
+  const targetFile = path15.join(target, "indexes", "patterns.json");
   const targetIndex = await readJson(targetFile) || { schema_version: 1, patterns: [] };
   targetIndex.patterns = Array.isArray(targetIndex.patterns) ? targetIndex.patterns : [];
   let migrated = 0;
   for (const sourcePattern of sourceIndex.patterns) {
-    if (!isRecord8(sourcePattern) || typeof sourcePattern.fingerprint !== "string")
+    if (!isRecord9(sourcePattern) || typeof sourcePattern.fingerprint !== "string")
       continue;
     let targetPattern = targetIndex.patterns.find((item) => item.fingerprint === sourcePattern.fingerprint);
     if (!targetPattern) {
@@ -1612,11 +1700,11 @@ async function migratePatternsFromSource(source, target) {
     }
     const refs = [...Array.isArray(targetPattern.activity_refs) ? targetPattern.activity_refs : []];
     for (const id of Array.isArray(sourcePattern.activity_ids) ? sourcePattern.activity_ids : []) {
-      refs.push({ source: path14.basename(path14.dirname(source)), id });
+      refs.push({ source: path15.basename(path15.dirname(source)), id });
     }
     targetPattern.activity_refs = unique2([
-      ...refs.map((ref) => isRecord8(ref) ? `${ref.source}:${ref.id}` : null),
-      ...Array.isArray(sourcePattern.activity_refs) ? sourcePattern.activity_refs.map((ref) => isRecord8(ref) ? `${ref.source}:${ref.id}` : null) : []
+      ...refs.map((ref) => isRecord9(ref) ? `${ref.source}:${ref.id}` : null),
+      ...Array.isArray(sourcePattern.activity_refs) ? sourcePattern.activity_refs.map((ref) => isRecord9(ref) ? `${ref.source}:${ref.id}` : null) : []
     ]).map((ref) => {
       const [sourceId, id] = String(ref).split(":");
       return { source: sourceId, id };
@@ -1644,16 +1732,16 @@ async function migratePatternsFromSource(source, target) {
   return migrated;
 }
 async function migrateCandidatesFromSource(source, target, conflicts) {
-  const sourceDir = path14.join(source, "candidates");
-  const targetDir = path14.join(target, "candidates");
+  const sourceDir = path15.join(source, "candidates");
+  const targetDir = path15.join(target, "candidates");
   let migrated = 0;
   for (const file of await fs10.readdir(sourceDir).catch(() => [])) {
     if (!file.endsWith(".json"))
       continue;
-    const candidate = await readJson(path14.join(sourceDir, file));
-    if (!isRecord8(candidate))
+    const candidate = await readJson(path15.join(sourceDir, file));
+    if (!isRecord9(candidate))
       continue;
-    const targetFile = path14.join(targetDir, file);
+    const targetFile = path15.join(targetDir, file);
     const existing = await readJson(targetFile);
     if (!existing) {
       await writeJson(targetFile, candidate);
@@ -1672,23 +1760,23 @@ async function migrateCandidatesFromSource(source, target, conflicts) {
   return migrated;
 }
 async function migrateSkillsFromSource(source, target, conflicts) {
-  const sourceDir = path14.join(source, "skills");
-  const targetDir = path14.join(target, "skills");
+  const sourceDir = path15.join(source, "skills");
+  const targetDir = path15.join(target, "skills");
   let migrated = 0;
   for (const dir of await fs10.readdir(sourceDir).catch(() => [])) {
-    const sourceSkill = path14.join(sourceDir, dir);
-    const targetSkill = path14.join(targetDir, dir);
-    const sourceMeta = await readJson(path14.join(sourceSkill, "skill.json"));
-    if (!isRecord8(sourceMeta))
+    const sourceSkill = path15.join(sourceDir, dir);
+    const targetSkill = path15.join(targetDir, dir);
+    const sourceMeta = await readJson(path15.join(sourceSkill, "skill.json"));
+    if (!isRecord9(sourceMeta))
       continue;
-    const targetMeta = await readJson(path14.join(targetSkill, "skill.json"));
+    const targetMeta = await readJson(path15.join(targetSkill, "skill.json"));
     if (!targetMeta) {
       await fs10.cp(sourceSkill, targetSkill, { recursive: true, force: false });
       migrated += 1;
       continue;
     }
-    const sourceContent = await fs10.readFile(path14.join(sourceSkill, "SKILL.md"), "utf8").catch(() => "");
-    const targetContent = await fs10.readFile(path14.join(targetSkill, "SKILL.md"), "utf8").catch(() => "");
+    const sourceContent = await fs10.readFile(path15.join(sourceSkill, "SKILL.md"), "utf8").catch(() => "");
+    const targetContent = await fs10.readFile(path15.join(targetSkill, "SKILL.md"), "utf8").catch(() => "");
     if (sameJson(targetMeta, sourceMeta) || sourceContent === targetContent)
       continue;
     conflicts.push({
@@ -1705,7 +1793,7 @@ async function migrateSharedKnowledge(hostHome) {
   await ensureKnowledgeDirs(knowledgeHome2);
   const conflicts = [];
   const migrated = { patterns: 0, candidates: 0, skills: 0 };
-  const sources = (await sourceHomes(hostHome)).filter((source) => path14.resolve(source) !== path14.resolve(knowledgeHome2));
+  const sources = (await sourceHomes(hostHome)).filter((source) => path15.resolve(source) !== path15.resolve(knowledgeHome2));
   for (const source of sources) {
     migrated.patterns += await migratePatternsFromSource(source, knowledgeHome2);
     migrated.candidates += await migrateCandidatesFromSource(source, knowledgeHome2, conflicts);
@@ -1718,7 +1806,7 @@ async function migrateSharedKnowledge(hostHome) {
     migrated,
     conflicts
   };
-  await writeJson(path14.join(await knowledgeDirPath("indexes"), "migration-report.json"), report);
+  await writeJson(path15.join(await knowledgeDirPath("indexes"), "migration-report.json"), report);
   return report;
 }
 async function migrationStatus() {
@@ -1732,7 +1820,7 @@ async function migrationStatus() {
     hub: home,
     data_path: home,
     knowledge_path: knowledge,
-    config_path: path14.join(anchorHome, "config.json")
+    config_path: path15.join(anchorHome, "config.json")
   };
 }
 async function handleHubMigrate(args = {}) {
@@ -1740,7 +1828,7 @@ async function handleHubMigrate(args = {}) {
   const counts = {
     activities: await countJsonFiles(status.hub, "activities"),
     candidates: await countJsonFiles(status.knowledge_path, "candidates"),
-    skills: (await fs10.readdir(path14.join(status.knowledge_path, "skills")).catch(() => [])).length
+    skills: (await fs10.readdir(path15.join(status.knowledge_path, "skills")).catch(() => [])).length
   };
   if (!status.migration_required)
     return { ...status, dry_run: Boolean(args.dry_run), migrated: false, counts };
@@ -1772,7 +1860,7 @@ async function handleHubMigrate(args = {}) {
 }
 
 // plugins/foundry/src/core/hub.ts
-function isRecord9(value) {
+function isRecord10(value) {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
 }
 async function handleHubInit(args = {}) {
@@ -1795,15 +1883,15 @@ async function handleHubInit(args = {}) {
   await fs11.mkdir(home, { recursive: true });
   await fs11.mkdir(knowledge, { recursive: true });
   await Promise.all([
-    ...HOST_DIRS.map((dir) => fs11.mkdir(path15.join(home, dir), { recursive: true })),
-    ...KNOWLEDGE_DIRS.map((dir) => fs11.mkdir(path15.join(knowledge, dir), { recursive: true }))
+    ...HOST_DIRS.map((dir) => fs11.mkdir(path16.join(home, dir), { recursive: true })),
+    ...KNOWLEDGE_DIRS.map((dir) => fs11.mkdir(path16.join(knowledge, dir), { recursive: true }))
   ]);
   return {
     initialized: true,
     hub: home,
     data_path: home,
     knowledge_path: knowledge,
-    config_path: path15.join(anchorHome, "config.json"),
+    config_path: path16.join(anchorHome, "config.json"),
     hub_schema_version: saved.hub_schema_version || HUB_SCHEMA_VERSION,
     maintainer: saved.maintainer,
     automation_policy: saved.automation_policy
@@ -1812,7 +1900,7 @@ async function handleHubInit(args = {}) {
 async function handleHubConfig(args = {}) {
   const config = await loadConfig();
   const oldHome = await resolveHome(config);
-  const newHome = args.path !== undefined ? path15.resolve(args.path) : oldHome;
+  const newHome = args.path !== undefined ? path16.resolve(args.path) : oldHome;
   if (args.maintainer !== undefined) {
     config.maintainer = args.maintainer;
   }
@@ -1827,11 +1915,11 @@ async function handleHubConfig(args = {}) {
     movedFrom = oldHome;
     await fs11.mkdir(newHome, { recursive: true });
     for (const dir of DIRS) {
-      const src = path15.join(oldHome, dir);
-      const dst = path15.join(newHome, dir);
+      const src = path16.join(oldHome, dir);
+      const dst = path16.join(newHome, dir);
       await fs11.mkdir(dst, { recursive: true });
       for (const entry of await fs11.readdir(src).catch(() => [])) {
-        await fs11.rename(path15.join(src, entry), path15.join(dst, entry));
+        await fs11.rename(path16.join(src, entry), path16.join(dst, entry));
       }
       await fs11.rm(src, { recursive: true, force: true });
     }
@@ -1844,7 +1932,7 @@ async function handleHubConfig(args = {}) {
       hub: newHome,
       data_path: newHome,
       moved_from: movedFrom,
-      config_path: path15.join(anchorHome, "config.json"),
+      config_path: path16.join(anchorHome, "config.json"),
       hub_schema_version: saved.hub_schema_version || HUB_SCHEMA_VERSION
     };
   }
@@ -1852,7 +1940,7 @@ async function handleHubConfig(args = {}) {
     ...saved,
     hub: await resolveHome(saved),
     data_path: await resolveHome(saved),
-    config_path: path15.join(anchorHome, "config.json"),
+    config_path: path16.join(anchorHome, "config.json"),
     hub_schema_version: saved.hub_schema_version || HUB_SCHEMA_VERSION
   };
 }
@@ -1871,7 +1959,7 @@ async function handleHubStatus() {
     hub: home,
     data_path: home,
     knowledge_path: knowledge,
-    config_path: path15.join(anchorHome, "config.json"),
+    config_path: path16.join(anchorHome, "config.json"),
     config,
     hub_schema_version: config.hub_schema_version || HUB_SCHEMA_VERSION,
     migration_required: (config.hub_schema_version || config.version || HUB_SCHEMA_VERSION) < HUB_SCHEMA_VERSION,
@@ -1895,7 +1983,7 @@ async function dataLocations() {
     },
     knowledge: {
       root: knowledgeRoot,
-      patterns: path15.join(await knowledgeDirPath("indexes"), "patterns.json"),
+      patterns: path16.join(await knowledgeDirPath("indexes"), "patterns.json"),
       candidates: await knowledgeDirPath("candidates"),
       skills: await knowledgeDirPath("skills"),
       indexes: await knowledgeDirPath("indexes"),
@@ -1928,7 +2016,7 @@ async function cleanAll() {
   const home = await resolveHome();
   const counts = {};
   for (const dir of DIRS) {
-    const target = path15.join(home, dir);
+    const target = path16.join(home, dir);
     const files = await fs11.readdir(target).catch(() => []);
     counts[dir] = files.length;
     await fs11.rm(target, { recursive: true, force: true });
@@ -1939,7 +2027,7 @@ async function cleanAll() {
     counts,
     hub: home,
     data_path: home,
-    config_path: path15.join(anchorHome, "config.json"),
+    config_path: path16.join(anchorHome, "config.json"),
     action: "deleted_all_hub_data"
   };
 }
@@ -1950,10 +2038,10 @@ async function archiveGenerated() {
   for (const file of await fs11.readdir(activitiesDir)) {
     if (!file.endsWith(".json"))
       continue;
-    const source = path15.join(activitiesDir, file);
+    const source = path16.join(activitiesDir, file);
     const item = await readJson(source);
-    if (isRecord9(item) && (ARCHIVABLE_STATES.includes(String(item.state)) || item.skill_id)) {
-      await fs11.rename(source, path15.join(archiveDir, file));
+    if (isRecord10(item) && (ARCHIVABLE_STATES.includes(String(item.state)) || item.skill_id)) {
+      await fs11.rename(source, path16.join(archiveDir, file));
       archived++;
     }
   }
@@ -1965,7 +2053,7 @@ async function handleHubDoctor() {
   const counts = {};
   const checks = [];
   for (const dir of DIRS) {
-    const target = path15.join(home, dir);
+    const target = path16.join(home, dir);
     try {
       counts[dir] = (await fs11.readdir(target)).length;
       checks.push({ name: `${dir}_dir`, ok: true, path: target });
@@ -1979,10 +2067,10 @@ async function handleHubDoctor() {
       });
     }
   }
-  const skillDirs = await fs11.readdir(path15.join(home, "skills")).catch(() => []);
+  const skillDirs = await fs11.readdir(path16.join(home, "skills")).catch(() => []);
   const orphanSkills = [];
   for (const dir of skillDirs) {
-    const meta = await readJson(path15.join(home, "skills", dir, "skill.json"));
+    const meta = await readJson(path16.join(home, "skills", dir, "skill.json"));
     if (!meta)
       orphanSkills.push(dir);
   }
@@ -1991,7 +2079,7 @@ async function handleHubDoctor() {
     ok: checks.every((check) => check.ok),
     hub: home,
     data_path: home,
-    config_path: path15.join(anchorHome, "config.json"),
+    config_path: path16.join(anchorHome, "config.json"),
     hub_schema_version: config.hub_schema_version || HUB_SCHEMA_VERSION,
     migration_required: (config.hub_schema_version || config.version || HUB_SCHEMA_VERSION) < HUB_SCHEMA_VERSION,
     config,
@@ -2002,9 +2090,9 @@ async function handleHubDoctor() {
 
 // plugins/foundry/src/core/hub-query.ts
 import fs12 from "node:fs/promises";
-import path16 from "node:path";
+import path17 from "node:path";
 var COLLECTIONS = ["activities", "sessions", "events", "candidates", "skills", "indexes"];
-function isRecord10(value) {
+function isRecord11(value) {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
 }
 function collection(value) {
@@ -2024,7 +2112,7 @@ async function hostRoots(host) {
   for (const source of await describeActivitySources()) {
     if (source.host !== host || !source.root)
       continue;
-    const key = path16.resolve(source.root).toLowerCase();
+    const key = path17.resolve(source.root).toLowerCase();
     if (seen.has(key))
       continue;
     seen.add(key);
@@ -2037,8 +2125,8 @@ async function readJsonDir(dir, fields) {
   for (const file of await fs12.readdir(dir).catch(() => [])) {
     if (!file.endsWith(".json"))
       continue;
-    const item = await readJson(path16.join(dir, file));
-    if (isRecord10(item))
+    const item = await readJson(path17.join(dir, file));
+    if (isRecord11(item))
       items.push(pickFields5({ ...item, file }, fields));
   }
   return items;
@@ -2046,14 +2134,14 @@ async function readJsonDir(dir, fields) {
 async function readSkills2(dir, fields) {
   const items = [];
   for (const entry of await fs12.readdir(dir).catch(() => [])) {
-    const item = await readJson(path16.join(dir, entry, "skill.json"));
-    if (isRecord10(item))
+    const item = await readJson(path17.join(dir, entry, "skill.json"));
+    if (isRecord11(item))
       items.push(pickFields5({ ...item, dir: entry }, fields));
   }
   return items;
 }
 async function readCollection(root, name, fields) {
-  const dir = path16.join(root, name);
+  const dir = path17.join(root, name);
   return name === "skills" ? readSkills2(dir, fields) : readJsonDir(dir, fields);
 }
 async function handleHubQuery(args = {}) {
@@ -2075,16 +2163,16 @@ async function handleHubQuery(args = {}) {
 
 // plugins/foundry/src/core/cache.ts
 import fs13 from "node:fs/promises";
-import path17 from "node:path";
+import path18 from "node:path";
 import os3 from "node:os";
 import { fileURLToPath as fileURLToPath2 } from "node:url";
 async function handlePluginCacheCleanup(args = {}) {
-  const pluginRoot = path17.resolve(path17.dirname(fileURLToPath2(import.meta.url)), "../..");
-  const cacheRoot = path17.dirname(pluginRoot);
-  const currentVersion = path17.basename(pluginRoot);
-  const home = path17.resolve(os3.homedir()).toLowerCase();
-  const normalizedPluginRoot = path17.resolve(pluginRoot).toLowerCase();
-  const isKnownHostCache = normalizedPluginRoot.startsWith(home) && (normalizedPluginRoot.includes(`${path17.sep}.codex${path17.sep}`) || normalizedPluginRoot.includes(`${path17.sep}.codebuddy${path17.sep}`)) && /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/.test(currentVersion);
+  const pluginRoot = path18.resolve(path18.dirname(fileURLToPath2(import.meta.url)), "../..");
+  const cacheRoot = path18.dirname(pluginRoot);
+  const currentVersion = path18.basename(pluginRoot);
+  const home = path18.resolve(os3.homedir()).toLowerCase();
+  const normalizedPluginRoot = path18.resolve(pluginRoot).toLowerCase();
+  const isKnownHostCache = normalizedPluginRoot.startsWith(home) && (normalizedPluginRoot.includes(`${path18.sep}.codex${path18.sep}`) || normalizedPluginRoot.includes(`${path18.sep}.codebuddy${path18.sep}`)) && /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/.test(currentVersion);
   if (!isKnownHostCache) {
     return {
       ok: false,
@@ -2097,7 +2185,7 @@ async function handlePluginCacheCleanup(args = {}) {
   for (const entry of await fs13.readdir(cacheRoot, { withFileTypes: true }).catch(() => [])) {
     if (!entry.isDirectory() || entry.name === currentVersion)
       continue;
-    const fullPath = path17.join(cacheRoot, entry.name);
+    const fullPath = path18.join(cacheRoot, entry.name);
     if (!isInside2(cacheRoot, fullPath)) {
       throw Error(`Refusing to inspect path outside Usora plugin cache: ${fullPath}`);
     }
@@ -2133,30 +2221,30 @@ async function handlePluginCacheCleanup(args = {}) {
 
 // plugins/foundry/src/core/skills.ts
 import fs14 from "node:fs/promises";
-import path18 from "node:path";
-function isRecord11(value) {
+import path19 from "node:path";
+function isRecord12(value) {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
 }
 function asArray2(value) {
   return Array.isArray(value) ? value : [];
 }
 function asRecords(value) {
-  return asArray2(value).filter(isRecord11);
+  return asArray2(value).filter(isRecord12);
 }
-function stringValue(value) {
+function stringValue2(value) {
   return typeof value === "string" ? value : undefined;
 }
 function numberValue2(value) {
   return typeof value === "number" ? value : 0;
 }
 async function readCandidate(id) {
-  return readJson(path18.join(await knowledgeDirPath("candidates"), `${safeName(id, "candidate_id")}.json`));
+  return readJson(path19.join(await knowledgeDirPath("candidates"), `${safeName(id, "candidate_id")}.json`));
 }
 async function requirePassingCandidate(candidateId) {
   if (!candidateId)
     throw Error("candidate_id is required");
   const candidate = await readCandidate(candidateId);
-  if (!isRecord11(candidate))
+  if (!isRecord12(candidate))
     throw Error("Candidate not found");
   if (candidate.state !== "EVALUATED" || candidate.evaluation?.result !== "pass") {
     throw Error("Skill requires a passing Candidate evaluation");
@@ -2165,11 +2253,11 @@ async function requirePassingCandidate(candidateId) {
 }
 async function readSkillMeta(name) {
   const skillName2 = safeName(name, "name");
-  const file = path18.join(await knowledgeDirPath("skills"), skillName2, "skill.json");
+  const file = path19.join(await knowledgeDirPath("skills"), skillName2, "skill.json");
   const meta = await readJson(file);
-  if (!isRecord11(meta))
+  if (!isRecord12(meta))
     throw Error("Skill not found");
-  return { skillName: skillName2, file, meta, dir: path18.dirname(file) };
+  return { skillName: skillName2, file, meta, dir: path19.dirname(file) };
 }
 function generatedSkillName(candidate, fallback = "generated-skill") {
   const slug = String(candidate.title || fallback).toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 64);
@@ -2205,7 +2293,7 @@ async function createSkill(args) {
   if (args.candidate_id)
     await requirePassingCandidate(args.candidate_id);
   const skillName2 = safeName(args.name, "name");
-  const dir = path18.join(await knowledgeDirPath("skills"), skillName2);
+  const dir = path19.join(await knowledgeDirPath("skills"), skillName2);
   await fs14.mkdir(dir, { recursive: true });
   const meta = {
     schema_version: SKILL_METADATA_SCHEMA_VERSION,
@@ -2219,11 +2307,11 @@ async function createSkill(args) {
     created_at: now(),
     updated_at: now()
   };
-  await writeJson(path18.join(dir, "skill.json"), meta);
+  await writeJson(path19.join(dir, "skill.json"), meta);
   const content = args.content.endsWith(`
 `) ? args.content : `${args.content}
 `;
-  await fs14.writeFile(path18.join(dir, "SKILL.md"), content, "utf8");
+  await fs14.writeFile(path19.join(dir, "SKILL.md"), content, "utf8");
   await rebuildSkillIndex();
   await writeEvent("SkillDraftCreated", meta);
   return meta;
@@ -2254,7 +2342,7 @@ async function generateSkill(args = {}) {
   });
   const skillArgs = {
     name: args.name || generatedSkillName(candidate),
-    description: args.description || stringValue(candidate.summary),
+    description: args.description || stringValue2(candidate.summary),
     content,
     candidate_id: candidate.id,
     generation
@@ -2285,28 +2373,28 @@ function skillDelta(args, candidate, action) {
     evidence: asArray2(args.evidence || candidate?.evidence).slice(0, 3),
     source_candidate: candidate?.id || args.candidate_id || null,
     source_pattern: args.pattern_fingerprint || candidate?.fingerprint || null,
-    changes: isRecord11(args.changes) ? args.changes : {},
+    changes: isRecord12(args.changes) ? args.changes : {},
     target_skill: args.target_skill || null,
     created_at: now()
   };
 }
 async function patchSkill(name, delta) {
   const { file, meta, dir } = await readSkillMeta(name);
-  const current = await fs14.readFile(path18.join(dir, "SKILL.md"), "utf8").catch(() => meta.content || "");
+  const current = await fs14.readFile(path19.join(dir, "SKILL.md"), "utf8").catch(() => meta.content || "");
   const append = typeof delta.changes.content_append === "string" ? delta.changes.content_append : "";
   const nextContent = typeof delta.changes.content === "string" ? delta.changes.content : append ? `${current.trimEnd()}
 
 ${append.trim()}
 ` : current;
   meta.content = nextContent;
-  meta.description = stringValue(delta.changes.description) || meta.description;
+  meta.description = stringValue2(delta.changes.description) || meta.description;
   meta.source_candidate = delta.source_candidate || meta.source_candidate || null;
   meta.source_patterns = [...new Set([...asArray2(meta.source_patterns), delta.source_pattern].filter(Boolean))];
   meta.revision = numberValue2(meta.revision) + 1;
   meta.updated_at = now();
   meta.evolution = [...meta.evolution || [], delta].slice(-20);
   await writeJson(file, meta);
-  await fs14.writeFile(path18.join(dir, "SKILL.md"), nextContent.endsWith(`
+  await fs14.writeFile(path19.join(dir, "SKILL.md"), nextContent.endsWith(`
 `) ? nextContent : `${nextContent}
 `, "utf8");
   await rebuildSkillIndex();
@@ -2358,9 +2446,9 @@ async function handleSkillEvaluate(args) {
 }
 async function evaluateSkill(args) {
   const skillName2 = safeName(args.name, "name");
-  const file = path18.join(await knowledgeDirPath("skills"), skillName2, "skill.json");
+  const file = path19.join(await knowledgeDirPath("skills"), skillName2, "skill.json");
   const item = await readJson(file);
-  if (!isRecord11(item))
+  if (!isRecord12(item))
     throw Error("Skill not found");
   const result = args.result;
   if (result !== "pass" && result !== "fail") {
@@ -2388,11 +2476,11 @@ async function publishSkill(args) {
     throw Error("Only the configured Maintainer can publish");
   }
   const skillName2 = safeName(args.name, "name");
-  const file = path18.join(await knowledgeDirPath("skills"), skillName2, "skill.json");
+  const file = path19.join(await knowledgeDirPath("skills"), skillName2, "skill.json");
   const meta = await readJson(file);
-  if (!isRecord11(meta))
+  if (!isRecord12(meta))
     throw Error("Skill not found");
-  const evaluation = isRecord11(meta.evaluation) ? meta.evaluation : {};
+  const evaluation = isRecord12(meta.evaluation) ? meta.evaluation : {};
   if (meta.state !== "EVALUATED" || evaluation.result !== "pass") {
     throw Error("Skill requires a passing evaluation");
   }
@@ -2407,11 +2495,11 @@ async function publishSkill(args) {
 }
 async function handleSkillRead(args) {
   const skillName2 = safeName(args.name, "name");
-  const dir = path18.join(await knowledgeDirPath("skills"), skillName2);
-  const meta = await readJson(path18.join(dir, "skill.json"));
-  if (!isRecord11(meta))
+  const dir = path19.join(await knowledgeDirPath("skills"), skillName2);
+  const meta = await readJson(path19.join(dir, "skill.json"));
+  if (!isRecord12(meta))
     throw Error("Skill not found");
-  const content = await fs14.readFile(path18.join(dir, "SKILL.md"), "utf8").catch(() => meta.content || "");
+  const content = await fs14.readFile(path19.join(dir, "SKILL.md"), "utf8").catch(() => meta.content || "");
   const { content: _storedContent, ...metadata } = meta;
   return { metadata, content };
 }
@@ -2420,8 +2508,8 @@ async function handleSkillList(args = {}) {
   const skillsDir = await knowledgeDirPath("skills");
   const items = [];
   for (const dir of await fs14.readdir(skillsDir).catch(() => [])) {
-    const meta = await readJson(path18.join(skillsDir, dir, "skill.json"));
-    if (!isRecord11(meta))
+    const meta = await readJson(path19.join(skillsDir, dir, "skill.json"));
+    if (!isRecord12(meta))
       continue;
     items.push(skillSummary(meta));
   }
@@ -2430,9 +2518,9 @@ async function handleSkillList(args = {}) {
 }
 async function handleSkillQuery(args = {}) {
   const queryArgs = { limit: args.limit, fields: args.fields };
-  const state = stringValue(args.state);
-  const candidateId = stringValue(args.candidate_id);
-  const q = stringValue(args.q);
+  const state = stringValue2(args.state);
+  const candidateId = stringValue2(args.candidate_id);
+  const q = stringValue2(args.q);
   if (state)
     queryArgs.state = state;
   if (candidateId)
@@ -2446,9 +2534,9 @@ async function handleSkillGet(args = {}) {
 }
 
 // plugins/foundry/src/core/usage.ts
-import path19 from "node:path";
+import path20 from "node:path";
 var OUTCOMES = ["success", "partial", "failure", "unknown"];
-function isRecord12(value) {
+function isRecord13(value) {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
 }
 function bump(meta, outcome) {
@@ -2465,9 +2553,9 @@ async function captureUsage(args = {}) {
   const outcome = args.outcome || "unknown";
   if (!OUTCOMES.includes(outcome))
     throw Error("outcome must be success, partial, failure, or unknown");
-  const skillFile = path19.join(await knowledgeDirPath("skills"), skill, "skill.json");
+  const skillFile = path20.join(await knowledgeDirPath("skills"), skill, "skill.json");
   const meta = await readJson(skillFile);
-  if (!isRecord12(meta))
+  if (!isRecord13(meta))
     throw Error("Skill not found");
   const usedAt = args.used_at || now();
   const usage = {
@@ -2481,7 +2569,7 @@ async function captureUsage(args = {}) {
     project: args.project || null,
     used_at: usedAt
   };
-  await writeJson(path19.join(await knowledgeDirPath("usage"), `${usage.id}.json`), usage);
+  await writeJson(path20.join(await knowledgeDirPath("usage"), `${usage.id}.json`), usage);
   bump(meta, outcome);
   meta.last_used_at = usedAt;
   meta.projects_used = [
@@ -3141,10 +3229,10 @@ async function call(name, args = {}) {
 }
 
 // plugins/foundry/src/mcp/server.ts
-var pluginRoot = path20.resolve(path20.dirname(fileURLToPath3(import.meta.url)), "..", "..");
+var pluginRoot = path21.resolve(path21.dirname(fileURLToPath3(import.meta.url)), "..", "..");
 function readServerVersion() {
   try {
-    const plugin = JSON.parse(readFileSync(path20.join(pluginRoot, "plugin.json"), "utf8"));
+    const plugin = JSON.parse(readFileSync(path21.join(pluginRoot, "plugin.json"), "utf8"));
     return typeof plugin.version === "string" ? plugin.version : "2.0.0";
   } catch {
     return "2.0.0";

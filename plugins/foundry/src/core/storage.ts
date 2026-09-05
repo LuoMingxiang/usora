@@ -3,6 +3,7 @@ import os from "node:os";
 import path from "node:path";
 import crypto from "node:crypto";
 import { fileURLToPath } from "node:url";
+import { createUsoraEvent, normalizeEventType } from "@usora/integration";
 
 // ---------------------------------------------------------------------------
 // Storage primitives
@@ -270,15 +271,28 @@ export async function writeJson(file: string, value: unknown): Promise<void> {
 }
 
 /**
- * Persist a lifecycle event with a timestamp.
+ * Persist a lifecycle event.
  *
- * @param {string} type - Event type (e.g. "ActivityCreated").
+ * @param {string} type - Event type (e.g. "activity.created").
  * @param {any} data - Event payload.
  * @returns {Promise<void>}
  */
 export async function writeEvent(type: string, data: unknown): Promise<void> {
-  const file = path.join(await knowledgeDirPath("events"), `${Date.now()}-${newId("event")}.json`);
-  await writeJson(file, { schema_version: EVENT_SCHEMA_VERSION, type, timestamp: now(), data });
+  const id = newId("event");
+  const normalizedType = normalizeEventType(type);
+  const file = path.join(await knowledgeDirPath("events"), `${Date.now()}-${id}.json`);
+  await writeJson(
+    file,
+    createUsoraEvent({
+      id,
+      schemaVersion: EVENT_SCHEMA_VERSION,
+      type: normalizedType,
+      occurredAt: now(),
+      producer: { plugin: "foundry" },
+      data,
+      ...(normalizedType === type ? {} : { metadata: { legacyType: type } }),
+    }),
+  );
 }
 
 /**

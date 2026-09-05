@@ -115,6 +115,45 @@ import os from "node:os";
 import path2 from "node:path";
 import crypto from "node:crypto";
 import { fileURLToPath } from "node:url";
+// packages/integration/src/events.ts
+import { randomUUID } from "node:crypto";
+var USORA_EVENT_SCHEMA_VERSION = 1;
+var LEGACY_FOUNDRY_EVENT_TYPE_MAP = {
+  ActivityCreated: "activity.created",
+  ActivityUpdated: "activity.updated",
+  CandidateCreated: "candidate.created",
+  CandidateResolved: "candidate.resolved",
+  ReviewSubmitted: "candidate.updated",
+  SkillDraftCreated: "skill.draft.created",
+  SkillEvolved: "skill.evolved",
+  SkillEvolutionRecommended: "skill.evolution.recommended",
+  SkillEvaluationCompleted: "skill.evaluation.completed",
+  SkillPublished: "skill.published",
+  GovernanceResolved: "governance.resolved",
+  UsageCaptured: "usage.captured",
+  PatternIndexUpdated: "pattern.index.updated",
+  IntelligenceRun: "intelligence.run",
+  ContextBudgetOverflow: "context.budget.overflow",
+  HubMigrated: "hub.migrated",
+  HubMigrationFailed: "hub.migration.failed"
+};
+function createUsoraEvent(input) {
+  return {
+    id: input.id ?? `event-${randomUUID()}`,
+    schemaVersion: input.schemaVersion ?? USORA_EVENT_SCHEMA_VERSION,
+    occurredAt: input.occurredAt ?? new Date().toISOString(),
+    type: input.type,
+    producer: input.producer,
+    data: input.data,
+    ...input.actor ? { actor: input.actor } : {},
+    ...input.subject ? { subject: input.subject } : {},
+    ...input.metadata ? { metadata: input.metadata } : {}
+  };
+}
+function normalizeEventType(type) {
+  return LEGACY_FOUNDRY_EVENT_TYPE_MAP[type] ?? type;
+}
+// plugins/foundry/src/core/storage.ts
 var runtimeDir = path2.dirname(fileURLToPath(import.meta.url));
 var runtimePluginRoot = path2.basename(runtimeDir) === "dist" ? path2.resolve(runtimeDir, "..") : path2.resolve(runtimeDir, "..", "..");
 var lowerRuntimePluginRoot = runtimePluginRoot.toLowerCase();
@@ -230,8 +269,18 @@ async function writeJson(file, value) {
   await fs2.rename(tmp, file);
 }
 async function writeEvent(type, data) {
-  const file = path2.join(await knowledgeDirPath("events"), `${Date.now()}-${newId("event")}.json`);
-  await writeJson(file, { schema_version: EVENT_SCHEMA_VERSION, type, timestamp: now(), data });
+  const id = newId("event");
+  const normalizedType = normalizeEventType(type);
+  const file = path2.join(await knowledgeDirPath("events"), `${Date.now()}-${id}.json`);
+  await writeJson(file, createUsoraEvent({
+    id,
+    schemaVersion: EVENT_SCHEMA_VERSION,
+    type: normalizedType,
+    occurredAt: now(),
+    producer: { plugin: "foundry" },
+    data,
+    ...normalizedType === type ? {} : { metadata: { legacyType: type } }
+  }));
 }
 function normalizeConfig(value) {
   return {
@@ -445,9 +494,9 @@ var DETECTORS = [
   ["verification", /验证|通过|测试|确认|verified|passes|works/i, 0.8],
   ["result", /完成|解决|修复|done|fixed|implemented/i, 0.75]
 ];
-function detectSemanticEvents(events) {
+function detectSemanticEvents(events2) {
   const semanticEvents = [];
-  for (const event of events) {
+  for (const event of events2) {
     for (const [type, pattern, confidence] of DETECTORS) {
       const text = typeof event.text === "string" ? event.text : "";
       if (pattern.test(text)) {
@@ -478,9 +527,9 @@ function scoreUserEvent(event) {
     score -= 3;
   return score;
 }
-function extractKnowledge(events, semanticEvents) {
-  const users = events.filter((event) => event.role === "user");
-  const assistants = events.filter((event) => event.role === "assistant");
+function extractKnowledge(events2, semanticEvents) {
+  const users = events2.filter((event) => event.role === "user");
+  const assistants = events2.filter((event) => event.role === "assistant");
   const byType = (type) => semanticEvents.filter((event) => event.type === type).map((event) => compactText(event.text, 240));
   const ranked = users.map((event) => ({ event, score: scoreUserEvent(event) })).filter((item) => item.score > 0).sort((a, b) => b.score - a.score || a.event.index - b.event.index).slice(0, 8).sort((a, b) => a.event.index - b.event.index).map((item) => compactText(item.event.text, 240));
   const semanticPoints = semanticEvents.filter((event) => ["constraint", "correction", "decision", "failure", "verification"].includes(event.type)).map((event) => compactText(event.text, 240));
@@ -515,10 +564,10 @@ function parseSessionEvents(session) {
 }
 
 // plugins/foundry/src/core/intelligence/session-graph.ts
-function buildSessionGraph(events, semanticEvents) {
+function buildSessionGraph(events2, semanticEvents) {
   const byType = (type) => semanticEvents.filter((event) => event.type === type);
   return {
-    task: events.find((event) => event.role === "user")?.id || null,
+    task: events2.find((event) => event.role === "user")?.id || null,
     constraints: byType("constraint").map((event) => event.source_event_id),
     corrections: byType("correction").map((event) => event.source_event_id),
     attempts: byType("attempt").map((event) => event.source_event_id),
@@ -530,14 +579,14 @@ function buildSessionGraph(events, semanticEvents) {
 
 // plugins/foundry/src/core/intelligence/session-compiler.ts
 function compileSessionKnowledge(session = {}) {
-  const events = parseSessionEvents(session);
-  const semantic_events = detectSemanticEvents(events);
-  const graph = buildSessionGraph(events, semantic_events);
-  const activity = extractKnowledge(events, semantic_events);
-  const storedEvents = events.map(({ text, ...event }) => ({ ...event, text_chars: text.length }));
+  const events2 = parseSessionEvents(session);
+  const semantic_events = detectSemanticEvents(events2);
+  const graph = buildSessionGraph(events2, semantic_events);
+  const activity = extractKnowledge(events2, semantic_events);
+  const storedEvents = events2.map(({ text, ...event }) => ({ ...event, text_chars: text.length }));
   const countType = (type) => semantic_events.filter((event) => event.type === type).length;
   const complexity = {
-    message_count: events.length,
+    message_count: events2.length,
     corrections: countType("correction"),
     failed_attempts: countType("failure"),
     task_changed: countType("correction") > 0,
@@ -561,7 +610,7 @@ function compileSessionKnowledge(session = {}) {
       },
       complexity,
       source_ref: session.source_ref || null,
-      message_count: events.length
+      message_count: events2.length
     }
   };
 }

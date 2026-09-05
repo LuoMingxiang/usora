@@ -101,7 +101,7 @@ assert.equal(codebuddyMcp.mcpServers.practice.command, "node");
 assert.deepEqual(codebuddyMcp.mcpServers.practice.args, ["${CODEBUDDY_PLUGIN_ROOT}/dist/mcp.js"]);
 
 assert.equal(codebuddyMarketplace.displayName, "Usora Plugin Marketplace");
-assert.equal(codebuddyMarketplace.metadata.version, codex.version);
+assert.match(codebuddyMarketplace.metadata.version, semver);
 assert.equal(codebuddyMarketplace.metadata.pluginRoot, undefined);
 assert.equal(codebuddyMarketplace.owner.name, "Veyra");
 const codebuddyEntry = pluginEntry(codebuddyMarketplace);
@@ -111,7 +111,7 @@ assert.equal(codebuddyEntry.author.name, "Veyra");
 await exists(codebuddyEntry.source);
 
 assert.equal(claudeMarketplace.displayName, "Usora Plugin Marketplace");
-assert.equal(claudeMarketplace.metadata.version, codex.version);
+assert.match(claudeMarketplace.metadata.version, semver);
 assert.equal(claudeMarketplace.metadata.pluginRoot, "plugins");
 assert.equal(claudeMarketplace.owner.name, "Veyra");
 const claudeEntry = pluginEntry(claudeMarketplace);

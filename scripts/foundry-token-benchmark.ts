@@ -158,7 +158,7 @@ async function main() {
   const skillListText = text(responseAt(responses, -1));
   const events = JSON.parse(text(responseAt(moreResponses, -2))).events as LifecycleEvent[];
   const telemetry = JSON.parse(text(responseAt(moreResponses, -1)));
-  const runs = events.filter((event) => event.type === "IntelligenceRun").map((event) => event.data);
+  const runs = events.filter((event) => event.type === "intelligence.run").map((event) => event.data);
   const activityFiles = await readdir(path.join(init.hub, "activities"));
   const activitySizes = await Promise.all(
     activityFiles.map(async (file) => (await readFile(path.join(init.hub, "activities", file), "utf8")).length),
@@ -180,7 +180,7 @@ async function main() {
       avg_context_chars: telemetry.avg_context_chars,
       full_activity_loads: runs.filter((run) => run.full_activity_load).length,
       full_skill_loads: runs.filter((run) => run.full_skill_load).length,
-      budget_overflows: events.filter((event) => event.type === "ContextBudgetOverflow").length,
+      budget_overflows: events.filter((event) => event.type === "context.budget.overflow").length,
       note: telemetry.note,
     },
   };

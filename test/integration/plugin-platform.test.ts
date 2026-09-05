@@ -5,6 +5,7 @@ import os from "node:os";
 import path from "node:path";
 import { test } from "vitest";
 import { calculateAffectedPlugins } from "../../tooling/affected-plugins";
+import { createPlugin } from "../../tooling/create-plugin";
 import { discoverPlugins } from "../../tooling/discover-plugins";
 import { createReleasePlan } from "../../tooling/release-plan";
 import { createVersionPlan } from "../../tooling/version-plugin";
@@ -155,6 +156,28 @@ test("affected plugin analysis classifies plugin, shared, tooling, and docs-only
 
 test("plugin SDK definePlugin preserves the manifest contract", () => {
   assert.deepEqual(definePlugin(validManifest), validManifest);
+});
+
+test("plugin generator can scaffold an integration plugin kind", async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), "usora-plugin-create-"));
+  try {
+    await createPlugin({ root, name: "feishu", type: "integration" });
+    const pluginRoot = path.join(root, "plugins", "feishu");
+    const manifest = JSON.parse(await readFile(path.join(pluginRoot, "plugin.json"), "utf8"));
+    const pkg = JSON.parse(await readFile(path.join(pluginRoot, "package.json"), "utf8"));
+    const provider = await readFile(path.join(pluginRoot, "src", "provider.ts"), "utf8");
+
+    assert.deepEqual(
+      (await discoverPlugins(root)).map((plugin) => plugin.manifest.name),
+      ["feishu"],
+    );
+    assert.deepEqual(manifest.keywords, ["integration", "feishu"]);
+    assert.equal(pkg.dependencies["@usora/integration"], "workspace:*");
+    assert.match(provider, /createIntegrationProvider/);
+    assert.match(provider, /assertProviderContract/);
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
 });
 
 test("release planning combines changed paths, commit scopes, and version consistency", async () => {

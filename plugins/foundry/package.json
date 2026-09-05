@@ -9,6 +9,7 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
+    "@usora/integration": "workspace:*",
     "@usora/plugin-sdk": "workspace:*",
     "@usora/types": "workspace:*"
   }

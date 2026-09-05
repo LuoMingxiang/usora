@@ -23,6 +23,7 @@
     "paths": {
       "@usora/plugin-schema": ["./packages/plugin-schema/src/index.ts"],
       "@usora/plugin-sdk": ["./packages/plugin-sdk/src/index.ts"],
+      "@usora/integration": ["./packages/integration/src/index.ts"],
       "@usora/shared": ["./packages/shared/src/index.ts"],
       "@usora/types": ["./packages/types/src/index.ts"]
     }

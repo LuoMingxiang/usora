@@ -1,3 +1,16 @@
+# Unreleased
+
+### Features
+
+- add provider-neutral integration platform contracts, durable delivery runtime, subscriptions, retry, checkpoint, dead-letter, testing SDK, and extensibility proof.
+- add DingTalk integration plugin foundation with webhook/app transports, rendering, callbacks, identity, authorization, bot commands, resource discovery/read, Practice Source capture, diagnostics, and setup documentation.
+
+### Bug Fixes
+
+- recover checkpoints after delivered records survive a crash before checkpoint write.
+- allow clean runtime checks for no-op session hooks in non-Foundry plugins.
+- validate multi-plugin marketplace metadata without assuming the first plugin is Foundry.
+
 # [1.1.0](https://github.com/LuoMingxiang/usora/compare/v1.0.0...v1.1.0) (2026-08-22)
 
 ### Features

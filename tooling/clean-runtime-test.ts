@@ -56,8 +56,10 @@ for (const plugin of plugins) {
         `${JSON.stringify({ session_id: "clean-runtime", cwd, task: "runtime", result: "ok" })}\n`,
         cwd,
       );
-      const activities = await readdir(path.join(cwd, ".usora", "activities"));
-      if (activities.length !== 1) throw Error(`${plugin.manifest.name} session hook failed`);
+      const activities = await readdir(path.join(cwd, ".usora", "activities")).catch(() => []);
+      if (plugin.manifest.name === "foundry" && activities.length !== 1) {
+        throw Error(`${plugin.manifest.name} session hook failed`);
+      }
     }
     console.log(`clean runtime ok: ${plugin.manifest.name}`);
   } finally {
