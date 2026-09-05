@@ -367,9 +367,17 @@ export async function handleCandidateEvaluate(args: CandidateArgs) {
 }
 
 async function evaluateCandidate(args: CandidateArgs) {
+  if (args.result !== "pass" && args.result !== "fail") throw Error("result must be pass or fail");
   const file = path.join(await knowledgeDirPath("candidates"), `${safeName(args.id, "id")}.json`);
   const item = await readJson(file);
   if (!isRecord(item)) throw Error("Candidate not found");
+  const requests = isRecord(item.integration_requests) ? item.integration_requests : {};
+  if (typeof args.request_id === "string" && Object.hasOwn(requests, args.request_id)) {
+    const receipt = requests[args.request_id] as { type: string; data: JsonRecord };
+    await writeEvent("ReviewSubmitted", receipt.data, `${args.id}:${args.request_id}`);
+    await writeEvent(receipt.type, receipt.data, `${args.id}:${args.request_id}`);
+    return item;
+  }
 
   item.evaluation = {
     result: args.result,
@@ -377,8 +385,14 @@ async function evaluateCandidate(args: CandidateArgs) {
     evaluated_at: now(),
   };
   item.state = args.result === "pass" ? "EVALUATED" : "REJECTED";
+  const eventType = args.result === "pass" ? "candidate.approved" : "candidate.rejected";
+  const { integration_requests: _requests, ...snapshot } = item;
+  const requestId = typeof args.request_id === "string" ? args.request_id : undefined;
+  if (requestId) item.integration_requests = { ...requests, [requestId]: { type: eventType, data: snapshot } };
 
   await writeJson(file, item);
-  await writeEvent("ReviewSubmitted", item);
+  const eventKey = requestId ? `${args.id}:${requestId}` : undefined;
+  await writeEvent("ReviewSubmitted", snapshot, eventKey);
+  await writeEvent(eventType, snapshot, eventKey);
   return item;
 }

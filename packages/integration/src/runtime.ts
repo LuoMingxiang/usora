@@ -1,4 +1,6 @@
 import fs from "node:fs/promises";
+import { createHash } from "node:crypto";
+import { withIntegrationLock } from "./lock.ts";
 import path from "node:path";
 import type { RetryConfig } from "./delivery.ts";
 import {
@@ -58,6 +60,10 @@ export async function readUsoraEventFiles(files: string[]): Promise<UsoraEvent[]
 }
 
 export async function runIntegrationRuntime(input: IntegrationRuntimeInput): Promise<IntegrationRuntimeResult> {
+  return withIntegrationLock(input.stateDir, () => runLocked(input));
+}
+
+async function runLocked(input: IntegrationRuntimeInput): Promise<IntegrationRuntimeResult> {
   const now = input.now ?? new Date();
   const result: IntegrationRuntimeResult = {
     events: 0,
@@ -72,6 +78,9 @@ export async function runIntegrationRuntime(input: IntegrationRuntimeInput): Pro
     result.events += 1;
     for (const match of matchSubscriptions(event, input.subscriptions)) {
       const message = buildSubscriptionMessage(match, input.messages);
+      message.id = createHash("sha256")
+        .update(`${match.subscription.provider}:${match.subscription.id}:${event.id}`)
+        .digest("hex");
       const provider = input.providers.get(match.subscription.provider);
       const pending = createDeliveryRecord({
         provider: match.subscription.provider,
@@ -83,7 +92,7 @@ export async function runIntegrationRuntime(input: IntegrationRuntimeInput): Pro
       const deliveryFile = stateFile(input.stateDir, "deliveries", pending.id);
       const record = (await readDeliveryRecord(deliveryFile)) ?? pending;
 
-      if (!shouldStartDelivery(record)) {
+      if (!shouldStartDelivery(record, now)) {
         if (record.status === "delivered") {
           const checkpoint = advanceCheckpoint(
             await readCheckpoint(stateFile(input.stateDir, "checkpoints", `${record.provider}:${record.subscription}`)),

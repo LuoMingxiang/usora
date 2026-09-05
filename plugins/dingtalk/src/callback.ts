@@ -1,7 +1,6 @@
-import { timingSafeEqual } from "node:crypto";
+import { createHmac, timingSafeEqual } from "node:crypto";
 import fs from "node:fs/promises";
 import path from "node:path";
-import { signDingTalkWebhook } from "./webhook.ts";
 
 export type DingTalkCallback = {
   id: string;
@@ -15,6 +14,7 @@ export type DingTalkCallbackInput = {
   headers?: Record<string, string | undefined>;
   body: string;
   secret?: string;
+  now?: number;
 };
 
 export type DingTalkCallbackResult =
@@ -51,20 +51,29 @@ function sameSignature(left: string, right: string): boolean {
   return a.length === b.length && timingSafeEqual(a, b);
 }
 
-function verify(headers: Record<string, string | undefined>, secret: string): boolean {
+// Local signed envelopes only. Real DingTalk callbacks enter through the authenticated Stream connection.
+export function signDingTalkCallback(timestamp: number, body: string, secret: string): string {
+  return createHmac("sha256", secret).update(`${timestamp}\n${body}`).digest("base64");
+}
+
+function verify(headers: Record<string, string | undefined>, secret: string, body: string, now: number): boolean {
   const timestamp = Number(header(headers, "x-dingtalk-timestamp"));
   const signature = header(headers, "x-dingtalk-signature");
-  if (!timestamp || !signature) return false;
-  return sameSignature(signature, signDingTalkWebhook(timestamp, secret));
+  if (!Number.isSafeInteger(timestamp) || !signature || Math.abs(now - timestamp) > 300_000) return false;
+  return sameSignature(signature, signDingTalkCallback(timestamp, body, secret));
 }
 
 export function parseDingTalkCallback(input: DingTalkCallbackInput): DingTalkCallbackResult {
   const headers = input.headers || {};
-  if (input.secret && !verify(headers, input.secret)) return { ok: false, status: 401, error: "invalid signature" };
+  if (!input.secret || !verify(headers, input.secret, input.body, input.now ?? Date.now()))
+    return { ok: false, status: 401, error: "invalid signature" };
+  return parseCallbackBody(input.body);
+}
 
+function parseCallbackBody(body: string): DingTalkCallbackResult {
   let payload: Record<string, unknown>;
   try {
-    const parsed = JSON.parse(input.body) as unknown;
+    const parsed = JSON.parse(body) as unknown;
     if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) throw Error("callback body must be an object");
     payload = parsed as Record<string, unknown>;
   } catch {
@@ -88,6 +97,25 @@ export function parseDingTalkCallback(input: DingTalkCallbackInput): DingTalkCal
       payload,
     },
   };
+}
+
+export function parseDingTalkStreamCallback(messageId: string, body: string): DingTalkCallbackResult {
+  try {
+    const message = JSON.parse(body);
+    const actionIds = JSON.parse(message.content).cardPrivateData.actionIds;
+    if (!Array.isArray(actionIds) || actionIds.length !== 1) throw Error("one action is required");
+    return parseCallbackBody(
+      JSON.stringify({
+        callbackId: messageId,
+        actionId: actionIds[0],
+        userId: message.userId,
+        corpId: message.corpId,
+        outTrackId: message.outTrackId,
+      }),
+    );
+  } catch {
+    return { ok: false, status: 400, error: "malformed Stream card callback" };
+  }
 }
 
 export function dingTalkCallbackReceiptFile(root: string, callbackId: string): string {

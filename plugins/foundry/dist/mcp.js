@@ -199,10 +199,19 @@ async function writeJson(file, value) {
 `, "utf8");
   await fs.rename(tmp, file);
 }
-async function writeEvent(type, data) {
-  const id = newId("event");
+async function writeEvent(type, data, requestId) {
+  const id = requestId ? `event-${crypto.createHash("sha256").update(`${type}:${requestId}`).digest("hex")}` : newId("event");
   const normalizedType = normalizeEventType(type);
-  const file = path2.join(await knowledgeDirPath("events"), `${Date.now()}-${id}.json`);
+  const file = path2.join(await knowledgeDirPath("events"), requestId ? `${id}.json` : `${Date.now()}-${id}.json`);
+  if (requestId) {
+    try {
+      await fs.access(file);
+      return;
+    } catch (error) {
+      if (error.code !== "ENOENT")
+        throw error;
+    }
+  }
   await writeJson(file, createUsoraEvent({
     id,
     schemaVersion: EVENT_SCHEMA_VERSION,
@@ -1287,18 +1296,34 @@ async function handleCandidateEvaluate(args) {
   return withKnowledgeLock("candidates", () => evaluateCandidate(args));
 }
 async function evaluateCandidate(args) {
+  if (args.result !== "pass" && args.result !== "fail")
+    throw Error("result must be pass or fail");
   const file = path11.join(await knowledgeDirPath("candidates"), `${safeName(args.id, "id")}.json`);
   const item = await readJson(file);
   if (!isRecord6(item))
     throw Error("Candidate not found");
+  const requests = isRecord6(item.integration_requests) ? item.integration_requests : {};
+  if (typeof args.request_id === "string" && Object.hasOwn(requests, args.request_id)) {
+    const receipt = requests[args.request_id];
+    await writeEvent("ReviewSubmitted", receipt.data, `${args.id}:${args.request_id}`);
+    await writeEvent(receipt.type, receipt.data, `${args.id}:${args.request_id}`);
+    return item;
+  }
   item.evaluation = {
     result: args.result,
     reviewer: args.reviewer || "codex",
     evaluated_at: now()
   };
   item.state = args.result === "pass" ? "EVALUATED" : "REJECTED";
+  const eventType = args.result === "pass" ? "candidate.approved" : "candidate.rejected";
+  const { integration_requests: _requests, ...snapshot } = item;
+  const requestId = typeof args.request_id === "string" ? args.request_id : undefined;
+  if (requestId)
+    item.integration_requests = { ...requests, [requestId]: { type: eventType, data: snapshot } };
   await writeJson(file, item);
-  await writeEvent("ReviewSubmitted", item);
+  const eventKey = requestId ? `${args.id}:${requestId}` : undefined;
+  await writeEvent("ReviewSubmitted", snapshot, eventKey);
+  await writeEvent(eventType, snapshot, eventKey);
   return item;
 }
 
@@ -1508,6 +1533,12 @@ async function resolveGovernance(args = {}) {
     throw Error("Only the configured Maintainer can apply destructive governance actions");
   }
   const { file, meta } = await skillRecord(args.skill);
+  const requests = meta.integration_requests && typeof meta.integration_requests === "object" ? meta.integration_requests : {};
+  if (typeof args.request_id === "string" && Object.hasOwn(requests, args.request_id)) {
+    await rebuildSkillIndex();
+    await writeEvent("GovernanceResolved", requests[args.request_id], `${meta.name}:${args.request_id}`);
+    return requests[args.request_id];
+  }
   meta.governance_status = action;
   meta.governance_reason = args.reason || "";
   if (action === "MERGE") {
@@ -1529,10 +1560,12 @@ async function resolveGovernance(args = {}) {
     addGraph(meta, "depends_on", args.depends_on);
   if (args.conflicts_with)
     addGraph(meta, "conflicts_with", args.conflicts_with);
+  const result = { action, skill: meta.name, target_skill: args.target_skill || null, state: meta.state };
+  if (typeof args.request_id === "string")
+    meta.integration_requests = { ...requests, [args.request_id]: result };
   await writeJson(file, meta);
   await rebuildSkillIndex();
-  const result = { action, skill: meta.name, target_skill: args.target_skill || null, state: meta.state };
-  await writeEvent("GovernanceResolved", result);
+  await writeEvent("GovernanceResolved", result, args.request_id ? `${meta.name}:${args.request_id}` : undefined);
   return result;
 }
 async function handleSkillGraphValidate() {
@@ -2831,7 +2864,8 @@ var candidateTools = [
       properties: {
         id: { type: "string" },
         result: { type: "string", enum: ["pass", "fail"] },
-        reviewer: { type: "string" }
+        reviewer: { type: "string" },
+        request_id: { type: "string", description: "Stable integration request id for retry deduplication." }
       }
     }
   }
@@ -2864,6 +2898,7 @@ var governanceTools = [
         target_skill: { type: "string" },
         reason: { type: "string" },
         actor: { type: "string" },
+        request_id: { type: "string", description: "Stable integration request id for retry deduplication." },
         related_to: { type: "string" },
         depends_on: { type: "string" },
         conflicts_with: { type: "string" }

@@ -55,6 +55,7 @@ import {
   manualCaptureDingTalkResource,
   resolveDingTalkConfig,
   signDingTalkWebhook,
+  signDingTalkCallback,
 } from "../../plugins/dingtalk/src/index.ts";
 
 const foundryMcpScript = path.resolve("plugins/foundry/dist/mcp.js");
@@ -300,7 +301,7 @@ test("candidate created builder includes evidence confidence source and actions"
   assert.equal(message.sections?.[0]?.facts?.find((fact) => fact.label === "Confidence")?.value, "0.82");
   assert.equal(message.sections?.[0]?.facts?.find((fact) => fact.label === "Source")?.value, "codex");
   assert.equal(message.sections?.[0]?.facts?.find((fact) => fact.label === "activity-1")?.value, "Observed twice");
-  assert.equal(message.actions?.[0]?.command, "candidate.approve");
+  assert.equal(message.actions?.find((action) => action.id === "candidate.approve")?.command, "candidate.approve");
   assert.equal(message.resources?.[0]?.externalId, "candidate-1");
   assert.equal(renderDingTalkWebhookMessage(message).msgtype, "markdown");
 });
@@ -355,7 +356,7 @@ test("governance builder includes finding reason suggestion and actions", () => 
     "Review whether to evolve or retire it.",
   );
   assert.equal(message.actions?.[0]?.command, "governance.resolve");
-  assert.equal(message.actions?.[1]?.metadata?.action, "EVOLVE");
+  assert.equal(message.actions?.find((action) => action.id === "governance.evolve")?.metadata?.action, "EVOLVE");
   assert.equal(renderDingTalkWebhookMessage(message).msgtype, "markdown");
 });
 
@@ -429,42 +430,37 @@ test("dingtalk outbound e2e wires event subscription renderer transport and deli
   assert.equal(record?.status, "delivered");
 });
 
-test("dingtalk callback receiver verifies signatures and rejects malformed input", () => {
-  const valid = parseDingTalkCallback({
+function signedCallback(body: string) {
+  const now = Date.now();
+  return {
+    body,
     secret: "secret",
+    now,
     headers: {
-      "x-dingtalk-timestamp": "123",
-      "x-dingtalk-signature": signDingTalkWebhook(123, "secret"),
+      "x-dingtalk-timestamp": String(now),
+      "x-dingtalk-signature": signDingTalkCallback(now, body, "secret"),
     },
-    body: JSON.stringify({
-      callbackId: "callback-1",
-      actionId: "candidate.approve",
-      userId: "user-1",
-      corpId: "corp-1",
-    }),
-  });
+  };
+}
 
-  assert.equal(valid.ok, true);
-  if (valid.ok) {
-    assert.equal(valid.callback.id, "callback-1");
-    assert.equal(valid.callback.actionId, "candidate.approve");
-    assert.equal(valid.callback.userId, "user-1");
-    assert.equal(valid.callback.corpId, "corp-1");
-  }
-  assert.deepEqual(
-    parseDingTalkCallback({
-      secret: "secret",
-      headers: { "x-dingtalk-timestamp": "123", "x-dingtalk-signature": "bad" },
-      body: "{}",
-    }),
-    { ok: false, status: 401, error: "invalid signature" },
-  );
-  assert.deepEqual(parseDingTalkCallback({ body: "nope" }), {
+test("local callback envelope rejects unsigned stale modified and malformed requests", () => {
+  const body = JSON.stringify({
+    callbackId: "callback-1",
+    actionId: "candidate.approve",
+    userId: "user-1",
+    corpId: "corp-1",
+  });
+  const signed = signedCallback(body);
+  assert.equal(parseDingTalkCallback(signed).ok, true);
+  assert.equal(parseDingTalkCallback({ ...signed, now: signed.now + 300_001 }).ok, false);
+  assert.equal(parseDingTalkCallback({ ...signed, body: body.replace("user-1", "maintainer") }).ok, false);
+  assert.equal(parseDingTalkCallback({ body }).ok, false);
+  assert.deepEqual(parseDingTalkCallback(signedCallback("nope")), {
     ok: false,
     status: 400,
     error: "malformed callback body",
   });
-  assert.deepEqual(parseDingTalkCallback({ body: "{}" }), {
+  assert.deepEqual(parseDingTalkCallback(signedCallback("{}")), {
     ok: false,
     status: 400,
     error: "callback id, action id, and user id are required",
@@ -644,14 +640,7 @@ test("dingtalk approve callback verifies identity authorizes emits approved even
     corpId: "corp-1",
     candidateId: "candidate-1",
   });
-  const parsed = parseDingTalkCallback({
-    body,
-    secret: "secret",
-    headers: {
-      "x-dingtalk-timestamp": "123",
-      "x-dingtalk-signature": signDingTalkWebhook(123, "secret"),
-    },
-  });
+  const parsed = parseDingTalkCallback(signedCallback(body));
   const emitted = [];
   let feedback;
   const commands = createCommandRegistry([

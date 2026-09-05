@@ -4,7 +4,7 @@ import type { UsoraEvent } from "./events.ts";
 import type { IntegrationMessage } from "./messages.ts";
 
 export const DELIVERY_STATUSES = ["pending", "delivering", "delivered", "failed", "dead-letter"] as const;
-export const BLOCKING_DELIVERY_STATUSES = ["delivering", "delivered", "dead-letter"] as const;
+export const BLOCKING_DELIVERY_STATUSES = ["delivered", "dead-letter"] as const;
 
 export type DeliveryStatus = (typeof DELIVERY_STATUSES)[number];
 export type BlockingDeliveryStatus = (typeof BLOCKING_DELIVERY_STATUSES)[number];
@@ -52,8 +52,12 @@ export function deliveryDedupKey(provider: string, subscription: string, event: 
   return `${provider}:${subscription}:${event.id}`;
 }
 
-export function shouldStartDelivery(record: DeliveryRecord | null | undefined): boolean {
-  return !record || !BLOCKING_DELIVERY_STATUSES.includes(record.status as BlockingDeliveryStatus);
+export function shouldStartDelivery(record: DeliveryRecord | null | undefined, now = new Date()): boolean {
+  return (
+    !record ||
+    (!BLOCKING_DELIVERY_STATUSES.includes(record.status as BlockingDeliveryStatus) &&
+      (!record.nextAttemptAt || Date.parse(record.nextAttemptAt) <= now.getTime()))
+  );
 }
 
 export function isRetryableDeliveryError(error: unknown): boolean {

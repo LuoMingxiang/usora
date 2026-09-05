@@ -277,10 +277,20 @@ export async function writeJson(file: string, value: unknown): Promise<void> {
  * @param {any} data - Event payload.
  * @returns {Promise<void>}
  */
-export async function writeEvent(type: string, data: unknown): Promise<void> {
-  const id = newId("event");
+export async function writeEvent(type: string, data: unknown, requestId?: string): Promise<void> {
+  const id = requestId
+    ? `event-${crypto.createHash("sha256").update(`${type}:${requestId}`).digest("hex")}`
+    : newId("event");
   const normalizedType = normalizeEventType(type);
-  const file = path.join(await knowledgeDirPath("events"), `${Date.now()}-${id}.json`);
+  const file = path.join(await knowledgeDirPath("events"), requestId ? `${id}.json` : `${Date.now()}-${id}.json`);
+  if (requestId) {
+    try {
+      await fs.access(file);
+      return;
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
+    }
+  }
   await writeJson(
     file,
     createUsoraEvent({

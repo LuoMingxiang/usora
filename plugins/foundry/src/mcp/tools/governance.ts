@@ -27,6 +27,7 @@ export const governanceTools = [
         target_skill: { type: "string" },
         reason: { type: "string" },
         actor: { type: "string" },
+        request_id: { type: "string", description: "Stable integration request id for retry deduplication." },
         related_to: { type: "string" },
         depends_on: { type: "string" },
         conflicts_with: { type: "string" },

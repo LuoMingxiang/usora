@@ -11,6 +11,7 @@
   "dependencies": {
     "@usora/integration": "workspace:*",
     "@usora/plugin-sdk": "workspace:*",
-    "@usora/types": "workspace:*"
+    "@usora/types": "workspace:*",
+    "dingtalk-stream": "2.1.7-beta.1"
   }
 }

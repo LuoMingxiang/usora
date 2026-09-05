@@ -9,7 +9,7 @@ type FetchResponse = {
 
 type FetchLike = (
   url: string,
-  init: { method: string; headers: Record<string, string>; body?: string },
+  init: { method: string; headers: Record<string, string>; body?: string; signal?: AbortSignal },
 ) => Promise<FetchResponse>;
 
 export type DingTalkAppClientOptions = {
@@ -39,6 +39,7 @@ async function readBody(response: FetchResponse): Promise<unknown> {
 function bodyError(body: unknown): string | null {
   if (!body || typeof body !== "object" || Array.isArray(body)) return null;
   const code = (body as { code?: unknown; errcode?: unknown }).code ?? (body as { errcode?: unknown }).errcode;
+  if ((body as { success?: boolean }).success === false) return "DingTalk operation failed";
   if (code === undefined || code === "0" || code === 0) return null;
   const message = (body as { message?: unknown; errmsg?: unknown }).message ?? (body as { errmsg?: unknown }).errmsg;
   return typeof message === "string" ? message : `DingTalk app API error: ${String(code)}`;
@@ -64,6 +65,7 @@ export function createDingTalkAppClient(options: DingTalkAppClientOptions): Ding
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ appKey: options.appKey, appSecret: options.appSecret }),
+      signal: AbortSignal.timeout(10_000),
     });
     const body = await readBody(response);
     const error = bodyError(body);
@@ -78,6 +80,7 @@ export function createDingTalkAppClient(options: DingTalkAppClientOptions): Ding
   return {
     getAccessToken,
     async request(pathname, init = {}) {
+      if (!pathname.startsWith("/v1.0/")) throw Error("Invalid DingTalk API path");
       const token = await getAccessToken();
       if (!token.ok) return token;
       const response = await fetcher(`${baseUrl}${pathname}`, {
@@ -87,6 +90,7 @@ export function createDingTalkAppClient(options: DingTalkAppClientOptions): Ding
           "x-acs-dingtalk-access-token": token.data.accessToken,
         },
         ...(init.body === undefined ? {} : { body: JSON.stringify(init.body) }),
+        signal: AbortSignal.timeout(10_000),
       });
       const body = await readBody(response);
       const error = bodyError(body);

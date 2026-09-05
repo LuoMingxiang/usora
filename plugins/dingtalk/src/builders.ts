@@ -62,6 +62,7 @@ export function createCandidateCreatedMessage(event: UsoraEvent<CandidateData>):
     summary: candidate.summary || "A new reusable skill candidate was captured.",
     sections: facts.length ? [{ title: "Candidate Evidence", facts }] : [],
     actions: [
+      { id: "candidate.view", label: "View", command: "candidate.get", metadata: { candidateId: candidate.id } },
       {
         id: "candidate.approve",
         label: "Approve",
@@ -121,6 +122,18 @@ export function createGovernanceMessage(event: UsoraEvent<GovernanceData>): Inte
     sections: [{ title: "Governance", facts }],
     actions: [
       { id: "governance.keep", label: "Keep", command: "governance.resolve", metadata: { skill, action: "KEEP" } },
+      {
+        id: "governance.deprecate",
+        label: "Deprecate",
+        command: "governance.resolve",
+        metadata: { skill, action: "DEPRECATE" },
+      },
+      {
+        id: "governance.retire",
+        label: "Retire",
+        command: "governance.resolve",
+        metadata: { skill, action: "RETIRE" },
+      },
       {
         id: "governance.evolve",
         label: "Evolve",

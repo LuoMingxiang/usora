@@ -11,3 +11,4 @@ export * from "./resources.ts";
 export * from "./runtime.ts";
 export * from "./subscriptions.ts";
 export * from "./testing.ts";
+export * from "./lock.ts";

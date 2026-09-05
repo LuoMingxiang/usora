@@ -1,11 +1,14 @@
 import {
   dispatchIntegrationCommand,
+  withIntegrationLock,
   type Authorizer,
   type IdentityResolver,
   type IntegrationCommandRegistry,
 } from "@usora/integration";
 import { createDingTalkActionCommand } from "./actions.ts";
 import { claimDingTalkCallback, type DingTalkCallback } from "./callback.ts";
+import { readDingTalkCallbackReceipt, dingTalkCallbackReceiptFile } from "./callback.ts";
+import path from "node:path";
 
 export type DingTalkDispatchInput = {
   callback: DingTalkCallback;
@@ -17,9 +20,6 @@ export type DingTalkDispatchInput = {
 };
 
 export async function dispatchDingTalkCallback(input: DingTalkDispatchInput) {
-  const claim = await claimDingTalkCallback(input.stateDir, input.callback, input.now);
-  if (!claim.ok) return { ok: false as const, error: claim.error, code: "DUPLICATE_CALLBACK" };
-
   const actor = await input.identities.resolveIdentity({
     provider: "dingtalk",
     externalUserId: input.callback.userId,
@@ -31,5 +31,15 @@ export async function dispatchDingTalkCallback(input: DingTalkDispatchInput) {
   if (!decision.allowed)
     return { ok: false as const, error: decision.reason || "Permission denied", code: "PERMISSION_DENIED" };
 
-  return dispatchIntegrationCommand(input.commands, createDingTalkActionCommand(input.callback, actor, input.now));
+  return withIntegrationLock(path.join(input.stateDir, "callback-dispatch"), async () => {
+    if (await readDingTalkCallbackReceipt(dingTalkCallbackReceiptFile(input.stateDir, input.callback.id))) {
+      return { ok: false as const, error: "duplicate callback", code: "DUPLICATE_CALLBACK" };
+    }
+    const result = await dispatchIntegrationCommand(
+      input.commands,
+      createDingTalkActionCommand(input.callback, actor, input.now),
+    );
+    if (result.ok) await claimDingTalkCallback(input.stateDir, input.callback, input.now);
+    return result;
+  });
 }

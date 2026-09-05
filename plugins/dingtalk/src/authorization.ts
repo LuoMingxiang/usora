@@ -1,6 +1,15 @@
 import type { Authorizer } from "@usora/integration";
 
-export const DINGTALK_READ_PERMISSIONS = ["hub.status", "candidate.view", "skill.get", "digest.get"] as const;
+export const DINGTALK_READ_PERMISSIONS = [
+  "hub.status",
+  "candidate.view",
+  "candidate.list",
+  "candidate.get",
+  "governance.scan",
+  "skill.get",
+  "digest.get",
+  "foundry.run",
+] as const;
 export const DINGTALK_CANDIDATE_PERMISSIONS = ["candidate.approve", "candidate.reject"] as const;
 export const DINGTALK_GOVERNANCE_PERMISSIONS = [
   "governance.keep",

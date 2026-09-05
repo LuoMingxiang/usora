@@ -32,7 +32,7 @@ function messageText(payload: Record<string, unknown>): string | undefined {
 export function parseDingTalkInboundMessage(payload: Record<string, unknown>): DingTalkInboundMessage {
   const id = stringField(payload, "msgId", "messageId", "msg_id");
   const userId = stringField(payload, "senderStaffId", "senderId", "userId", "user_id");
-  const corpId = stringField(payload, "conversationCorpId", "corpId", "corp_id");
+  const corpId = stringField(payload, "senderCorpId", "conversationCorpId", "corpId", "corp_id");
   const conversationId = stringField(payload, "conversationId", "conversation_id");
   const text = messageText(payload);
   const displayName = stringField(payload, "senderNick", "senderName");

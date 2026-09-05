@@ -268,10 +268,19 @@ async function writeJson(file, value) {
 `, "utf8");
   await fs2.rename(tmp, file);
 }
-async function writeEvent(type, data) {
-  const id = newId("event");
+async function writeEvent(type, data, requestId) {
+  const id = requestId ? `event-${crypto.createHash("sha256").update(`${type}:${requestId}`).digest("hex")}` : newId("event");
   const normalizedType = normalizeEventType(type);
-  const file = path2.join(await knowledgeDirPath("events"), `${Date.now()}-${id}.json`);
+  const file = path2.join(await knowledgeDirPath("events"), requestId ? `${id}.json` : `${Date.now()}-${id}.json`);
+  if (requestId) {
+    try {
+      await fs2.access(file);
+      return;
+    } catch (error) {
+      if (error.code !== "ENOENT")
+        throw error;
+    }
+  }
   await writeJson(file, createUsoraEvent({
     id,
     schemaVersion: EVENT_SCHEMA_VERSION,

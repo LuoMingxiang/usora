@@ -457,8 +457,10 @@ test("runtime fans out one event and message builder to a second provider", asyn
   });
 
   assert.equal(result.delivered, 2);
-  assert.deepEqual(dingtalk.sentMessages, [{ title: "Candidate" }]);
-  assert.deepEqual(consoleProvider.sentMessages, dingtalk.sentMessages);
+  assert.equal(dingtalk.sentMessages[0]?.title, "Candidate");
+  assert.ok(dingtalk.sentMessages[0]?.id);
+  assert.equal(consoleProvider.sentMessages[0]?.title, dingtalk.sentMessages[0]?.title);
+  assert.notEqual(consoleProvider.sentMessages[0]?.id, dingtalk.sentMessages[0]?.id);
   assert.equal(providers.require("console").id, "console");
 });
 

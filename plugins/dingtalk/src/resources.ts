@@ -1,4 +1,5 @@
 import type { IntegrationResource, IntegrationResourceType, ResourceProvenance } from "@usora/integration";
+import type { DingTalkAppClient } from "./app.ts";
 
 export const DINGTALK_RESOURCE_TYPES = [
   "document",
@@ -102,4 +103,23 @@ export function readDingTalkResource(
     },
     provenance: createDingTalkResourceProvenance(resource, capturedBy, capturedAt),
   };
+}
+
+export async function fetchDingTalkDocument(
+  client: DingTalkAppClient,
+  docKey: string,
+  operatorId: string,
+): Promise<DingTalkResourceInput> {
+  if (!docKey.trim() || !operatorId.trim()) throw Error("docKey and operatorId (unionId) are required");
+  const query = new URLSearchParams({ operatorId });
+  const response = await client.request(`/v1.0/doc/suites/documents/${encodeURIComponent(docKey)}/blocks?${query}`, {
+    method: "GET",
+  });
+  if (!response.ok) throw Error(response.error);
+  const body = response.data as { success?: boolean; result?: { data?: unknown[] } };
+  if (body.success !== true || !Array.isArray(body.result?.data)) throw Error("Invalid DingTalk document response");
+  // Preserve every returned block instead of silently dropping tables/images or unfamiliar block types.
+  const content = JSON.stringify(body.result.data, null, 2);
+  if (content.length > 1_000_000) throw Error("Document exceeds the 1 MB capture limit");
+  return { type: "document", id: docKey, content, metadata: { operatorId, format: "dingtalk-blocks" } };
 }
