@@ -1,6 +1,7 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { checkContextBudget, recordIntelligenceRun } from "./context-budget.ts";
+import { hasActivityContent } from "./intelligence/activity-content.ts";
 import { withKnowledgeLock } from "./lock.ts";
 import { PATTERN_SCHEMA_VERSION, knowledgeDirPath, loadConfig, readJson, writeEvent, writeJson } from "./storage.ts";
 import { listLimit } from "./validation.ts";
@@ -210,7 +211,7 @@ async function advanceIngestionState(records: ActivitySourceRecord[]): Promise<v
 
 export async function indexNewActivities() {
   const started = Date.now();
-  const records = await readActivities();
+  const records = (await readActivities()).filter(({ activity }) => hasActivityContent(activity));
   const index = await readPatterns();
   let indexed = 0;
   for (const record of records) {
@@ -245,11 +246,20 @@ export async function indexNewActivities() {
 
 export async function rebuildPatternIndex() {
   const started = Date.now();
-  const records = await readActivities({ includeIndexed: true });
+  const records = (await readActivities({ includeIndexed: true })).filter(({ activity }) => hasActivityContent(activity));
+  const previous = await readPatterns();
+  const linked = new Map(previous.patterns.filter((item) => item.candidate_id).map((item) => [item.fingerprint, item]));
   const index: PatternIndex = { schema_version: PATTERN_SCHEMA_VERSION, patterns: [] };
   let indexed = 0;
   for (const record of records) {
     if (upsertPattern(index.patterns, record)) indexed++;
+  }
+  for (const pattern of index.patterns) {
+    const existing = linked.get(pattern.fingerprint);
+    if (existing) {
+      pattern.candidate_id = existing.candidate_id;
+      pattern.state = existing.state;
+    }
   }
   await writePatterns(index);
   await advanceIngestionState(records);
@@ -293,6 +303,7 @@ export async function queryPatterns(args: PatternQueryArgs = {}) {
     patterns = patterns.filter((pattern) => (pattern.last_seen || pattern.first_seen || "") >= since);
   }
   if (args.eligible) {
+    patterns = patterns.filter((pattern) => pattern.activity_refs?.length !== 0 || !pattern.activity_refs);
     patterns = patterns.filter(
       (pattern) => pattern.high_value || (pattern.type !== "routine" && pattern.occurrences >= minOccurrences),
     );
