@@ -7,7 +7,8 @@ export function hasActivityContent(activity: Record<string, unknown>): boolean {
     meaningful(activity.task) ||
     meaningful(activity.result) ||
     (Array.isArray(activity.key_points) && activity.key_points.some(meaningful)) ||
-    meaningful(digest.task) || meaningful(digest.result) || meaningful(digest.topic) ||
+    meaningful(digest.task) || meaningful(digest.result) || meaningful(digest.topic) || meaningful(digest.domain) || meaningful(digest.type) ||
+    (Array.isArray(digest.technologies) && digest.technologies.some(meaningful)) ||
     (Array.isArray(digest.key_points) && digest.key_points.some(meaningful))
   );
 }
