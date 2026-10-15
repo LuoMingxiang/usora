@@ -109,7 +109,7 @@ export const AUTOMATION_POLICIES = ["auto_publish", "manual_approval", "auto_gen
  *
  * @type {string[]}
  */
-export const ARCHIVABLE_STATES = ["PROCESSED", "USED", "ABSORBED"];
+export const ARCHIVABLE_STATES = ["ABSORBED"];
 
 type JsonObject = Record<string, unknown>;
 
