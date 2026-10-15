@@ -19,6 +19,8 @@ import {
   resolveKnowledgeHome,
   saveConfig,
 } from "./storage.ts";
+import { hasActivityContent } from "./intelligence/activity-content.ts";
+import { handlePatternIndex } from "./patterns.ts";
 import { migrationStatus } from "./migration.ts";
 import { currentHost, describeActivitySources } from "../sources/registry.ts";
 
@@ -240,14 +242,14 @@ async function dataLocations(): Promise<DataLocationInfo> {
 /**
  * `hub_cleanup`: dispatch to `cleanAll` or `archiveGenerated` by mode.
  *
- * @param {ToolArgs} args - `mode` ("generated"|"all") and `confirm` (required when `mode` is "all").
+ * @param {ToolArgs} args - `mode` ("generated"|"blank"|"all") and `confirm` (required when `mode` is "all").
  * @returns {Promise<object>} Cleanup result.
  * @throws {Error} On an invalid mode, or "all" without `confirm: true`.
  */
 export async function handleHubCleanup(args: HubCleanupArgs = {}) {
   const mode = args.mode || "generated";
-  if (!["generated", "all"].includes(mode)) {
-    throw Error("mode must be generated or all");
+  if (!["generated", "blank", "all"].includes(mode)) {
+    throw Error("mode must be generated, blank or all");
   }
   if (mode === "all") {
     if (args.confirm !== true) {
@@ -255,7 +257,50 @@ export async function handleHubCleanup(args: HubCleanupArgs = {}) {
     }
     return cleanAll();
   }
+  if (mode === "blank") return archiveBlankActivities();
   return archiveGenerated();
+}
+
+/** Archive uninformative local Activities without breaking Candidate evidence. */
+async function archiveBlankActivities() {
+  const activitiesDir = await hostDirPath("activities");
+  const archiveDir = await hostDirPath("archive");
+  const candidatesDir = await knowledgeDirPath("candidates");
+  const protectedIds = new Set<string>();
+  async function readCandidateEvidence(dir: string): Promise<void> {
+    for (const entry of await fs.readdir(dir, { withFileTypes: true }).catch(() => [])) {
+      const file = path.join(dir, entry.name);
+      if (entry.isDirectory()) {
+        await readCandidateEvidence(file);
+      } else if (entry.isFile() && entry.name.endsWith(".json")) {
+        const item = await readJson(file);
+        if (!isRecord(item) || !Array.isArray(item.evidence)) continue;
+        for (const evidence of item.evidence) {
+          const id = typeof evidence === "string" ? evidence : isRecord(evidence) ? evidence.activity_id : null;
+          if (typeof id === "string") protectedIds.add(id);
+        }
+      }
+    }
+  }
+  await readCandidateEvidence(candidatesDir);
+  let archived = 0;
+  let protectedCount = 0;
+  for (const file of await fs.readdir(activitiesDir).catch(() => [])) {
+    if (!file.endsWith(".json")) continue;
+    const source = path.join(activitiesDir, file);
+    const activity = await readJson(source);
+    if (!isRecord(activity) || hasActivityContent(activity)) continue;
+    if (typeof activity.id === "string" && protectedIds.has(activity.id)) {
+      protectedCount++;
+      continue;
+    }
+    const destination = path.join(archiveDir, file);
+    if (await fs.stat(destination).then(() => true, () => false)) continue;
+    await fs.rename(source, destination);
+    archived++;
+  }
+  if (archived) await handlePatternIndex({ mode: "rebuild" });
+  return { mode: "blank", archived, protected: protectedCount, action: "archived_blank_activities" };
 }
 
 /**
