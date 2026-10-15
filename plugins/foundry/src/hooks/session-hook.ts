@@ -3,6 +3,7 @@ import { stdin } from "node:process";
 import { readCodeBuddySession } from "../adapters/codebuddy-session.ts";
 import { readCodexSession } from "../adapters/codex-session.ts";
 import { captureActivity } from "../core/activities.ts";
+import { hasActivityContent } from "../core/intelligence/activity-content.ts";
 import { compileSessionKnowledge } from "../core/intelligence/session-compiler.ts";
 import { writeSessionRecord } from "../core/sessions.ts";
 
@@ -98,8 +99,7 @@ async function main(): Promise<void> {
     });
   }
 
-  const activity = await captureActivity(
-    {
+  const capture = {
       session_id: sessionId,
       source: eventSource(event),
       project,
@@ -112,10 +112,12 @@ async function main(): Promise<void> {
       metadata: transcriptPath
         ? { transcript_path: transcriptPath, enrichment: compiled.activity.result ? "compiler" : "pending" }
         : undefined,
-    },
-    { requireTaskResult: false },
-  );
-
+  };
+  if (!hasActivityContent(capture)) {
+    console.log("SessionEnd skipped blank Activity");
+    return;
+  }
+  const activity = await captureActivity(capture, { requireTaskResult: false });
   console.log(`Captured activity: ${activityId(activity)}`);
 }
 
