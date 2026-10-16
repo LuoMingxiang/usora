@@ -1,6 +1,8 @@
 #!/usr/bin/env node
 
 // plugins/foundry/src/hooks/session-hook.ts
+import { appendFile, mkdir, stat } from "node:fs/promises";
+import path5 from "node:path";
 import { stdin } from "node:process";
 
 // plugins/foundry/src/adapters/codebuddy-session.ts
@@ -639,6 +641,33 @@ async function writeSessionRecord(sessionId, record) {
 }
 
 // plugins/foundry/src/hooks/session-hook.ts
+async function writeDiagnostic(entry) {
+  try {
+    const runtime = await hostDirPath("runtime");
+    await mkdir(runtime, { recursive: true });
+    await appendFile(path5.join(runtime, "session-hook-diagnostics.jsonl"), `${JSON.stringify({ timestamp: new Date().toISOString(), ...entry })}
+`, "utf8");
+  } catch {}
+}
+async function transcriptInfo(transcriptPath) {
+  if (!transcriptPath)
+    return { transcript_path: null, transcript_exists: false };
+  try {
+    const info = await stat(transcriptPath);
+    return {
+      transcript_path: transcriptPath,
+      transcript_exists: info.isFile(),
+      transcript_bytes: info.size,
+      transcript_mtime: info.mtime.toISOString()
+    };
+  } catch (error) {
+    return {
+      transcript_path: transcriptPath,
+      transcript_exists: false,
+      transcript_error: error instanceof Error ? error.message : String(error)
+    };
+  }
+}
 async function readStdin() {
   const chunks = [];
   for await (const chunk of stdin)
@@ -699,8 +728,38 @@ async function main() {
   }
   const sessionId = stringValue(event.session_id) ?? stringValue(event.sessionId) ?? stringValue(getPath(event, ["session", "id"])) ?? stringValue(getPath(event, ["session", "session_id"]));
   const transcriptPath = stringValue(event.transcript_path) ?? stringValue(event.transcriptPath) ?? stringValue(getPath(event, ["transcript", "path"])) ?? stringValue(getPath(event, ["session", "transcript"]));
-  const session = await readSession(event, transcriptPath);
+  const source = eventSource(event);
+  await writeDiagnostic({
+    phase: "received",
+    source,
+    event_keys: Object.keys(event).sort(),
+    session_id_present: Boolean(sessionId),
+    ...await transcriptInfo(transcriptPath)
+  });
+  let session;
+  try {
+    session = await readSession(event, transcriptPath);
+  } catch (error) {
+    await writeDiagnostic({
+      phase: "error",
+      source,
+      session_id_present: Boolean(sessionId),
+      error: error instanceof Error ? error.message : String(error),
+      ...await transcriptInfo(transcriptPath)
+    });
+    throw error;
+  }
   const compiled = compileSessionKnowledge(session);
+  await writeDiagnostic({
+    phase: "parsed",
+    source,
+    session_id_present: Boolean(sessionId),
+    transcript_path: transcriptPath ?? null,
+    message_count: session.messages.length,
+    compiled_message_count: compiled.session_record.message_count,
+    compiled_task_present: Boolean(compiled.activity.task),
+    compiled_result_present: Boolean(compiled.activity.result)
+  });
   const project = stringValue(event.cwd) ?? stringValue(event.workingDirectory) ?? stringValue(getPath(event, ["session", "cwd"])) ?? process.cwd();
   let storedSession;
   if (sessionId || compiled.session_record.message_count > 0) {
@@ -726,10 +785,22 @@ async function main() {
     metadata: effectiveTranscriptPath ? { transcript_path: effectiveTranscriptPath, enrichment: compiled.activity.result ? "compiler" : "pending" } : undefined
   };
   if (!hasActivityContent(capture)) {
+    await writeDiagnostic({
+      phase: "skipped_blank",
+      source,
+      session_id_present: Boolean(sessionId),
+      transcript_path: effectiveTranscriptPath ?? null
+    });
     console.log("SessionEnd skipped blank Activity");
     return;
   }
   const activity = await captureActivity(capture, { requireTaskResult: false });
+  await writeDiagnostic({
+    phase: "captured",
+    source,
+    session_id_present: Boolean(sessionId),
+    activity_id: activityId(activity)
+  });
   console.log(`Captured activity: ${activityId(activity)}`);
 }
 main().catch((err) => {

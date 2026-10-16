@@ -1,4 +1,6 @@
 #!/usr/bin/env node
+import { appendFile, mkdir, stat } from "node:fs/promises";
+import path from "node:path";
 import { stdin } from "node:process";
 import { readCodeBuddySession } from "../adapters/codebuddy-session.ts";
 import { readCodexSession } from "../adapters/codex-session.ts";
@@ -6,6 +8,40 @@ import { captureActivity } from "../core/activities.ts";
 import { hasActivityContent } from "../core/intelligence/activity-content.ts";
 import { compileSessionKnowledge } from "../core/intelligence/session-compiler.ts";
 import { writeSessionRecord } from "../core/sessions.ts";
+import { hostDirPath } from "../core/storage.ts";
+
+async function writeDiagnostic(entry: Record<string, unknown>): Promise<void> {
+  try {
+    const runtime = await hostDirPath("runtime");
+    await mkdir(runtime, { recursive: true });
+    await appendFile(
+      path.join(runtime, "session-hook-diagnostics.jsonl"),
+      `${JSON.stringify({ timestamp: new Date().toISOString(), ...entry })}\n`,
+      "utf8",
+    );
+  } catch {
+    // Diagnostics must never block session capture.
+  }
+}
+
+async function transcriptInfo(transcriptPath: string | undefined): Promise<Record<string, unknown>> {
+  if (!transcriptPath) return { transcript_path: null, transcript_exists: false };
+  try {
+    const info = await stat(transcriptPath);
+    return {
+      transcript_path: transcriptPath,
+      transcript_exists: info.isFile(),
+      transcript_bytes: info.size,
+      transcript_mtime: info.mtime.toISOString(),
+    };
+  } catch (error) {
+    return {
+      transcript_path: transcriptPath,
+      transcript_exists: false,
+      transcript_error: error instanceof Error ? error.message : String(error),
+    };
+  }
+}
 
 async function readStdin(): Promise<string> {
   const chunks: Buffer[] = [];
@@ -83,8 +119,39 @@ async function main(): Promise<void> {
     stringValue(event.transcriptPath) ??
     stringValue(getPath(event, ["transcript", "path"])) ??
     stringValue(getPath(event, ["session", "transcript"]));
-  const session = await readSession(event, transcriptPath);
+  const source = eventSource(event);
+  await writeDiagnostic({
+    phase: "received",
+    source,
+    event_keys: Object.keys(event).sort(),
+    session_id_present: Boolean(sessionId),
+    ...(await transcriptInfo(transcriptPath)),
+  });
+
+  let session;
+  try {
+    session = await readSession(event, transcriptPath);
+  } catch (error) {
+    await writeDiagnostic({
+      phase: "error",
+      source,
+      session_id_present: Boolean(sessionId),
+      error: error instanceof Error ? error.message : String(error),
+      ...(await transcriptInfo(transcriptPath)),
+    });
+    throw error;
+  }
   const compiled = compileSessionKnowledge(session);
+  await writeDiagnostic({
+    phase: "parsed",
+    source,
+    session_id_present: Boolean(sessionId),
+    transcript_path: transcriptPath ?? null,
+    message_count: session.messages.length,
+    compiled_message_count: compiled.session_record.message_count,
+    compiled_task_present: Boolean(compiled.activity.task),
+    compiled_result_present: Boolean(compiled.activity.result),
+  });
   const project =
     stringValue(event.cwd) ??
     stringValue(event.workingDirectory) ??
@@ -121,10 +188,22 @@ async function main(): Promise<void> {
       : undefined,
   };
   if (!hasActivityContent(capture)) {
+    await writeDiagnostic({
+      phase: "skipped_blank",
+      source,
+      session_id_present: Boolean(sessionId),
+      transcript_path: effectiveTranscriptPath ?? null,
+    });
     console.log("SessionEnd skipped blank Activity");
     return;
   }
   const activity = await captureActivity(capture, { requireTaskResult: false });
+  await writeDiagnostic({
+    phase: "captured",
+    source,
+    session_id_present: Boolean(sessionId),
+    activity_id: activityId(activity),
+  });
   console.log(`Captured activity: ${activityId(activity)}`);
 }
 
