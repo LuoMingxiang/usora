@@ -48,6 +48,36 @@ test("Codex and CodeBuddy adapters emit Session Protocol v1", async (t) => {
   assert.equal(codebuddy.source_ref.path, path.join(transcriptDir, "index.json"));
 });
 
+test("CodeBuddy adapter reads newline-delimited transcripts", async (t) => {
+  const cwd = await mkdtemp(path.join(os.tmpdir(), "usora-codebuddy-jsonl-"));
+  t.onTestFinished(() => rm(cwd, { recursive: true, force: true }));
+  const transcript = path.join(cwd, "session.jsonl");
+  await writeFile(
+    transcript,
+    [
+      JSON.stringify({ type: "init", session_id: "s1" }),
+      JSON.stringify({ type: "user", message: { role: "user", content: "Fix the parser" } }),
+      JSON.stringify({
+        type: "assistant",
+        message: { role: "assistant", content: [{ type: "text", text: "Parser fixed" }] },
+      }),
+      "not-json",
+      JSON.stringify({ type: "result", subtype: "success" }),
+    ].join("\n"),
+  );
+
+  const session = await readCodeBuddySession(transcript);
+  assert.equal(validateSessionProtocol(session).ok, true);
+  assert.equal(session.source_ref.path, transcript);
+  assert.deepEqual(
+    session.messages.map(({ role, text }) => ({ role, text })),
+    [
+      { role: "user", text: "Fix the parser" },
+      { role: "assistant", text: "Parser fixed" },
+    ],
+  );
+});
+
 test("core intelligence consumes protocol data without host transcript internals", async () => {
   const compiled = compileSessionKnowledge(
     normalizeSessionProtocol({
