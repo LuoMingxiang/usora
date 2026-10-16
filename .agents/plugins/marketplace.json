@@ -20,8 +20,8 @@
       },
       "artifact": {
         "type": "zip",
-        "url": "https://github.com/LuoMingxiang/usora/releases/download/foundry-v1.5.0/usora-foundry-1.5.0.zip",
-        "checksum": "sha256:833269e75dd0d803dc499de61e735cc08498e973224120a38aab8d4d69fce79c"
+        "url": "https://github.com/LuoMingxiang/usora/releases/download/foundry-v1.5.1/usora-foundry-1.5.1.zip",
+        "checksum": "sha256:6657085ed0a00a4907b02b692cecc57235a6a13d56f7ad22e51e92461aef6796"
       },
       "policy": {
         "installation": "AVAILABLE",
