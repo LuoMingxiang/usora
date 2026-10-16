@@ -246,7 +246,9 @@ export async function indexNewActivities() {
 
 export async function rebuildPatternIndex() {
   const started = Date.now();
-  const records = (await readActivities({ includeIndexed: true })).filter(({ activity }) => hasActivityContent(activity));
+  const records = (await readActivities({ includeIndexed: true })).filter(({ activity }) =>
+    hasActivityContent(activity),
+  );
   const previous = await readPatterns();
   const linked = new Map(previous.patterns.filter((item) => item.candidate_id).map((item) => [item.fingerprint, item]));
   const index: PatternIndex = { schema_version: PATTERN_SCHEMA_VERSION, patterns: [] };
@@ -256,8 +258,10 @@ export async function rebuildPatternIndex() {
   }
   for (const pattern of index.patterns) {
     const existing = linked.get(pattern.fingerprint);
-    if (existing) {
+    if (existing?.candidate_id !== undefined) {
       pattern.candidate_id = existing.candidate_id;
+    }
+    if (existing?.state !== undefined) {
       pattern.state = existing.state;
     }
   }

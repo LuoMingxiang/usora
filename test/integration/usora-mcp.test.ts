@@ -359,8 +359,8 @@ test("session hook captures canonical Activity in the configured Hub", async (t)
   assert.equal(activity.task, "Review");
   assert.equal(activity.result, "Fixed");
   assert.equal(activity.metadata.transcript_path, path.join(cwd, "transcript.jsonl"));
-  assert.equal(activity.recent_updates.length, 2);
-  assert.equal(activity.history.update_count, 2);
+  assert.equal(activity.recent_updates.length, 1);
+  assert.equal(activity.history.update_count, 1);
 });
 
 test("session hook extracts a small Activity summary from CodeBuddy transcript files", async (t) => {

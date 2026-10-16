@@ -295,7 +295,13 @@ async function archiveBlankActivities() {
       continue;
     }
     const destination = path.join(archiveDir, file);
-    if (await fs.stat(destination).then(() => true, () => false)) continue;
+    if (
+      await fs.stat(destination).then(
+        () => true,
+        () => false,
+      )
+    )
+      continue;
     await fs.rename(source, destination);
     archived++;
   }

@@ -91,27 +91,34 @@ async function main(): Promise<void> {
     stringValue(getPath(event, ["session", "cwd"])) ??
     process.cwd();
 
+  let storedSession: Record<string, unknown> | undefined;
   if (sessionId || compiled.session_record.message_count > 0) {
-    await writeSessionRecord(sessionId, {
+    storedSession = await writeSessionRecord(sessionId, {
       ...compiled.session_record,
       source: eventSource(event),
       project,
     });
   }
+  const storedSourceRef = storedSession?.source_ref;
+  const storedTranscriptPath =
+    storedSourceRef && typeof storedSourceRef === "object" && !Array.isArray(storedSourceRef)
+      ? stringValue((storedSourceRef as Record<string, unknown>).path)
+      : undefined;
+  const effectiveTranscriptPath = transcriptPath ?? storedTranscriptPath;
 
   const capture = {
-      session_id: sessionId,
-      source: eventSource(event),
-      project,
-      timestamp: validTimestamp(event.timestamp ?? event.time ?? event.ended_at),
-      task: event.task ?? compiled.activity.task ?? null,
-      result: event.result ?? compiled.activity.result ?? null,
-      summary: stringValue(event.summary) || compiled.activity.summary || "SessionEnd captured",
-      key_points: Array.isArray(event.key_points) ? event.key_points : compiled.activity.key_points || [],
-      context: transcriptPath || "",
-      metadata: transcriptPath
-        ? { transcript_path: transcriptPath, enrichment: compiled.activity.result ? "compiler" : "pending" }
-        : undefined,
+    session_id: sessionId,
+    source: eventSource(event),
+    project,
+    timestamp: validTimestamp(event.timestamp ?? event.time ?? event.ended_at),
+    task: event.task ?? compiled.activity.task ?? null,
+    result: event.result ?? compiled.activity.result ?? null,
+    summary: stringValue(event.summary) || compiled.activity.summary || "SessionEnd captured",
+    key_points: Array.isArray(event.key_points) ? event.key_points : compiled.activity.key_points || [],
+    context: effectiveTranscriptPath || "",
+    metadata: effectiveTranscriptPath
+      ? { transcript_path: effectiveTranscriptPath, enrichment: compiled.activity.result ? "compiler" : "pending" }
+      : undefined,
   };
   if (!hasActivityContent(capture)) {
     console.log("SessionEnd skipped blank Activity");

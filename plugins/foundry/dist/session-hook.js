@@ -435,6 +435,13 @@ async function captureActivity(args, options = {}) {
   return { ...item, merged: Boolean(existing) };
 }
 
+// plugins/foundry/src/core/intelligence/activity-content.ts
+function hasActivityContent(activity) {
+  const meaningful = (value) => typeof value === "string" && value.trim().length > 0;
+  const digest = activity.digest && typeof activity.digest === "object" && !Array.isArray(activity.digest) ? activity.digest : {};
+  return meaningful(activity.task) || meaningful(activity.result) || Array.isArray(activity.key_points) && activity.key_points.some(meaningful) || meaningful(digest.task) || meaningful(digest.result) || meaningful(digest.topic) || meaningful(digest.domain) || meaningful(digest.type) || Array.isArray(digest.technologies) && digest.technologies.some(meaningful) || Array.isArray(digest.key_points) && digest.key_points.some(meaningful);
+}
+
 // plugins/foundry/src/core/intelligence/event-detector.ts
 var DETECTORS = [
   ["constraint", /不要|必须|要求|限制|注意|只需要|不能|do not|must|require|only/i, 0.85],
@@ -576,12 +583,15 @@ function sessionFile(sessionId) {
 async function writeSessionRecord(sessionId, record) {
   await ensure();
   const timestamp = now();
+  const id = sessionId || `session-${timestamp}`;
+  const previous = sessionId ? await readJson(path4.join(await hostDirPath("sessions"), sessionFile(id))) : null;
   const item = {
     schema_version: SESSION_RECORD_SCHEMA_VERSION,
-    id: sessionId || `session-${timestamp}`,
+    id,
     session_id: sessionId || null,
     updated_at: timestamp,
-    ...record
+    ...record,
+    source_ref: record.source_ref ?? previous?.source_ref ?? null
   };
   await writeJson(path4.join(await hostDirPath("sessions"), sessionFile(item.id)), item);
   return item;
@@ -651,14 +661,18 @@ async function main() {
   const session = await readSession(event, transcriptPath);
   const compiled = compileSessionKnowledge(session);
   const project = stringValue(event.cwd) ?? stringValue(event.workingDirectory) ?? stringValue(getPath(event, ["session", "cwd"])) ?? process.cwd();
+  let storedSession;
   if (sessionId || compiled.session_record.message_count > 0) {
-    await writeSessionRecord(sessionId, {
+    storedSession = await writeSessionRecord(sessionId, {
       ...compiled.session_record,
       source: eventSource(event),
       project
     });
   }
-  const activity = await captureActivity({
+  const storedSourceRef = storedSession?.source_ref;
+  const storedTranscriptPath = storedSourceRef && typeof storedSourceRef === "object" && !Array.isArray(storedSourceRef) ? stringValue(storedSourceRef.path) : undefined;
+  const effectiveTranscriptPath = transcriptPath ?? storedTranscriptPath;
+  const capture = {
     session_id: sessionId,
     source: eventSource(event),
     project,
@@ -667,9 +681,14 @@ async function main() {
     result: event.result ?? compiled.activity.result ?? null,
     summary: stringValue(event.summary) || compiled.activity.summary || "SessionEnd captured",
     key_points: Array.isArray(event.key_points) ? event.key_points : compiled.activity.key_points || [],
-    context: transcriptPath || "",
-    metadata: transcriptPath ? { transcript_path: transcriptPath, enrichment: compiled.activity.result ? "compiler" : "pending" } : undefined
-  }, { requireTaskResult: false });
+    context: effectiveTranscriptPath || "",
+    metadata: effectiveTranscriptPath ? { transcript_path: effectiveTranscriptPath, enrichment: compiled.activity.result ? "compiler" : "pending" } : undefined
+  };
+  if (!hasActivityContent(capture)) {
+    console.log("SessionEnd skipped blank Activity");
+    return;
+  }
+  const activity = await captureActivity(capture, { requireTaskResult: false });
   console.log(`Captured activity: ${activityId(activity)}`);
 }
 main().catch((err) => {
