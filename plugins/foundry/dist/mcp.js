@@ -42,7 +42,7 @@ var DIRS = [
 var HOST_DIRS = ["activities", "sessions", "runtime", "archive"];
 var KNOWLEDGE_DIRS = ["candidates", "skills", "usage", "archive", "events", "indexes", "backups"];
 var AUTOMATION_POLICIES = ["auto_publish", "manual_approval", "auto_generate_manual_publish"];
-var ARCHIVABLE_STATES = ["PROCESSED", "USED", "ABSORBED"];
+var ARCHIVABLE_STATES = ["ABSORBED"];
 function isObject(value) {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
 }
@@ -579,6 +579,13 @@ async function withKnowledgeLock(name, fn) {
 import fs6 from "node:fs/promises";
 import path9 from "node:path";
 
+// plugins/foundry/src/core/intelligence/activity-content.ts
+function hasActivityContent(activity) {
+  const meaningful = (value) => typeof value === "string" && value.trim().length > 0;
+  const digest = activity.digest && typeof activity.digest === "object" && !Array.isArray(activity.digest) ? activity.digest : {};
+  return meaningful(activity.task) || meaningful(activity.result) || Array.isArray(activity.key_points) && activity.key_points.some(meaningful) || meaningful(digest.task) || meaningful(digest.result) || meaningful(digest.topic) || meaningful(digest.domain) || meaningful(digest.type) || Array.isArray(digest.technologies) && digest.technologies.some(meaningful) || Array.isArray(digest.key_points) && digest.key_points.some(meaningful);
+}
+
 // plugins/foundry/src/sources/registry.ts
 import os2 from "node:os";
 import path7 from "node:path";
@@ -843,7 +850,7 @@ async function advanceIngestionState(records) {
 }
 async function indexNewActivities() {
   const started = Date.now();
-  const records = await readActivities2();
+  const records = (await readActivities2()).filter(({ activity }) => hasActivityContent(activity));
   const index = await readPatterns();
   let indexed = 0;
   for (const record of records) {
@@ -878,12 +885,23 @@ async function indexNewActivities() {
 }
 async function rebuildPatternIndex() {
   const started = Date.now();
-  const records = await readActivities2({ includeIndexed: true });
+  const records = (await readActivities2({ includeIndexed: true })).filter(({ activity }) => hasActivityContent(activity));
+  const previous = await readPatterns();
+  const linked = new Map(previous.patterns.filter((item) => item.candidate_id).map((item) => [item.fingerprint, item]));
   const index = { schema_version: PATTERN_SCHEMA_VERSION, patterns: [] };
   let indexed = 0;
   for (const record of records) {
     if (upsertPattern(index.patterns, record))
       indexed++;
+  }
+  for (const pattern of index.patterns) {
+    const existing = linked.get(pattern.fingerprint);
+    if (existing?.candidate_id !== undefined) {
+      pattern.candidate_id = existing.candidate_id;
+    }
+    if (existing?.state !== undefined) {
+      pattern.state = existing.state;
+    }
   }
   await writePatterns(index);
   await advanceIngestionState(records);
@@ -924,6 +942,7 @@ async function queryPatterns(args = {}) {
     patterns = patterns.filter((pattern) => (pattern.last_seen || pattern.first_seen || "") >= since);
   }
   if (args.eligible) {
+    patterns = patterns.filter((pattern) => pattern.activity_refs?.length !== 0 || !pattern.activity_refs);
     patterns = patterns.filter((pattern) => pattern.high_value || pattern.type !== "routine" && pattern.occurrences >= minOccurrences);
   }
   patterns = patterns.slice().sort((a, b) => (b.last_seen || "").localeCompare(a.last_seen || "") || b.occurrences - a.occurrences);
@@ -1913,8 +1932,8 @@ async function dataLocations() {
 }
 async function handleHubCleanup(args = {}) {
   const mode = args.mode || "generated";
-  if (!["generated", "all"].includes(mode)) {
-    throw Error("mode must be generated or all");
+  if (!["generated", "blank", "all"].includes(mode)) {
+    throw Error("mode must be generated, blank or all");
   }
   if (mode === "all") {
     if (args.confirm !== true) {
@@ -1922,7 +1941,55 @@ async function handleHubCleanup(args = {}) {
     }
     return cleanAll();
   }
+  if (mode === "blank")
+    return archiveBlankActivities();
   return archiveGenerated();
+}
+async function archiveBlankActivities() {
+  const activitiesDir = await hostDirPath("activities");
+  const archiveDir = await hostDirPath("archive");
+  const candidatesDir = await knowledgeDirPath("candidates");
+  const protectedIds = new Set;
+  async function readCandidateEvidence(dir) {
+    for (const entry of await fs11.readdir(dir, { withFileTypes: true }).catch(() => [])) {
+      const file = path15.join(dir, entry.name);
+      if (entry.isDirectory()) {
+        await readCandidateEvidence(file);
+      } else if (entry.isFile() && entry.name.endsWith(".json")) {
+        const item = await readJson(file);
+        if (!isRecord9(item) || !Array.isArray(item.evidence))
+          continue;
+        for (const evidence of item.evidence) {
+          const id = typeof evidence === "string" ? evidence : isRecord9(evidence) ? evidence.activity_id : null;
+          if (typeof id === "string")
+            protectedIds.add(id);
+        }
+      }
+    }
+  }
+  await readCandidateEvidence(candidatesDir);
+  let archived = 0;
+  let protectedCount = 0;
+  for (const file of await fs11.readdir(activitiesDir).catch(() => [])) {
+    if (!file.endsWith(".json"))
+      continue;
+    const source = path15.join(activitiesDir, file);
+    const activity = await readJson(source);
+    if (!isRecord9(activity) || hasActivityContent(activity))
+      continue;
+    if (typeof activity.id === "string" && protectedIds.has(activity.id)) {
+      protectedCount++;
+      continue;
+    }
+    const destination = path15.join(archiveDir, file);
+    if (await fs11.stat(destination).then(() => true, () => false))
+      continue;
+    await fs11.rename(source, destination);
+    archived++;
+  }
+  if (archived)
+    await handlePatternIndex({ mode: "rebuild" });
+  return { mode: "blank", archived, protected: protectedCount, action: "archived_blank_activities" };
 }
 async function cleanAll() {
   const home = await resolveHome();
@@ -2859,10 +2926,10 @@ var hubTools = [
   },
   {
     name: "hub_cleanup",
-    description: "Clean in two modes: generated archives processed Activities; all permanently deletes every Usora Hub record, Skill, archive, event, and config and requires confirm=true. It empties the data directory but keeps the Hub directory and config file so the user can review the path.",
+    description: "Clean in three modes: generated archives absorbed Activities; blank safely archives empty Activities and rebuilds Patterns without breaking Candidate evidence; all permanently deletes every Usora Hub record, Skill, archive, event, and config and requires confirm=true. It empties the data directory but keeps the Hub directory and config file so the user can review the path.",
     inputSchema: {
       type: "object",
-      properties: { mode: { type: "string", enum: ["generated", "all"] }, confirm: { type: "boolean" } }
+      properties: { mode: { type: "string", enum: ["generated", "blank", "all"] }, confirm: { type: "boolean" } }
     }
   },
   {

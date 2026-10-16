@@ -63,10 +63,10 @@ export const hubTools = [
   {
     name: "hub_cleanup",
     description:
-      "Clean in two modes: generated archives processed Activities; all permanently deletes every Usora Hub record, Skill, archive, event, and config and requires confirm=true. It empties the data directory but keeps the Hub directory and config file so the user can review the path.",
+      "Clean in three modes: generated archives absorbed Activities; blank safely archives empty Activities and rebuilds Patterns without breaking Candidate evidence; all permanently deletes every Usora Hub record, Skill, archive, event, and config and requires confirm=true. It empties the data directory but keeps the Hub directory and config file so the user can review the path.",
     inputSchema: {
       type: "object",
-      properties: { mode: { type: "string", enum: ["generated", "all"] }, confirm: { type: "boolean" } },
+      properties: { mode: { type: "string", enum: ["generated", "blank", "all"] }, confirm: { type: "boolean" } },
     },
   },
   {

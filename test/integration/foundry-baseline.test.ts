@@ -438,10 +438,7 @@ test("session hook baseline records relaxed captures and preserves early importa
   const relaxedCwd = await tmpdir("usora-hook-relaxed-");
   t.onTestFinished(() => rm(relaxedCwd, { recursive: true, force: true }));
   await runHook(relaxedCwd, { session_id: "empty", transcript_path: path.join(relaxedCwd, "missing.json") });
-  const relaxed = await readOnlyActivity(path.join(relaxedCwd, ".usora"));
-  assert.equal(relaxed.task, null);
-  assert.equal(relaxed.result, null);
-  assert.equal(relaxed.metadata.enrichment, "pending");
+  assert.deepEqual(await readdir(path.join(relaxedCwd, ".usora", "activities")), []);
 });
 
 test("foundry token benchmark reports repeatable baseline dimensions", async (t) => {

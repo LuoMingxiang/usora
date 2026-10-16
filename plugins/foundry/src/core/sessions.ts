@@ -1,6 +1,6 @@
 import crypto from "node:crypto";
 import path from "node:path";
-import { SESSION_RECORD_SCHEMA_VERSION, ensure, hostDirPath, now, writeJson } from "./storage.ts";
+import { SESSION_RECORD_SCHEMA_VERSION, ensure, hostDirPath, now, readJson, writeJson } from "./storage.ts";
 
 type SessionRecord = Record<string, unknown>;
 
@@ -16,12 +16,17 @@ function sessionFile(sessionId: string | null | undefined): string {
 export async function writeSessionRecord(sessionId: string | null | undefined, record: SessionRecord) {
   await ensure();
   const timestamp = now();
+  const id = sessionId || `session-${timestamp}`;
+  const previous = sessionId
+    ? await readJson<SessionRecord>(path.join(await hostDirPath("sessions"), sessionFile(id)))
+    : null;
   const item = {
     schema_version: SESSION_RECORD_SCHEMA_VERSION,
-    id: sessionId || `session-${timestamp}`,
+    id,
     session_id: sessionId || null,
     updated_at: timestamp,
     ...record,
+    source_ref: record.source_ref ?? previous?.source_ref ?? null,
   };
   await writeJson(path.join(await hostDirPath("sessions"), sessionFile(item.id)), item);
   return item;

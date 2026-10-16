@@ -3,6 +3,7 @@ import { stdin } from "node:process";
 import { readCodeBuddySession } from "../adapters/codebuddy-session.ts";
 import { readCodexSession } from "../adapters/codex-session.ts";
 import { captureActivity } from "../core/activities.ts";
+import { hasActivityContent } from "../core/intelligence/activity-content.ts";
 import { compileSessionKnowledge } from "../core/intelligence/session-compiler.ts";
 import { writeSessionRecord } from "../core/sessions.ts";
 
@@ -90,32 +91,40 @@ async function main(): Promise<void> {
     stringValue(getPath(event, ["session", "cwd"])) ??
     process.cwd();
 
+  let storedSession: Record<string, unknown> | undefined;
   if (sessionId || compiled.session_record.message_count > 0) {
-    await writeSessionRecord(sessionId, {
+    storedSession = await writeSessionRecord(sessionId, {
       ...compiled.session_record,
       source: eventSource(event),
       project,
     });
   }
+  const storedSourceRef = storedSession?.source_ref;
+  const storedTranscriptPath =
+    storedSourceRef && typeof storedSourceRef === "object" && !Array.isArray(storedSourceRef)
+      ? stringValue((storedSourceRef as Record<string, unknown>).path)
+      : undefined;
+  const effectiveTranscriptPath = transcriptPath ?? storedTranscriptPath;
 
-  const activity = await captureActivity(
-    {
-      session_id: sessionId,
-      source: eventSource(event),
-      project,
-      timestamp: validTimestamp(event.timestamp ?? event.time ?? event.ended_at),
-      task: event.task ?? compiled.activity.task ?? null,
-      result: event.result ?? compiled.activity.result ?? null,
-      summary: stringValue(event.summary) || compiled.activity.summary || "SessionEnd captured",
-      key_points: Array.isArray(event.key_points) ? event.key_points : compiled.activity.key_points || [],
-      context: transcriptPath || "",
-      metadata: transcriptPath
-        ? { transcript_path: transcriptPath, enrichment: compiled.activity.result ? "compiler" : "pending" }
-        : undefined,
-    },
-    { requireTaskResult: false },
-  );
-
+  const capture = {
+    session_id: sessionId,
+    source: eventSource(event),
+    project,
+    timestamp: validTimestamp(event.timestamp ?? event.time ?? event.ended_at),
+    task: event.task ?? compiled.activity.task ?? null,
+    result: event.result ?? compiled.activity.result ?? null,
+    summary: stringValue(event.summary) || compiled.activity.summary || "SessionEnd captured",
+    key_points: Array.isArray(event.key_points) ? event.key_points : compiled.activity.key_points || [],
+    context: effectiveTranscriptPath || "",
+    metadata: effectiveTranscriptPath
+      ? { transcript_path: effectiveTranscriptPath, enrichment: compiled.activity.result ? "compiler" : "pending" }
+      : undefined,
+  };
+  if (!hasActivityContent(capture)) {
+    console.log("SessionEnd skipped blank Activity");
+    return;
+  }
+  const activity = await captureActivity(capture, { requireTaskResult: false });
   console.log(`Captured activity: ${activityId(activity)}`);
 }
 
