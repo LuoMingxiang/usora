@@ -363,6 +363,37 @@ test("session hook captures canonical Activity in the configured Hub", async (t)
   assert.equal(activity.history.update_count, 1);
 });
 
+test("session hook records redacted diagnostics for blank transcripts", async (t) => {
+  const cwd = await mkdtemp(path.join(os.tmpdir(), "usora-hook-diagnostics-"));
+  const hub = path.join(cwd, "hub");
+  t.onTestFinished(() => rm(cwd, { recursive: true, force: true }));
+
+  await mkdir(path.join(cwd, ".usora"), { recursive: true });
+  await writeFile(path.join(cwd, ".usora", "config.json"), JSON.stringify({ hub_path: hub, version: 1 }));
+  await runHook(cwd, {
+    session_id: "diagnostic-session",
+    source: "codebuddy",
+    cwd,
+    transcript_path: path.join(cwd, "missing.jsonl"),
+    secret_text: "must not be logged",
+  });
+
+  const lines = (await readFile(path.join(hub, "runtime", "session-hook-diagnostics.jsonl"), "utf8"))
+    .trim()
+    .split("\n")
+    .map((line) => JSON.parse(line));
+  assert.deepEqual(
+    lines.map((line) => line.phase),
+    ["received", "parsed", "skipped_blank"],
+  );
+  assert.equal(lines[0].transcript_exists, false);
+  assert.equal(lines[1].message_count, 0);
+  assert.equal(
+    lines.some((line) => JSON.stringify(line).includes("must not be logged")),
+    false,
+  );
+});
+
 test("session hook extracts a small Activity summary from CodeBuddy transcript files", async (t) => {
   const cwd = await mkdtemp(path.join(os.tmpdir(), "usora-hook-"));
   const hub = path.join(cwd, "hub");
