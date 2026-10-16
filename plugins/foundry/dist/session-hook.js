@@ -5,7 +5,9 @@ import { stdin } from "node:process";
 
 // plugins/foundry/src/adapters/codebuddy-session.ts
 import fs from "node:fs/promises";
+import { createReadStream } from "node:fs";
 import path from "node:path";
+import { createInterface } from "node:readline";
 
 // plugins/foundry/src/core/session-protocol.ts
 var USORA_SESSION_PROTOCOL_VERSION = 1;
@@ -43,23 +45,31 @@ function normalizeSessionProtocol(session = {}) {
 // plugins/foundry/src/adapters/codebuddy-session.ts
 function parseJson(value) {
   try {
-    return typeof value === "string" ? JSON.parse(value) : value;
+    return JSON.parse(value);
   } catch {
     return null;
   }
+}
+function isRecord(value) {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
 }
 function textFromContent(content) {
   if (typeof content === "string")
     return content;
   if (!Array.isArray(content))
     return "";
-  return content.map((block) => block && typeof block === "object" ? block.text : "").filter((text) => typeof text === "string" && Boolean(text)).join(`
+  return content.map((block) => {
+    if (!block || typeof block !== "object")
+      return "";
+    const item = block;
+    return textFromContent(item.text) || textFromContent(item.content);
+  }).filter(Boolean).join(`
 `);
 }
-async function readMessage(file, fallback = {}) {
+async function readLegacyMessage(file, fallback = {}) {
   const item = parseJson(await fs.readFile(file, "utf8"));
-  const extra = parseJson(item?.extra);
-  const message = parseJson(item?.message);
+  const extra = parseJson(typeof item?.extra === "string" ? item.extra : "");
+  const message = parseJson(typeof item?.message === "string" ? item.message : "");
   return {
     id: fallback.id,
     role: item?.role || fallback.role,
@@ -67,21 +77,52 @@ async function readMessage(file, fallback = {}) {
     text: compactText(textFromContent(extra?.sourceContentBlocks) || textFromContent(message?.content))
   };
 }
-async function readCodeBuddySession(transcriptPath) {
-  if (!transcriptPath)
-    return normalizeSessionProtocol({ source: "codebuddy", messages: [] });
-  const index = parseJson(await fs.readFile(transcriptPath, "utf8").catch(() => ""));
+async function readLegacyIndex(index, transcriptPath) {
   const messages = [];
-  const indexMessages = Array.isArray(index?.messages) ? index.messages : [];
+  const indexMessages = Array.isArray(index.messages) ? index.messages : [];
   for (const rawEntry of indexMessages) {
     const entry = rawEntry && typeof rawEntry === "object" ? rawEntry : {};
     if (entry.role !== "user" && entry.role !== "assistant")
       continue;
-    const file = path.join(path.dirname(transcriptPath), "messages", `${entry.id}.json`);
-    const message = await readMessage(file, entry).catch(() => null);
+    const file = path.join(path.dirname(transcriptPath), "messages", entry.id + ".json");
+    const message = await readLegacyMessage(file, entry).catch(() => null);
     if (message?.text)
       messages.push(message);
   }
+  return messages;
+}
+function messageFromRecord(record) {
+  const message = isRecord(record.message) ? record.message : record;
+  const role = typeof message.role === "string" ? message.role : typeof record.type === "string" && ["user", "assistant", "tool", "command", "error", "validation"].includes(record.type) ? record.type : undefined;
+  if (!role)
+    return null;
+  const content = message.content ?? message.text ?? (typeof message.message === "string" ? message.message : undefined) ?? record.content ?? record.text;
+  const text = compactText(textFromContent(content));
+  return text ? { id: message.id ?? record.id ?? null, role, timestamp: message.timestamp ?? record.timestamp ?? null, text } : null;
+}
+async function readCodeBuddySession(transcriptPath) {
+  if (!transcriptPath)
+    return normalizeSessionProtocol({ source: "codebuddy", messages: [] });
+  const messages = [];
+  const input = createInterface({ input: createReadStream(transcriptPath), crlfDelay: Infinity });
+  let firstRecord = true;
+  try {
+    for await (const line of input) {
+      if (!line.trim())
+        continue;
+      const record = parseJson(line);
+      if (!isRecord(record))
+        continue;
+      if (firstRecord && Array.isArray(record.messages)) {
+        messages.push(...await readLegacyIndex(record, transcriptPath));
+        break;
+      }
+      firstRecord = false;
+      const message = messageFromRecord(record);
+      if (message)
+        messages.push(message);
+    }
+  } catch {}
   return normalizeSessionProtocol({
     source: "codebuddy",
     source_ref: { type: "host_transcript", path: transcriptPath },
@@ -332,7 +373,7 @@ function mergeUnique(left, right) {
 
 // plugins/foundry/src/core/activities.ts
 var RECENT_UPDATE_LIMIT = 10;
-function isRecord(value) {
+function isRecord2(value) {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
 }
 async function findActivityBySession(sessionId) {
@@ -341,7 +382,7 @@ async function findActivityBySession(sessionId) {
     if (!file.endsWith(".json"))
       continue;
     const item = await readJson(path3.join(dir, file));
-    if (!isRecord(item))
+    if (!isRecord2(item))
       continue;
     if (item?.session_id === sessionId)
       return { file, item };
