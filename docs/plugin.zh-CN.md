@@ -45,6 +45,8 @@ Activity -> Candidate -> Skill Draft -> Evaluation -> Publish
 - 预览或删除旧版本 Usora 插件安装缓存。
 - 归档已处理 Activities。
 
+已发布的用户 Skill 支持只读校验、资源与依赖分析、目录导出和 ZIP 导出。调用顺序与限制见[Skill 可移植性指南](usage/skill-portability.md)；内部发布仍由 Maintainer 控制。
+
 ## 快速开始
 
 通过 Codex 或 CodeBuddy 使用 Usora MCP tools。无需安装 Python、数据库或独立 CLI。

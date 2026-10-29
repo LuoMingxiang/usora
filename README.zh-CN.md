@@ -51,6 +51,8 @@ AI 助手常常会反复解决同一类本地工作流问题，但真正有价�
 - 归档已处理的 Host-local Activity。
 - 沉淀时聚合 Codex 与 CodeBuddy 的实践，并生成共享 Pattern、Candidate 与 Skill。
 
+使用 `skill_validate` 和 `skill_export` 校验已发布 Skill，导出标准 Agent Skills 目录或确定性 ZIP。MCP 示例、安全规则与独立宿主验收见[可移植性指南](docs/usage/skill-portability.md)。
+
 ## 快速开始
 
 从 Codex 或 CodeBuddy 插件市场安装 `Usora` 后，可以直接对 AI agent 说：

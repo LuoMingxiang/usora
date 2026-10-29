@@ -45,6 +45,8 @@ Activity -> Candidate -> Skill Draft -> Evaluation -> Publish
 - Preview or delete old installed Usora plugin cache versions.
 - Archive processed Activities.
 
+Published user Skills support read-only validation, resource/dependency analysis, directory export and ZIP export. Follow the [Skill portability guide](usage/skill-portability.md); publishing remains Maintainer-controlled.
+
 ## Quick Start
 
 Use the Usora MCP tools through Codex or CodeBuddy. No Python, database, or separate CLI installation is required.

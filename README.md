@@ -51,6 +51,8 @@ AI assistants often solve the same local workflow problems again and again, but 
 - Archive processed host-local Activities.
 - Aggregate Codex and CodeBuddy practice into shared Patterns, Candidates, and Skills during distillation.
 
+Validate published Skills and export standard Agent Skills directories or deterministic ZIP files with `skill_validate` and `skill_export`. See the [portability guide](docs/usage/skill-portability.md) for MCP examples, safety rules and independent-host verification.
+
 ## Quick Start
 
 Install `Usora` from the Codex or CodeBuddy plugin marketplace, then ask your agent:
