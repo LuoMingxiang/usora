@@ -42,3 +42,15 @@ The next chronological commit records each stage commit's full SHA; final delive
 - Commit: recorded in the next chronological stage.
 - Risks: static dependency analysis is conservative; unrecognized dynamic behaviors need review, and independent eligibility is not execution proof.
 - Next: commit verified directory/ZIP export, then MCP integration and full acceptance.
+
+## Stage 4 — directory and deterministic ZIP export
+
+- Status: completed, 2026-10-29.
+- Stage 3 commit: `ae0f746e39f6ce86bbd1d4cef50ea75b5b07b810`.
+- Files: `portability/export.ts`, `tooling/package-plugin.ts` (shared ZIP reuse), `test/unit/skill-portability-export.test.ts`, plan/progress. Shared ZIP/path helper was included in stage 3 because validation also uses its cross-platform path checks.
+- Decisions: immutable validated buffers; existing absolute parent; canonical/lexical protection of Knowledge, host config relocation and plugin/repository roots; exclusive per-target lock; staged commit; exact-target overwrite with rollback; no empty directories. UTF-8 ZIP32 STORE, sorted entries, fixed time, CRC and Unix modes.
+- Commands/results: focused exporter suite **19/19 passed** including Python zipfile independent CRC/path/UTF-8/mode checks, Chinese/space names, deterministic ordering, concurrent lock conflicts and injected rollback failure. Combined validator/exporter run **61/61 passed**, 2.69s. `bun tooling/package-plugin.ts --check foundry`, actual package and `unzip -t artifacts/usora-foundry-1.5.3.zip` passed (12 entries; final bundle verification repeats after final build). `tsc --noEmit` and focused Prettier/Oxlint passed.
+- Issue/fix: corrected shared import path, canonicalized symlink aliases of protected data roots, handled native Windows separators distinctly from foreign Windows paths. Alias regression uses isolated Node and protects even nonexistent root suffixes.
+- Commit: recorded by following stage.
+- Risks: exported paths are protected against cooperating processes with an exclusive target lock; hostile local TOCTOU mutation is outside the documented threat model. If both commit and rollback fail, preserve original backup and report its location instead of deleting data.
+- Next: MCP stage commit, independent security review fixes and full repository checks.

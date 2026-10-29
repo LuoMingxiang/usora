@@ -2,6 +2,7 @@ import { cp, mkdir, readFile, readdir, rm, stat, writeFile } from "node:fs/promi
 import path from "node:path";
 import { createHash } from "node:crypto";
 import { discoverPlugins } from "./discover-plugins";
+import { deterministicZip, type ZipEntry } from "../packages/shared/src/zip.ts";
 
 const root = process.cwd();
 const check = process.argv.includes("--check");
@@ -66,86 +67,24 @@ async function digestDir(dir: string): Promise<string> {
   return hash.digest("hex");
 }
 
-const crcTable = new Uint32Array(256).map((_, index) => {
-  let value = index;
-  for (let bit = 0; bit < 8; bit += 1) value = value & 1 ? 0xedb88320 ^ (value >>> 1) : value >>> 1;
-  return value >>> 0;
-});
-
-function crc32(buffer: Buffer): number {
-  let crc = 0xffffffff;
-  for (const byte of buffer) crc = crcTable[(crc ^ byte) & 0xff]! ^ (crc >>> 8);
-  return (crc ^ 0xffffffff) >>> 0;
-}
-
-function localHeader(name: Buffer, file: Buffer): Buffer {
-  const out = Buffer.alloc(30);
-  out.writeUInt32LE(0x04034b50, 0);
-  out.writeUInt16LE(20, 4);
-  out.writeUInt16LE(0, 6);
-  out.writeUInt16LE(0, 8);
-  out.writeUInt16LE(0, 10);
-  out.writeUInt16LE(0x5b7d, 12);
-  out.writeUInt32LE(crc32(file), 14);
-  out.writeUInt32LE(file.length, 18);
-  out.writeUInt32LE(file.length, 22);
-  out.writeUInt16LE(name.length, 26);
-  return out;
-}
-
-function centralHeader(name: Buffer, file: Buffer, offset: number): Buffer {
-  const out = Buffer.alloc(46);
-  out.writeUInt32LE(0x02014b50, 0);
-  out.writeUInt16LE(20, 4);
-  out.writeUInt16LE(20, 6);
-  out.writeUInt16LE(0, 8);
-  out.writeUInt16LE(0, 10);
-  out.writeUInt16LE(0, 12);
-  out.writeUInt16LE(0x5b7d, 14);
-  out.writeUInt32LE(crc32(file), 16);
-  out.writeUInt32LE(file.length, 20);
-  out.writeUInt32LE(file.length, 24);
-  out.writeUInt16LE(name.length, 28);
-  out.writeUInt32LE(offset, 42);
-  return out;
-}
-
 async function zipDir(source: string, archive: string): Promise<string> {
-  const files: string[] = [];
+  const entries: ZipEntry[] = [];
   async function walk(current: string): Promise<void> {
-    for (const entry of (await readdir(current, { withFileTypes: true })).sort((a, b) =>
-      a.name.localeCompare(b.name),
-    )) {
+    for (const entry of await readdir(current, { withFileTypes: true })) {
       const full = path.join(current, entry.name);
       if (entry.isDirectory()) await walk(full);
-      else files.push(full);
+      else
+        entries.push({
+          path: path.relative(path.dirname(source), full).replaceAll("\\", "/"),
+          data: await readFile(full),
+          mode: (await stat(full)).mode,
+        });
     }
   }
   await walk(source);
-
-  const chunks: Buffer[] = [];
-  const central: Buffer[] = [];
-  let offset = 0;
-  for (const filePath of files) {
-    const name = Buffer.from(path.relative(path.dirname(source), filePath).replaceAll("\\", "/"));
-    const file = await readFile(filePath);
-    const local = localHeader(name, file);
-    chunks.push(local, name, file);
-    central.push(centralHeader(name, file, offset), name);
-    offset += local.length + name.length + file.length;
-  }
-
-  const centralSize = central.reduce((sum, chunk) => sum + chunk.length, 0);
-  const end = Buffer.alloc(22);
-  end.writeUInt32LE(0x06054b50, 0);
-  end.writeUInt16LE(files.length, 8);
-  end.writeUInt16LE(files.length, 10);
-  end.writeUInt32LE(centralSize, 12);
-  end.writeUInt32LE(offset, 16);
-  await writeFile(archive, Buffer.concat([...chunks, ...central, end]));
-  return createHash("sha256")
-    .update(await readFile(archive))
-    .digest("hex");
+  const bytes = deterministicZip(entries);
+  await writeFile(archive, bytes);
+  return createHash("sha256").update(bytes).digest("hex");
 }
 
 for (const plugin of plugins) {
