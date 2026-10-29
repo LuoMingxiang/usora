@@ -47,6 +47,8 @@ The [fixture](fixture/SKILL.md) is published through a temporary real Hub, with 
 {"name":"skill_export","arguments":{"skill_id":"portable-release-notes","format":"zip","output_path":"/absolute/existing/export-parent"}}
 ```
 
+Download the [actual exported ZIP](portable-release-notes.zip). The [fixture directory](fixture) is byte-identical to the actual directory export (both files compared after final build). This small archive is an intentional, reviewable acceptance sample, not a plugin build artifact.
+
 The generated package contains exactly:
 
 ```text

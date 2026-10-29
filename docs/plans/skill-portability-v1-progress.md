@@ -106,3 +106,10 @@ The next chronological commit records each stage commit's full SHA; final delive
 - Actual artifacts: deterministic Skill directory+ZIP, per-file and archive SHA256, local evidence and blocked host evidence. Durable evidence lives in docs/examples/skill-portability; downloadable outputs are also supplied with the final user report.
 - Remaining work: permit chatgpt.com through supported environment policy, rerun `node scripts/skill-portability-demo.ts --host --host-timeout-ms 60000`, require actual release-notes.json contract assertion, then update evidence/checkbox and mark PR ready. Native Windows/CodeBuddy tasks remain unverified; static scanner and cooperating-process filesystem limits remain documented.
 - Next: observe remote CI where available; final report must say stage 6 is blocked and supply exact HEAD/PR/artifact links.
+
+## Delivery artifact and remote CI confirmation
+
+- GitHub Actions for `ded748d2802365d407c60c5fa6b03431eadd164c`: CI run40869636488 **success**, Commitlint run40869636469 **success**. This confirms remote as well as local checks for the tested implementation/documentation.
+- Added the actual 1.7KB exported Skill ZIP as an intentional acceptance sample under docs/examples/skill-portability/portable-release-notes.zip, with the previously verified deterministic checksum. Compared both exported directory files against the committed fixture directory: byte-identical. No plugin build archive or temporary Hub was committed.
+- Standalone output-mount delivery is unavailable in this cloud executor: the configured /codex/browser/.../output parent does not exist and /codex creation is denied; no sudo is installed. Therefore real artifacts are delivered through the authorized repository/PR example, not a broken local download link.
+- Final commit SHA is available in PR head metadata and the final user report; last changes are acceptance documentation and the intentional sample ZIP only. The independent model-task CONNECT403 gate remains outstanding.
