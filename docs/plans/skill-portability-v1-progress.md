@@ -54,3 +54,10 @@ The next chronological commit records each stage commit's full SHA; final delive
 - Commit: recorded by following stage.
 - Risks: exported paths are protected against cooperating processes with an exclusive target lock; hostile local TOCTOU mutation is outside the documented threat model. If both commit and rollback fail, preserve original backup and report its location instead of deleting data.
 - Next: MCP stage commit, independent security review fixes and full repository checks.
+
+## Security review correction after stage 4
+
+- Independent review found two reproducible defects: quoted JSON secret keys escaped assignment scanning, and a detected token in an unknown YAML key/URL/file path could be echoed by other report fields. These were real failures, not accepted risks.
+- Fixed quoted JSON/YAML/TOML assignments and ordinary token/secret keys. Any detected secret now returns a generic redacted report with no untrusted filenames, dependencies or warnings, and no snapshot; unknown frontmatter keys are never echoed.
+- Added two regressions covering assignment syntax and full-report leakage through key, URL and filename channels. `node_modules/.bin/vitest run test/unit/skill-portability-validation.test.ts`: **44/44 passed**, 1.85s (`work/validation-security-retest.log`). TypeScript/Oxlint passed; feature bundle rebuilt successfully.
+- Stage 4 commit: `9a3b136` (full SHA in final ledger). Correction commit recorded by next stage.

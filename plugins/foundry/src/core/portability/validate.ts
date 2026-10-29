@@ -129,7 +129,7 @@ async function readSourceFile(absolute: string, relative: string): Promise<Sourc
     if (isRecord(error) && error.code === "ENOENT")
       throw new ValidationFailure(
         relative === "skill.json" ? "SKILL_NOT_FOUND" : "RESOURCE_NOT_FOUND",
-        `Required file is missing: ${relative}.`,
+        "A required Skill or resource file is missing. Repair the selected source reference before retrying.",
         relative,
       );
     throw error;
@@ -141,7 +141,7 @@ async function readSourceFile(absolute: string, relative: string): Promise<Sourc
     if (isRecord(error) && error.code === "ENOENT") {
       throw new ValidationFailure(
         relative === "skill.json" ? "SKILL_NOT_FOUND" : "RESOURCE_NOT_FOUND",
-        `Required file is missing: ${relative}.`,
+        "A required Skill or resource file is missing. Repair the selected source reference before retrying.",
         relative,
       );
     }
@@ -214,7 +214,7 @@ function validateFrontmatter(value: JsonRecord, skillId: string, report: Validat
       addError(
         report,
         "UNKNOWN_FRONTMATTER_FIELD",
-        `Unsupported standard frontmatter field: ${key}. Move custom fields into metadata.`,
+        "Unsupported standard frontmatter field. Move custom fields into metadata.",
         "SKILL.md",
       );
   }
@@ -315,14 +315,27 @@ function scanContent(content: string, file: string, report: ValidationResult): v
   const secretPatterns = [
     /-----BEGIN (?:[A-Z0-9 ]*PRIVATE KEY|OPENSSH PRIVATE KEY)-----/,
     /\b(?:gh[pousr]_[A-Za-z0-9_]{20,}|github_pat_[A-Za-z0-9_]{20,})\b/,
-    /\bAKIA[0-9A-Z]{16}\b/,
+    /\b(?:AKIA|ASIA)[0-9A-Z]{16}\b/,
+    /\bAIza[0-9A-Za-z_-]{30,}\b/,
+    /\bnpm_[A-Za-z0-9]{20,}\b/,
     /\bsk-(?:proj-|ant-)?[A-Za-z0-9_-]{20,}\b/,
     /\bxox[baprs]-[A-Za-z0-9-]{16,}\b/,
-    /(?:api[_-]?key|access[_-]?token|auth[_-]?token|client[_-]?secret|password|passwd|secret[_-]?key)\s*[=:]\s*["']?(?!\$|<|\{|YOUR_|your_|example|placeholder|changeme|REDACTED)[A-Za-z0-9+/_=-]{8,}/i,
     /\bBearer\s+(?!TOKEN\b|YOUR_|<|\$)[A-Za-z0-9._~-]{16,}/i,
     /https?:\/\/[^\s/:]+:[^\s/@]+@/i,
   ];
-  if (secretPatterns.some((pattern) => pattern.test(content)))
+  const assignedSecrets = content.matchAll(
+    /\b(?:api[_-]?key|(?:access[_-]?|auth[_-]?)?token|client[_-]?secret|password|passwd|secret(?:[_-]?key)?)\b["']?\s*[=:]\s*(?:"([^"\n]*)"|'([^'\n]*)'|([^\s,}\]]+))/gi,
+  );
+  const literalSecret = [...assignedSecrets].some((match) => {
+    const value = (match[1] ?? match[2] ?? match[3] ?? "").trim();
+    return (
+      value.length > 0 &&
+      !/^(?:\$|%|<|\{|YOUR_|example\b|placeholder\b|changeme\b|REDACTED\b|REPLACE_ME\b|process\.env\b|os\.environ\b|(?:os\.)?getenv\(|(?:config|args|options)\.|null$|undefined$|true$|false$)/i.test(
+        value,
+      )
+    );
+  });
+  if (literalSecret || secretPatterns.some((pattern) => pattern.test(content)))
     addError(
       report,
       "SECRET_DETECTED",
@@ -525,7 +538,9 @@ function safeResourcePath(raw: string, file: string, report: ValidationResult): 
   }
   if (
     segments.some((part) =>
-      /^(?:\.env(?:\..*)?|credentials?(?:\..*)?|id_(?:rsa|ed25519)|.*\.(?:pem|p12|pfx|key))$/i.test(part),
+      /^(?:\.env(?:\..*)?|\.(?:npmrc|pypirc|netrc|aws|ssh)|credentials?(?:\..*)?|id_(?:rsa|ed25519)|.*\.(?:pem|p12|pfx|key))$/i.test(
+        part,
+      ),
     )
   ) {
     addError(report, "SENSITIVE_FILE", "Sensitive configuration/key files cannot be included in an export.", file);
@@ -651,6 +666,16 @@ async function collectOnce(dir: string, skillId: string): Promise<{ result: Read
   report.valid = report.errors.length === 0;
   report.compatibility.agent_skills = report.valid;
   report.compatibility.independent = report.valid && !report.dependencies.some((dependency) => dependency.required);
+  if (report.errors.some((error) => error.code === "SECRET_DETECTED")) {
+    const redacted = freshReport();
+    redacted.errors.push(
+      diagnostic(
+        "SECRET_DETECTED",
+        "Potential credential or private key detected. Remove sensitive data from the selected Skill and rotate real credentials before retrying. Source-derived details are omitted.",
+      ),
+    );
+    return { result: { report: redacted, snapshot: null }, originals };
+  }
   if (report.dependencies.length)
     report.warnings.push(
       diagnostic(

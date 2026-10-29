@@ -343,6 +343,40 @@ test("scans included binary assets for embedded secret markers", async (t) => {
   assertRejected(await validateSkillDirectory(f.dir, f.name));
 });
 
+test("rejects quoted JSON, YAML and TOML credentials including punctuation", async (t) => {
+  for (const content of [
+    '{"api_key":"synthetic-review-credential-123456","password":"synthetic-password-123456"}',
+    '"password": "p@$$!word"',
+    "'client_secret' = 'abc!@#$%'",
+  ]) {
+    const f = await fixture(t, {
+      content: "Read [settings](assets/settings.json).\n",
+      files: { "assets/settings.json": content },
+    });
+    const result = await validateSkillDirectory(f.dir, f.name);
+    assertRejected(result);
+    assert.equal(result.report.errors[0]?.code, "SECRET_DETECTED");
+    assert.ok(!JSON.stringify(result.report).includes(content));
+  }
+});
+
+test("redacts every source-derived report field when tokens occur in keys, URLs or filenames", async (t) => {
+  const token = `ghp_${"x".repeat(36)}`;
+  for (const content of [
+    `---\nname: portable-demo\ndescription: words\n${token}: value\n---\nDo work.\n`,
+    `Read https://${token}.example.com/guide.\n`,
+    `Read [guide](assets/${token}.txt).\n`,
+  ]) {
+    const f = await fixture(t, { content });
+    const result = await validateSkillDirectory(f.dir, f.name);
+    assertRejected(result);
+    assert.equal(result.report.errors[0]?.code, "SECRET_DETECTED");
+    assert.ok(!JSON.stringify(result).includes(token));
+    assert.deepEqual(result.report.files, []);
+    assert.deepEqual(result.report.dependencies, []);
+  }
+});
+
 test("does not misreport Usora MCP, external services or credential requirements as independently executable", async (t) => {
   for (const content of [
     "Call Usora MCP `activity_capture` with the current task.\n",
