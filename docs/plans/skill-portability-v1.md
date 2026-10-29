@@ -1,6 +1,6 @@
 # Usora Skill Portability v1 — Codex 自主实施计划
 
-> 状态：阶段 1–2 审计与契约已完成；核心实现进行中。
+> 状态：阶段 1–3 已完成；导出与 MCP 集成验收进行中。
 > 基线：`master`；工作分支：`feat/skill-portability-v1`。
 > 目标：在不破坏 Foundry 现有生命周期的前提下，交付可校验、可独立安装、可移植的 Agent Skills 导出能力。
 > 原则：仅实现通用 Agent Skills 规范下的校验、目录导出和 ZIP 分发；不开发赛事、特定厂商或市场上传适配。
@@ -46,12 +46,12 @@
 
 ## 3. 核心校验能力
 
-- [ ] 实现标准 Skill 元数据、必需文件、frontmatter、名称/描述、引用资源及相对路径校验。
-- [ ] 返回结构化结果：`valid`、`errors`、`warnings`、`files`、`dependencies`、`compatibility`。
-- [ ] 处理无效 YAML、缺失正文、非法名称、重名、损坏资源、越界路径、循环/外链引用。
-- [ ] 检查明文 token、私钥、敏感配置；安全问题不得静默打包。
-- [ ] 校验规则遵循通用 Agent Skills 规范；不引入赛事或厂商专属 profile。宿主差异仅作为兼容性提示，不扩展本期范围。
-- [ ] 增加成功与失败单元测试，错误提示可操作。
+- [x] 实现标准 Skill 元数据、必需文件、frontmatter、名称/描述、引用资源及相对路径校验。
+- [x] 返回结构化结果：`valid`、`errors`、`warnings`、`files`、`dependencies`、`compatibility`。
+- [x] 处理无效 YAML、缺失正文、非法名称、重名、损坏资源、越界路径、循环/外链引用。
+- [x] 检查明文 token、私钥、敏感配置；安全问题不得静默打包。
+- [x] 校验规则遵循通用 Agent Skills 规范；不引入赛事或厂商专属 profile。宿主差异仅作为兼容性提示，不扩展本期范围。
+- [x] 增加成功与失败单元测试，错误提示可操作。
 - **门禁**：测试覆盖合法与非法输入，不修改原始 Skill。
 
 ## 4. 导出与 ZIP 打包

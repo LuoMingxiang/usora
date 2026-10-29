@@ -30,3 +30,15 @@ The next chronological commit records each stage commit's full SHA; final delive
 - Commit: recorded in following stage ledger.
 - Risk: static reference/dependency scanning has documented limits; final real-host verification required.
 - Next: validator unit implementation, then atomic directory/ZIP export.
+
+## Stage 3 — validation and analysis
+
+- Status: completed, 2026-10-29.
+- Baseline/design commit: `1ab97d6bd99a2e83a8788ade501f554790e511dc`; audit commit: `fc9ce5169c2ae665ee368b1ef144105209cdb958`.
+- Files: `plugins/foundry/src/core/portability/{types,validate}.ts`, shared ZIP/path safety helper, Foundry package YAML dependency, `test/unit/skill-portability-validation.test.ts`, Vitest unit include, plan/design/progress.
+- Decisions: parse YAML safely (duplicate keys/aliases/tags rejected); render missing frontmatter from metadata only; published-and-passing requirement; bounded root-relative resource closure; complete registry-driven Usora dependency recognition; secrets never echoed; UTF-8 and cross-platform filename checks; compare source/config bytes and reject active lifecycle locks without writing a lock.
+- Actual commands: `npm exec --yes --package bun@1.3.14 -- bun install --no-save` succeeded; `node_modules/.bin/tsc --noEmit` passed; focused Prettier/Oxlint passed. `node_modules/.bin/vitest run test/unit/skill-portability-validation.test.ts test/unit/skill-portability-export.test.ts` passed **2 files / 61 tests**, including **42 validator tests**.
+- Failure/fix: first validation run was 40/41 (platform/environment credential detection missed a case). Fixed case-insensitive PowerShell and credential scanning; added standalone Foundry tool detection, space-containing resource parsing and writer-lock regression. Retest passed all 42 validator cases. Initial in-progress TS `in`-operand error and control-character lint warning were fixed before acceptance.
+- Commit: recorded in the next chronological stage.
+- Risks: static dependency analysis is conservative; unrecognized dynamic behaviors need review, and independent eligibility is not execution proof.
+- Next: commit verified directory/ZIP export, then MCP integration and full acceptance.

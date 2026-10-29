@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@usora/plugin-sdk": "workspace:*",
-    "@usora/types": "workspace:*"
+    "@usora/types": "workspace:*",
+    "yaml": "^2.8.2"
   }
 }
