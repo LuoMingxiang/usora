@@ -125,6 +125,11 @@ for (const [title, content] of [
     "nonstring metadata value",
     "---\nname: portable-demo\ndescription: words\nmetadata:\n  version: 1\n---\nDo work.\n",
   ],
+  ["numeric metadata key", '---\nname: portable-demo\ndescription: words\nmetadata:\n  42: "value"\n---\nDo work.\n'],
+  [
+    "complex metadata key",
+    '---\nname: portable-demo\ndescription: words\nmetadata:\n  ? [author, version]\n  : "value"\n---\nDo work.\n',
+  ],
   ["empty body", "---\nname: portable-demo\ndescription: words\n---\n\n"],
 ] as const) {
   test(`rejects ${title} without silently repairing authored frontmatter`, async (t) => {

@@ -10294,13 +10294,18 @@ function renderSkill(content, meta, skillId, report) {
       throw new ValidationFailure("INVALID_YAML", "Close the YAML frontmatter with a standalone --- line.", "SKILL.md");
     const document = $parseDocument(match[1], { uniqueKeys: true, strict: true });
     let unsupported = false;
+    let nonstringKey = false;
     $visit(document, (_key, node) => {
       if ($isAlias(node) || node && typeof node === "object" && "tag" in node && node.tag)
         unsupported = true;
+      if ($isPair(node) && (!$isScalar(node.key) || typeof node.key.value !== "string"))
+        nonstringKey = true;
     });
     if (document.errors.length || document.warnings.length || unsupported) {
       throw new ValidationFailure("INVALID_YAML", "Use valid YAML with unique keys, no aliases and no explicit/custom tags.", "SKILL.md");
     }
+    if (nonstringKey)
+      throw new ValidationFailure("INVALID_FRONTMATTER_METADATA", "YAML mappings must use string keys; quote numeric keys and replace complex keys with strings.", "SKILL.md");
     const parsed = document.toJS({ maxAliasCount: 0 });
     if (!isRecord11(parsed))
       throw new ValidationFailure("INVALID_YAML", "YAML frontmatter must be a mapping.", "SKILL.md");

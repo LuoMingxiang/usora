@@ -3,7 +3,7 @@ import { constants } from "node:fs";
 import path from "node:path";
 import { createHash } from "node:crypto";
 import { TextDecoder } from "node:util";
-import { parseDocument, visit, isAlias } from "yaml";
+import { parseDocument, visit, isAlias, isPair, isScalar } from "yaml";
 import { validateArchivePaths } from "../../../../../packages/shared/src/zip.ts";
 import { anchorHome, HUB_SCHEMA_VERSION, knowledgeDirPath } from "../storage.ts";
 import { listTools } from "../../mcp/registry.ts";
@@ -260,8 +260,10 @@ function renderSkill(content: string, meta: JsonRecord, skillId: string, report:
       throw new ValidationFailure("INVALID_YAML", "Close the YAML frontmatter with a standalone --- line.", "SKILL.md");
     const document = parseDocument(match[1]!, { uniqueKeys: true, strict: true });
     let unsupported = false;
+    let nonstringKey = false;
     visit(document, (_key, node) => {
       if (isAlias(node) || (node && typeof node === "object" && "tag" in node && node.tag)) unsupported = true;
+      if (isPair(node) && (!isScalar(node.key) || typeof node.key.value !== "string")) nonstringKey = true;
     });
     if (document.errors.length || document.warnings.length || unsupported) {
       throw new ValidationFailure(
@@ -270,6 +272,12 @@ function renderSkill(content: string, meta: JsonRecord, skillId: string, report:
         "SKILL.md",
       );
     }
+    if (nonstringKey)
+      throw new ValidationFailure(
+        "INVALID_FRONTMATTER_METADATA",
+        "YAML mappings must use string keys; quote numeric keys and replace complex keys with strings.",
+        "SKILL.md",
+      );
     const parsed: unknown = document.toJS({ maxAliasCount: 0 });
     if (!isRecord(parsed))
       throw new ValidationFailure("INVALID_YAML", "YAML frontmatter must be a mapping.", "SKILL.md");

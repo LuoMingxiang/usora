@@ -113,3 +113,10 @@ The next chronological commit records each stage commit's full SHA; final delive
 - Added the actual 1.7KB exported Skill ZIP as an intentional acceptance sample under docs/examples/skill-portability/portable-release-notes.zip, with the previously verified deterministic checksum. Compared both exported directory files against the committed fixture directory: byte-identical. No plugin build archive or temporary Hub was committed.
 - Standalone output-mount delivery is unavailable in this cloud executor: the configured /codex/browser/.../output parent does not exist and /codex creation is denied; no sudo is installed. Therefore real artifacts are delivered through the authorized repository/PR example, not a broken local download link.
 - Final commit SHA is available in PR head metadata and the final user report; last changes are acceptance documentation and the intentional sample ZIP only. The independent model-task CONNECT403 gate remains outstanding.
+
+## Final specification boundary correction
+
+- A final AST review found that YAML numeric/collection mapping keys were silently coerced to strings by toJS, violating the string-key metadata contract; collection keys also generated a warning containing source data. Added two tests first: **44 passed / 2 failed**, plus the reproduced collection-key warning (`work/metadata-keys-before.log`).
+- Reject nonstring mapping keys at the YAML AST stage before any JS conversion or warning. Focused retest **46/46 passed** (1.49s); full `bun run check` **18 files /135 tests passed**,37.38s, every format/lint/type/build/package/runtime/marketplace/doctor stage successful (`work/final-metadata-check.log`).
+- Rebuilt runtime and final local demo exit0 again (`artifacts/skill-portability/run-beiNDp/evidence.json`). The package's Markdown/resources and deterministic Skill ZIP remain byte-identical. No repeat of blocked model execution was claimed.
+- Files: validator,46-case unit suite, generated Node bundle, this progress entry. This is a concrete defect correction, not a new export profile or scope expansion.
