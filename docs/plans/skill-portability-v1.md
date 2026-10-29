@@ -1,6 +1,6 @@
 # Usora Skill Portability v1 — Codex 自主实施计划
 
-> 状态：待执行（仅创建开发分支并提交计划，尚未修改功能代码）。
+> 状态：阶段 1 审计已完成；设计与实现进行中。
 > 基线：`master`；工作分支：`feat/skill-portability-v1`。
 > 目标：在不破坏 Foundry 现有生命周期的前提下，交付可校验、可独立安装、可移植的 Agent Skills 导出能力。
 > 原则：仅实现通用 Agent Skills 规范下的校验、目录导出和 ZIP 分发；不开发赛事、特定厂商或市场上传适配。
@@ -23,13 +23,13 @@
 
 ## 1. 仓库现状审计
 
-- [ ] 记录当前 HEAD、工作树状态、Node/Bun 版本、脚本、CI、测试框架及主分支差异。
-- [ ] 扫描 `plugins/foundry/src`、`plugins/foundry/skills`、`plugins/foundry/scripts`、`docs` 和测试目录，定位 `skill_create`、`skill_generate`、`skill_evaluate`、`skill_publish`、`skill_evolve`、`skill_get`、存储序列化及 MCP 工具注册代码。
-- [ ] 确认已发布 Skill 的实际存储格式、字段、Markdown 内容、版本、状态、关联资源和路径解析方式，确认是否已有导出/打包工具，避免重复实现。
-- [ ] 核实 `SKILL.md` frontmatter 与 Agent Skills 规范的符合程度；区分插件自带 Skill 与用户生成的 Skill。
-- [ ] 检查 `USORA_HOME`、schema v1/v2 迁移、Maintainer 权限、路径安全和旧数据兼容。
-- [ ] 核实 Agent Skills 通用规范（以官方规范版本为准）、跨宿主常见差异及目录打包约定；记录规范来源和版本，不假定所有宿主行为一致。
-- [ ] 输出 `docs/plans/skill-portability-v1-audit.md`：真实文件路径、调用链、复用模块、缺口、风险、架构建议。
+- [x] 记录当前 HEAD、工作树状态、Node/Bun 版本、脚本、CI、测试框架及主分支差异。
+- [x] 扫描 `plugins/foundry/src`、`plugins/foundry/skills`、`plugins/foundry/scripts`、`docs` 和测试目录，定位 `skill_create`、`skill_generate`、`skill_evaluate`、`skill_publish`、`skill_evolve`、`skill_get`、存储序列化及 MCP 工具注册代码。
+- [x] 确认已发布 Skill 的实际存储格式、字段、Markdown 内容、版本、状态、关联资源和路径解析方式，确认是否已有导出/打包工具，避免重复实现。
+- [x] 核实 `SKILL.md` frontmatter 与 Agent Skills 规范的符合程度；区分插件自带 Skill 与用户生成的 Skill。
+- [x] 检查 `USORA_HOME`、schema v1/v2 迁移、Maintainer 权限、路径安全和旧数据兼容。
+- [x] 核实 Agent Skills 通用规范（以官方规范版本为准）、跨宿主常见差异及目录打包约定；记录规范来源和版本，不假定所有宿主行为一致。
+- [x] 输出 `docs/plans/skill-portability-v1-audit.md`：真实文件路径、调用链、复用模块、缺口、风险、架构建议。
 - **门禁**：审计报告可追溯到源码；确认核心数据模型与导出源后才开始编码。
 
 ## 2. 设计与接口契约
@@ -113,6 +113,7 @@
 
 ```markdown
 ### 阶段 N — 标题
+
 - 状态：待执行 / 进行中 / 已完成 / 阻塞
 - 基线 HEAD：
 - 修改文件：
