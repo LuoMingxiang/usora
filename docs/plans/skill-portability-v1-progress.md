@@ -73,3 +73,25 @@ The next chronological commit records each stage commit's full SHA; final delive
 - Commit: recorded in next stage ledger.
 - Risk: actual Codex local Skill loading passed, but model task is blocked by enforced proxy CONNECT403 to chatgpt.com. No false task-success claim.
 - Next: full check, doctor, final package/unzip, demo evidence and documentation; preserve isolated-task external blocker.
+
+## Stage 6 — automation and independent acceptance
+
+- Status: all local checks completed; **independent model task blocked**, not marked complete.
+- Code/MCP commit: `779d2e8faf580a6f883ecc78189d93c76ddba3dc`.
+- Files: reproducible `scripts/skill-portability-demo.ts`, fixture, `acceptance.md`, local/host evidence JSON, plan/progress.
+- Actual commands: `npm exec --yes --package bun@1.3.14 -- bun run check` final exit0; **18 test files / 133 tests passed** (65 existing +44 validation +19 export +5 MCP), 25.73s. All format/lint/type/build/package/runtime/marketplace/doctor gates passed. Explicit doctor exit0. Actual package/unzip exit0 (12 entries), plugin archive SHA `052a438dbaa031c8e0f69efb6794b282425300d3d523eccc8fb905775e689f89`. Final `node scripts/skill-portability-demo.ts` exit0; validated ZIP SHA `e00e8e5fa4317be3f5df0afe8c03a8c0d57d82863bbe2182d1b1f89e21d02653`; source tree hashes equal.
+- Genuine host command: `node scripts/skill-portability-demo.ts --host --host-timeout-ms 60000` exit1, model task blocked by proxy HTTP CONNECT403 at chatgpt.com. Codex 0.163.0 local `app-server skills/list` **passed** (enabled repo Skill, no parse errors, pluginId=null); loader success is not task execution. App-server uses installed config; model task exec uses --ignore-user-config in temp project with no Hub. No task output claimed.
+- Evidence: `docs/examples/skill-portability/{acceptance.md,evidence-local.json,evidence-host.json}`; raw local command logs in ignored work.
+- Independent security reviewer retest **4/4 pass**: quoted API/password/token keys, punctuation password, token in unknown key and URL; invalid report, no snapshot, no supplied values anywhere in serialized report.
+- Problems/fixes: formatting and generated dependency lint corrected; local ignored release checksum moved aside to avoid stale marketplace check (no release metadata change). Rebuilt and full retest passed.
+- Remaining blocker: enforced environment lacks chatgpt.com allow rule; no supported config mutation tool exposed. Existing authenticated host cannot execute model tasks. No proxy bypass or fake execution. Native Windows/CodeBuddy unverified.
+- Next: document delivery, push branch and open a draft PR with explicit outstanding host-task gate.
+
+## Full commit ledger through tested code
+
+- `fc9ce5169c2ae665ee368b1ef144105209cdb958` — docs: audit Skill portability lifecycle and runtime
+- `1ab97d6bd99a2e83a8788ade501f554790e511dc` — docs: define Skill portability contracts and security policy
+- `ae0f746e39f6ce86bbd1d4cef50ea75b5b07b810` — feat(foundry): validate portable Skill snapshots and dependencies
+- `9a3b1365aeadd8e22b9f8f9f58c6a61be0b006f3` — feat(foundry): export Skill directories and deterministic ZIP archives
+- `0c2d32a4ce5994372f039abdf0b140cde201f9ed` — fix(foundry): detect quoted credentials and redact validation reports
+- `779d2e8faf580a6f883ecc78189d93c76ddba3dc` — feat(foundry): expose read-only Skill validation and export tools

@@ -1,0 +1,65 @@
+{
+  "skill_id": "portable-release-notes",
+  "fixture": "docs/examples/skill-portability/fixture",
+  "output": "/workspace/usora/artifacts/skill-portability/run-LBpBPb",
+  "node": "v24.19.0",
+  "lifecycle": "Activity → Candidate → Draft → Evaluate → Publish completed through built MCP",
+  "exports": {
+    "status": "passed",
+    "validation": {
+      "valid": true,
+      "errors": [],
+      "warnings": [],
+      "files": [
+        {
+          "path": "SKILL.md",
+          "bytes": 856,
+          "sha256": "5fdd2e928aa5aa4982438fed55b8b7d496ac6e6d54586bb3847805bed35199b6"
+        },
+        {
+          "path": "references/style-guide.md",
+          "bytes": 528,
+          "sha256": "1fc97291334f7264c0e87a010a2d3a82a4babf51b19d984344d5f4eb73b03c5a"
+        }
+      ],
+      "dependencies": [],
+      "compatibility": {
+        "agent_skills": true,
+        "independent": true,
+        "notes": [
+          "Static eligibility is not proof of independent execution; dynamic references and undeclared dependencies require review.",
+          "Host loading, allowed-tools support and runtime permissions vary; no automatic installation or execution is performed."
+        ]
+      }
+    },
+    "directory": "/workspace/usora/artifacts/skill-portability/run-LBpBPb/directory/portable-release-notes",
+    "zip": "/workspace/usora/artifacts/skill-portability/run-LBpBPb/zip/portable-release-notes.zip",
+    "zip_sha256": "e00e8e5fa4317be3f5df0afe8c03a8c0d57d82863bbe2182d1b1f89e21d02653",
+    "repeated_zip": "identical",
+    "source_digest_before": "ea58fd2131be7f2ab89f111fccb1edf33fd93ef2b69d0ccca5a502743f4dc87e",
+    "source_digest_after": "ea58fd2131be7f2ab89f111fccb1edf33fd93ef2b69d0ccca5a502743f4dc87e",
+    "independent_zip_reader": {
+      "reader": "Python stdlib zipfile",
+      "files": [
+        {
+          "path": "portable-release-notes/SKILL.md",
+          "bytes": 856,
+          "sha256": "5fdd2e928aa5aa4982438fed55b8b7d496ac6e6d54586bb3847805bed35199b6"
+        },
+        {
+          "path": "portable-release-notes/references/style-guide.md",
+          "bytes": 528,
+          "sha256": "1fc97291334f7264c0e87a010a2d3a82a4babf51b19d984344d5f4eb73b03c5a"
+        }
+      ],
+      "crc": "passed",
+      "directory_bytes": "identical",
+      "paths": "safe"
+    }
+  },
+  "independent_host": {
+    "status": "not_run",
+    "reason": "Pass --host to execute the real installed Codex host."
+  },
+  "status": "passed"
+}

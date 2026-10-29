@@ -1,6 +1,6 @@
 # Usora Skill Portability v1 — Codex 自主实施计划
 
-> 状态：阶段 1–5 已完成；全量验收进行中，独立模型任务受网络限制。
+> 状态：阶段 1–5 完成；阶段 6 本地验收通过（133 测试），真实宿主加载通过、模型任务被网络 403 阻塞；阶段 7 交付进行中。
 > 基线：`master`；工作分支：`feat/skill-portability-v1`。
 > 目标：在不破坏 Foundry 现有生命周期的前提下，交付可校验、可独立安装、可移植的 Agent Skills 导出能力。
 > 原则：仅实现通用 Agent Skills 规范下的校验、目录导出和 ZIP 分发；不开发赛事、特定厂商或市场上传适配。
@@ -76,14 +76,14 @@
 
 ## 6. 自动化测试与独立运行验收
 
-- [ ] 单元测试：frontmatter、名称、依赖、引用、资源收集、路径、ZIP、冲突策略、敏感信息。
-- [ ] 集成测试：模拟真实 Hub 已发布 Skill，调用 MCP 导出，验证内容与元数据一致。
-- [ ] 回归测试：Candidate → Draft → Evaluate → Publish → Export 不破坏现有生命周期。
+- [x] 单元测试：frontmatter、名称、依赖、引用、资源收集、路径、ZIP、冲突策略、敏感信息。
+- [x] 集成测试：模拟真实 Hub 已发布 Skill，调用 MCP 导出，验证内容与元数据一致。
+- [x] 回归测试：Candidate → Draft → Evaluate → Publish → Export 不破坏现有生命周期。
 - [ ] 隔离测试：将导出包复制到不含 Usora Hub/MCP 的干净环境，使用兼容 Agent Skills 的宿主加载并完成真实任务；记录宿主版本和输出。
-- [ ] 如果 Skill 本质依赖 Foundry MCP，测试应明确失败或声明依赖，不得宣称可脱离运行。
-- [ ] 执行仓库现有 `check`、lint、typecheck、test、build、doctor、打包等适用命令；修复新增回归。
-- [ ] 验证 Windows 路径、空格、中文文件名和跨平台压缩包。
-- [ ] 不执行任何第三方市场上传、平台发布或赛事提交；本期仅验证标准 Skill 包在独立宿主中的加载与执行。
+- [x] 如果 Skill 本质依赖 Foundry MCP，测试应明确失败或声明依赖，不得宣称可脱离运行。
+- [x] 执行仓库现有 `check`、lint、typecheck、test、build、doctor、打包等适用命令；修复新增回归。
+- [x] 验证 Windows 路径、空格、中文文件名和跨平台压缩包。
+- [x] 不执行任何第三方市场上传、平台发布或赛事提交；本期仅验证标准 Skill 包在独立宿主中的加载与执行。
 - **门禁**：所有可本地执行的测试通过，失败项有证据和明确限制。
 
 ## 7. 文档、交付与 PR

@@ -1,0 +1,87 @@
+{
+  "skill_id": "portable-release-notes",
+  "fixture": "docs/examples/skill-portability/fixture",
+  "output": "/workspace/usora/artifacts/skill-portability/run-wcU0DK",
+  "node": "v24.19.0",
+  "lifecycle": "Activity → Candidate → Draft → Evaluate → Publish completed through built MCP",
+  "exports": {
+    "status": "passed",
+    "validation": {
+      "valid": true,
+      "errors": [],
+      "warnings": [],
+      "files": [
+        {
+          "path": "SKILL.md",
+          "bytes": 856,
+          "sha256": "5fdd2e928aa5aa4982438fed55b8b7d496ac6e6d54586bb3847805bed35199b6"
+        },
+        {
+          "path": "references/style-guide.md",
+          "bytes": 528,
+          "sha256": "1fc97291334f7264c0e87a010a2d3a82a4babf51b19d984344d5f4eb73b03c5a"
+        }
+      ],
+      "dependencies": [],
+      "compatibility": {
+        "agent_skills": true,
+        "independent": true,
+        "notes": [
+          "Static eligibility is not proof of independent execution; dynamic references and undeclared dependencies require review.",
+          "Host loading, allowed-tools support and runtime permissions vary; no automatic installation or execution is performed."
+        ]
+      }
+    },
+    "directory": "/workspace/usora/artifacts/skill-portability/run-wcU0DK/directory/portable-release-notes",
+    "zip": "/workspace/usora/artifacts/skill-portability/run-wcU0DK/zip/portable-release-notes.zip",
+    "zip_sha256": "e00e8e5fa4317be3f5df0afe8c03a8c0d57d82863bbe2182d1b1f89e21d02653",
+    "repeated_zip": "identical",
+    "source_digest_before": "49ac693286973a5245cbbdd833e1a72c227b8f194325f00f2ec56454e2c0c388",
+    "source_digest_after": "49ac693286973a5245cbbdd833e1a72c227b8f194325f00f2ec56454e2c0c388",
+    "independent_zip_reader": {
+      "reader": "Python stdlib zipfile",
+      "files": [
+        {
+          "path": "portable-release-notes/SKILL.md",
+          "bytes": 856,
+          "sha256": "5fdd2e928aa5aa4982438fed55b8b7d496ac6e6d54586bb3847805bed35199b6"
+        },
+        {
+          "path": "portable-release-notes/references/style-guide.md",
+          "bytes": 528,
+          "sha256": "1fc97291334f7264c0e87a010a2d3a82a4babf51b19d984344d5f4eb73b03c5a"
+        }
+      ],
+      "crc": "passed",
+      "directory_bytes": "identical",
+      "paths": "safe"
+    }
+  },
+  "independent_host": {
+    "status": "blocked",
+    "host": "codex-cli 0.163.0",
+    "exit_code": -1,
+    "mcp_calls": 0,
+    "skill_read_observed": false,
+    "diagnostic": "ed with status 403, url: wss://chatgpt.com/backend-api/codex/responses\n2026-10-29T11:50:38.016390Z ERROR codex_api::endpoint::responses_websocket: failed to connect to websocket: URL error: Proxy connection failed: HTTP CONNECT failed with status 403, url: wss://chatgpt.com/backend-api/codex/responses\n2026-10-29T11:50:38.405932Z ERROR codex_api::endpoint::responses_websocket: failed to connect to websocket: URL error: Proxy connection failed: HTTP CONNECT failed with status 403, url: wss://chatgpt.com/backend-api/codex/responses\n2026-10-29T11:50:39.332195Z ERROR codex_api::endpoint::responses_websocket: failed to connect to websocket: URL error: Proxy connection failed: HTTP CONNECT failed with status 403, url: wss://chatgpt.com/backend-api/codex/responses\n2026-10-29T11:50:40.884820Z ERROR codex_api::endpoint::responses_websocket: failed to connect to websocket: URL error: Proxy connection failed: HTTP CONNECT failed with status 403, url: wss://chatgpt.com/backend-api/codex/responses\n2026-10-29T11:50:44.378512Z ERROR codex_api::endpoint::responses_websocket: failed to connect to websocket: URL error: Proxy connection failed: HTTP CONNECT failed with status 403, url: wss://chatgpt.com/backend-api/codex/responses\n\nReconnecting... 2/5 (stream disconnected before completion: URL error: Proxy connection failed: HTTP CONNECT failed with status 403)\nReconnecting... 3/5 (stream disconnected before completion: URL error: Proxy connection failed: HTTP CONNECT failed with status 403)\nReconnecting... 4/5 (stream disconnected before completion: URL error: Proxy connection failed: HTTP CONNECT failed with status 403)\nReconnecting... 5/5 (stream disconnected before completion: URL error: Proxy connection failed: HTTP CONNECT failed with status 403)\nReconnecting... waiting for network (Connection failed: error sending request)\nReconnecting... waiting for network (Connection failed: error sending request)\nReconnecting... waiting for network (Connection failed: error sending request)",
+    "timeout_ms": 60000,
+    "isolation": "Temporary project; exported ZIP Skill only; no Hub; user config ignored; no MCP calls permitted"
+  },
+  "independent_loader": {
+    "status": "passed",
+    "method": "Codex app-server skills/list",
+    "name": "portable-release-notes",
+    "description": "Create consistent release notes from a local changes.json file. Use when preparing a release summary from categorized changes without external services.",
+    "path": ".agents/skills/portable-release-notes/SKILL.md",
+    "scope": "repo",
+    "enabled": true,
+    "plugin_id": null,
+    "errors": [],
+    "model_requests": 0,
+    "mcp_tool_calls": 0,
+    "note": "Actual local Codex loader recognition; this does not prove model task execution. App-server uses installed configuration; it has no --ignore-user-config flag.",
+    "host": "codex-cli 0.163.0"
+  },
+  "status": "failed",
+  "error": "6-10-29T11:50:37.023542Z  WARN codex_exec_server::client::http_client::route_aware_http_client: http/request send failed http_method=\"POST\" error_is_timeout=false error_is_connect=true error=error sending request\n2026-10-29T11:50:37.023654Z ERROR rmcp::transport::worker: worker quit with fatal: Transport channel closed, when Client(HttpRequest(HttpRequest(\"http/request failed: error sending request for url (https://chatgpt.com/backend-api/ps/mcp)\")))\n2026-10-29T11:50:37.386993Z ERROR codex_models_manager::manager: failed to refresh available models: Connection failed: error sending request\n2026-10-29T11:50:37.554554Z ERROR codex_api::endpoint::responses_websocket: failed to connect to websocket: URL error: Proxy connection failed: HTTP CONNECT failed with status 403, url: wss://chatgpt.com/backend-api/codex/responses\n2026-10-29T11:50:38.016390Z ERROR codex_api::endpoint::responses_websocket: failed to connect to websocket: URL error: Proxy connection failed: HTTP CONNECT failed with status 403, url: wss://chatgpt.com/backend-api/codex/responses\n2026-10-29T11:50:38.405932Z ERROR codex_api::endpoint::responses_websocket: failed to connect to websocket: URL error: Proxy connection failed: HTTP CONNECT failed with status 403, url: wss://chatgpt.com/backend-api/codex/responses\n2026-10-29T11:50:39.332195Z ERROR codex_api::endpoint::responses_websocket: failed to connect to websocket: URL error: Proxy connection failed: HTTP CONNECT failed with status 403, url: wss://chatgpt.com/backend-api/codex/responses\n2026-10-29T11:50:40.884820Z ERROR codex_api::endpoint::responses_websocket: failed to connect to websocket: URL error: Proxy connection failed: HTTP CONNECT failed with status 403, url: wss://chatgpt.com/backend-api/codex/responses\n2026-10-29T11:50:44.378512Z ERROR codex_api::endpoint::responses_websocket: failed to connect to websocket: URL error: Proxy connection failed: HTTP CONNECT failed with status 403, url: wss://chatgpt.com/backend-api/codex/responses\n\n\n-1 !== 0\n"
+}
