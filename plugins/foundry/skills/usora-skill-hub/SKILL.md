@@ -38,6 +38,8 @@ Maintain one Activity per AI session. After substantive progress, call `activity
 - “Evaluate this Skill” → MCP tool `skill_evaluate`
 - “Show recent Skills” → MCP tool `skill_query` (metadata only) or legacy `skill_list`
 - “Show this Skill” → MCP tool `skill_get` or legacy `skill_read`
+- “Validate this Skill for portability” → MCP tool `skill_validate` with `skill_id`
+- “Export this Skill as an Agent Skills directory or ZIP” → MCP tool `skill_export` with `skill_id`, `format`, and an existing absolute `output_path`
 - “Record Skill usage” → MCP tool `usage_capture`
 - “Scan Skill governance” → MCP tool `governance_scan`
 - “Resolve Skill governance” → MCP tool `governance_resolve`
@@ -112,3 +114,9 @@ Use MCP tools for initialization, Activity capture, Candidate review, and public
 Candidates can be explicitly evaluated before publication. Publishing updates the single current Skill in place and records its `revision`, Maintainer, and publication time; do not create version directories.
 
 For Hub schema v2 upgrades, never silently migrate a v1 Hub. If status reports `migration_required`, run `hub_migrate` as a dry run first and only pass `confirm: true` after the user asks to proceed. Prefer compact query tools over deprecated `*_list` tools.
+
+## Portable Skill export
+
+Use `skill_query` with `state: PUBLISHED` and a narrow query, then `skill_get` for the selected name. Call `skill_validate` with `skill_id` equal to that existing name. Read errors, warnings, dependencies and compatibility before `skill_export`. Export only snapshots PUBLISHED Skills and never grants publication rights or modifies the Hub. A structurally valid package with MCP/runtime/service dependencies is not proof of independent execution.
+
+For `skill_export`, choose `format: directory` or `zip`, and `output_path` as an existing absolute parent outside Usora data and plugin/source trees. Preview with `dry_run: true`; conflicts fail by default. Only use `conflict: overwrite` when replacing the exact target is requested. Inspect output paths, file hashes and dependencies. No market upload, cloud synchronization or automatic installation occurs. A v1 Hub requires the normal explicit migration workflow; export does not migrate or initialize it.

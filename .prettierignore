@@ -1,5 +1,7 @@
 .git
 .usora
+artifacts
+work
 node_modules
 plugins/*/dist/*.js
 plugins/usora/assets

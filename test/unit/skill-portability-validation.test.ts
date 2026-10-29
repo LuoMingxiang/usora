@@ -228,11 +228,13 @@ test("resolves Markdown reference definitions and document fragments without pac
 });
 
 test("rejects referenced sensitive config filenames even when their values are placeholders", async (t) => {
-  const f = await fixture(t, {
-    content: "Use [settings](assets/.env).\n",
-    files: { "assets/.env": "API_TOKEN=REPLACE_ME\n" },
-  });
-  assertRejected(await validateSkillDirectory(f.dir, f.name));
+  for (const name of [".env", ".npmrc", ".pypirc", ".netrc"]) {
+    const f = await fixture(t, {
+      content: `Use [settings](assets/${name}).\n`,
+      files: { [`assets/${name}`]: "API_TOKEN=REPLACE_ME\n" },
+    });
+    assertRejected(await validateSkillDirectory(f.dir, f.name));
+  }
 });
 
 test("missing and cyclic references produce actionable diagnostics", async (t) => {

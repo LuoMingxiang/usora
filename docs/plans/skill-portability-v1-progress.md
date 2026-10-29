@@ -61,3 +61,15 @@ The next chronological commit records each stage commit's full SHA; final delive
 - Fixed quoted JSON/YAML/TOML assignments and ordinary token/secret keys. Any detected secret now returns a generic redacted report with no untrusted filenames, dependencies or warnings, and no snapshot; unknown frontmatter keys are never echoed.
 - Added two regressions covering assignment syntax and full-report leakage through key, URL and filename channels. `node_modules/.bin/vitest run test/unit/skill-portability-validation.test.ts`: **44/44 passed**, 1.85s (`work/validation-security-retest.log`). TypeScript/Oxlint passed; feature bundle rebuilt successfully.
 - Stage 4 commit: `9a3b136` (full SHA in final ledger). Correction commit recorded by next stage.
+
+## Stage 5 — MCP integration
+
+- Status: completed, 2026-10-29.
+- Security correction commit: `0c2d32a4ce5994372f039abdf0b140cde201f9ed`.
+- Files: `core/skill-portability.ts`, MCP handlers/tool schemas, built `dist/mcp.js`, built-in Skill mapping, `test/integration/foundry-skill-portability.test.ts`, lint/format generated-output exclusions, plan/progress. Final small validation failure-label hardening and sensitive-name fixture loop are included.
+- Decisions: strict runtime arguments in addition to declarative MCP schema; new read-only tools dispatch before ensure; invalid validation returns exported=false without output; existing errors retain stable prefix codes. No manifest/version/Maintainer/publish/evolve changes.
+- Actual command: `node_modules/.bin/vitest run test/integration/foundry-skill-portability.test.ts` passed **5/5**, 8.18s after lifecycle SOURCE_BUSY regression. Full Candidate→Draft→Evaluate→Publish→Validate→directory/ZIP flow, exact source hash equality, Maintainer rejection, v1/noHub behavior, query/get, conflicts, overwrite, dependencies and Chinese paths all passed. Build/TypeScript and owned lint/format passed.
+- Issue/fix: bundling maintained YAML produces third-party generated code with lint warnings; exclude generated dist/artifacts/work from source lint and generated work/artifacts from formatting, while all authored source remains checked. Initial full check reached marketplace freshness and failed because an earlier local package's ignored checksum file overrode the existing release checksum; moved that local-only file to work and reran without changing published marketplace metadata.
+- Commit: recorded in next stage ledger.
+- Risk: actual Codex local Skill loading passed, but model task is blocked by enforced proxy CONNECT403 to chatgpt.com. No false task-success claim.
+- Next: full check, doctor, final package/unzip, demo evidence and documentation; preserve isolated-task external blocker.

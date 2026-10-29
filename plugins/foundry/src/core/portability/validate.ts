@@ -94,7 +94,8 @@ function addError(report: ValidationResult, code: string, message: string, file?
 function failureResult(error: unknown): ReadResult {
   const report = freshReport();
   if (error instanceof ValidationFailure) {
-    report.errors.push(diagnostic(error.code, error.message, error.file));
+    const trustedFile = ["SKILL.md", "skill.json", "config.json"].includes(error.file || "") ? error.file : undefined;
+    report.errors.push(diagnostic(error.code, error.message, trustedFile));
   } else {
     const code = isRecord(error) && typeof error.code === "string" ? error.code : "";
     report.errors.push(

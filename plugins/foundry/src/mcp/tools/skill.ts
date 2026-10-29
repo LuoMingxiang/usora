@@ -128,6 +128,43 @@ export const skillTools = [
     inputSchema: { type: "object", required: ["name"], properties: { name: { type: "string" } } },
   },
   {
+    name: "skill_validate",
+    description:
+      "Validate one published Hub Skill as an Agent Skills package without changing the source. Returns structured errors, warnings, files, dependencies and compatibility; does not prove independent execution.",
+    inputSchema: {
+      type: "object",
+      additionalProperties: false,
+      required: ["skill_id"],
+      properties: {
+        skill_id: { type: "string", description: "Existing Skill directory name, as returned by skill_query." },
+      },
+    },
+  },
+  {
+    name: "skill_export",
+    description:
+      "Export a validated published Skill snapshot as a directory or deterministic ZIP. Never publishes or changes the source. Default conflict policy is error; output_path is an existing absolute parent directory.",
+    inputSchema: {
+      type: "object",
+      additionalProperties: false,
+      required: ["skill_id", "output_path"],
+      properties: {
+        skill_id: { type: "string", description: "Existing published Skill directory name." },
+        format: { type: "string", enum: ["directory", "zip"], default: "directory" },
+        output_path: {
+          type: "string",
+          description: "Existing absolute export parent directory outside Hub/plugin data.",
+        },
+        conflict: { type: "string", enum: ["error", "overwrite"], default: "error" },
+        dry_run: {
+          type: "boolean",
+          default: false,
+          description: "Preview validation, files and target without writing.",
+        },
+      },
+    },
+  },
+  {
     name: "usage_capture",
     description: "Record one runtime Skill usage outcome and update Skill usage metrics. Outcome may be unknown.",
     inputSchema: {

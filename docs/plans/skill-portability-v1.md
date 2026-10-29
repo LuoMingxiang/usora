@@ -1,6 +1,6 @@
 # Usora Skill Portability v1 — Codex 自主实施计划
 
-> 状态：阶段 1–4 已完成；MCP 集成和最终安全复测进行中。
+> 状态：阶段 1–5 已完成；全量验收进行中，独立模型任务受网络限制。
 > 基线：`master`；工作分支：`feat/skill-portability-v1`。
 > 目标：在不破坏 Foundry 现有生命周期的前提下，交付可校验、可独立安装、可移植的 Agent Skills 导出能力。
 > 原则：仅实现通用 Agent Skills 规范下的校验、目录导出和 ZIP 分发；不开发赛事、特定厂商或市场上传适配。
@@ -67,11 +67,11 @@
 
 ## 5. MCP 集成与用户体验
 
-- [ ] 在现有 MCP 注册体系中增加 `skill_validate`、`skill_export`，遵循项目命名、错误和权限惯例。
-- [ ] 更新 `plugins/foundry/skills/usora-skill-hub/SKILL.md` 自然语言工具映射和正确调用顺序。
-- [ ] 增加 `skill_get` / `skill_query` 到导出的使用示例，但避免无必要的全量扫描。
-- [ ] 处理无 Hub、旧 schema、缺少 Skill、未发布 Skill、权限不足、非法路径、文件已存在和资源缺失。
-- [ ] 不改变 `skill_publish`、`skill_evolve` 和既有 marketplace 分发语义。
+- [x] 在现有 MCP 注册体系中增加 `skill_validate`、`skill_export`，遵循项目命名、错误和权限惯例。
+- [x] 更新 `plugins/foundry/skills/usora-skill-hub/SKILL.md` 自然语言工具映射和正确调用顺序。
+- [x] 增加 `skill_get` / `skill_query` 到导出的使用示例，但避免无必要的全量扫描。
+- [x] 处理无 Hub、旧 schema、缺少 Skill、未发布 Skill、权限不足、非法路径、文件已存在和资源缺失。
+- [x] 不改变 `skill_publish`、`skill_evolve` 和既有 marketplace 分发语义。
 - **门禁**：MCP 客户端可以按 `查询 → 校验 → 导出 → 检查产物` 完成流程。
 
 ## 6. 自动化测试与独立运行验收

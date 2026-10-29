@@ -24,6 +24,7 @@ import { handleHubMigrate, migrationStatus } from "../core/migration.ts";
 import { handlePatternGet, handlePatternIndex, handlePatternQuery } from "../core/patterns.ts";
 import { handlePluginCacheCleanup } from "../core/cache.ts";
 import { handleSkillIndex } from "../core/skill-index.ts";
+import { handleSkillExport, handleSkillValidate } from "../core/skill-portability.ts";
 import {
   handleSkillCreate,
   handleSkillEvaluate,
@@ -84,6 +85,8 @@ const HANDLERS: Record<string, ToolHandler> = {
   skill_index: handleSkillIndex,
   skill_query: handleSkillQuery,
   skill_get: handleSkillGet,
+  skill_validate: handleSkillValidate,
+  skill_export: handleSkillExport,
   usage_capture: handleUsageCapture,
   event_list: handleEventList,
   telemetry_metrics: handleTelemetryMetrics,
@@ -129,6 +132,8 @@ const WRITE_TOOLS = new Set([
 export async function call(name: string, args: ToolArgs = {}): Promise<unknown> {
   const handler = HANDLERS[name];
   if (!handler || !getTool(name)) throw Error(`Unknown Usora tool: ${name}`);
+  // Portability reads must not initialize a Hub or trigger legacy config migration.
+  if (name === "skill_validate" || name === "skill_export") return handler(args);
   await ensure();
   if (WRITE_TOOLS.has(name) && !MIGRATION_ALLOWED.has(name) && (await migrationStatus()).migration_required) {
     throw Error("Hub migration required before writing v2 records. Run hub_migrate with dry_run, then confirm=true.");
