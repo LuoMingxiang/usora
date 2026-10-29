@@ -120,3 +120,10 @@ The next chronological commit records each stage commit's full SHA; final delive
 - Reject nonstring mapping keys at the YAML AST stage before any JS conversion or warning. Focused retest **46/46 passed** (1.49s); full `bun run check` **18 files /135 tests passed**,37.38s, every format/lint/type/build/package/runtime/marketplace/doctor stage successful (`work/final-metadata-check.log`).
 - Rebuilt runtime and final local demo exit0 again (`artifacts/skill-portability/run-beiNDp/evidence.json`). The package's Markdown/resources and deterministic Skill ZIP remain byte-identical. No repeat of blocked model execution was claimed.
 - Files: validator,46-case unit suite, generated Node bundle, this progress entry. This is a concrete defect correction, not a new export profile or scope expansion.
+
+## Final retest delivery snapshot
+
+- Final tested implementation commit: `b68fbf75a12a3620c66a6bcc27330f5f94f48bc7`. Final full check **135/135 passed** (46 validator+19 exporter+5 MCP+65 existing),18 files,37.38s. Prior133-test results above are chronological evidence, superseded by this final run.
+- Final actual plugin archive+unzip passed, SHA256 `1b12b5a51c18493c5fc56d0a2ffdbb37e26bd025cd98523750051c430f9c0d37`; local checksum override moved out again.
+- Replaced local acceptance JSON with final demo evidence; source hashes still equal; both fixture files and committed real Skill ZIP compared byte-for-byte with final exports. Skill ZIP SHA remains `e00e8e5fa4317be3f5df0afe8c03a8c0d57d82863bbe2182d1b1f89e21d02653`. Host task remains blocked by same external policy; its actual attempt evidence is preserved.
+- CI/Commitlint for sample commit `1a628c89b6f05468b8063451454c86610b083fd9` both succeeded (runs40870008697/40870008596). Final correction will be pushed and checked; no master change/merge/release.

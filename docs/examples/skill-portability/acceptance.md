@@ -1,6 +1,6 @@
 # Skill Portability v1 — executed acceptance
 
-Date: 2026-10-29 (Asia/Shanghai). Tested code commit: `779d2e8faf580a6f883ecc78189d93c76ddba3dc`. Node v24.19.0, Bun 1.3.14, Vitest 4.1.12, Linux. This is local validation plus actual host loading; the independent model task remains **blocked**, not passed.
+Date: 2026-10-29 (Asia/Shanghai). Tested code commit: `b68fbf75a12a3620c66a6bcc27330f5f94f48bc7`. Node v24.19.0, Bun 1.3.14, Vitest 4.1.12, Linux. This is local validation plus actual host loading; the independent model task remains **blocked**, not passed.
 
 ## Reproduce
 
@@ -23,12 +23,12 @@ The repository marketplace checker uses any root `artifacts/usora-foundry-<versi
 | Check                                | Result                                                                                                                                              |
 | ------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Baseline                             | 15 files, 65 tests passed                                                                                                                           |
-| Validator unit suite                 | 44 passed                                                                                                                                           |
+| Validator unit suite                 | 46 passed                                                                                                                                           |
 | Export/ZIP unit suite                | 19 passed                                                                                                                                           |
 | MCP integration addition             | 5 passed                                                                                                                                            |
-| Full `bun run check`                 | 18 files, **133 passed**, 25.73s; format/lint/type/build/package/runtime/marketplace/doctor passed                                                  |
+| Full `bun run check`                 | 18 files, **135 passed**, 37.38s; format/lint/type/build/package/runtime/marketplace/doctor passed                                                  |
 | Explicit `bun run doctor`            | Canonical/Codex/CodeBuddy/marketplace metadata OK                                                                                                   |
-| Actual plugin packaging + `unzip -t` | 12 files OK; archive SHA256 `052a438dbaa031c8e0f69efb6794b282425300d3d523eccc8fb905775e689f89`                                                      |
+| Actual plugin packaging + `unzip -t` | 12 files OK; archive SHA256 `1b12b5a51c18493c5fc56d0a2ffdbb37e26bd025cd98523750051c430f9c0d37`                                                      |
 | Final demo, no model invocation      | Exit 0; real built Node MCP lifecycle, exports and Python verification passed                                                                       |
 | Codex 0.163.0 native Skill loader    | `app-server skills/list` passed; repo scope, enabled=true, pluginId=null, correct `.agents/skills/portable-release-notes/SKILL.md`, no parse errors |
 | Independent Codex model task         | **Blocked**: proxy CONNECT HTTP403 to `chatgpt.com`; 60s bounded attempt, no successful task output                                                 |
@@ -63,6 +63,8 @@ The host task reads `changes.json`, loads the extracted Skill plus bundled forma
 ## Failures and fixes
 
 Initial `check` failed original plan formatting, then bundled third-party YAML lint warnings, then a local package-checksum override. The plan was formatted, generated bundles/artifacts excluded from source lint/format, and the local release checksum moved out of the override path. Published marketplace metadata was unchanged. Final full check passed.
+
+Final specification retest also found numeric/collection YAML metadata keys being coerced to strings. Two added tests failed before the AST validation fix, then all46 validator tests passed without the collection-key warning.
 
 Unit/review failures found missed PowerShell/environment dependencies, quoted JSON credential assignments, and detected-token leakage through other diagnostics/dependencies. Fixes and focused regression retests passed. Secret failures now return a generic redacted report without untrusted file paths or dependency strings. Independent review repeated the originally failing fixtures and verified serialized reports exclude all supplied secrets.
 
