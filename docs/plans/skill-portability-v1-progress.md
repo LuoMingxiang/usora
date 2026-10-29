@@ -18,3 +18,15 @@ All dates use Asia/Shanghai. Branch: `feat/skill-portability-v1`. Evidence is re
 ## Commit ledger
 
 The next chronological commit records each stage commit's full SHA; final delivery records the final HEAD externally in the PR and chat. No file claims to contain its own commit SHA.
+
+## Stage 2 — contract and design
+
+- Status: completed, 2026-10-29.
+- Baseline: `fc9ce51`; stage 1 commit `fc9ce51` (full SHA from git below).
+- Files: design, plan, progress.
+- Decisions: published-only, `skill_id` selects existing directory; absolute existing export parent; explicit conflict overwrite; bounded snapshot and resource closure; dependency eligibility distinguished from execution; shared deterministic ZIP helper. No new host profile or schema.
+- Verification: reviewed design against all stage 2 requirements and audited source; `npm exec --yes --package bun@1.3.14 -- bun run test` passed **15 files / 65 tests** on baseline (12.58s). Design Markdown formatted by Prettier. No feature tests claimed at this design-only stage.
+- Issue/fix: optional Unicode skill names in official reference exceed existing Hub ASCII schema; preserve current schema and document conservative subset instead of globally changing safeName.
+- Commit: recorded in following stage ledger.
+- Risk: static reference/dependency scanning has documented limits; final real-host verification required.
+- Next: validator unit implementation, then atomic directory/ZIP export.

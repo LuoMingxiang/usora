@@ -1,6 +1,6 @@
 # Usora Skill Portability v1 — Codex 自主实施计划
 
-> 状态：阶段 1 审计已完成；设计与实现进行中。
+> 状态：阶段 1–2 审计与契约已完成；核心实现进行中。
 > 基线：`master`；工作分支：`feat/skill-portability-v1`。
 > 目标：在不破坏 Foundry 现有生命周期的前提下，交付可校验、可独立安装、可移植的 Agent Skills 导出能力。
 > 原则：仅实现通用 Agent Skills 规范下的校验、目录导出和 ZIP 分发；不开发赛事、特定厂商或市场上传适配。
@@ -34,14 +34,14 @@
 
 ## 2. 设计与接口契约
 
-- [ ] 明确 Publish（内部状态）、Export（只读快照）、Distribute（外部发布）的边界；Export 不得自动发布或修改 Skill。
-- [ ] 定义 `skill_validate` 与 `skill_export` MCP 输入输出 schema，覆盖 skill_id、格式、输出路径、冲突策略、dry_run、结构化诊断。
-- [ ] 设计统一中间表示、Agent Skills renderer、资源收集器、验证器、文件系统写入器、ZIP 打包器；复用仓库现有抽象。
-- [ ] 明确导出状态策略：默认仅已发布 Skill；草稿导出若支持，必须显式标注，且不能绕过审核。
-- [ ] 定义稳定文件命名、frontmatter 字段、相对资源引用、换行与 UTF-8、可重复导出、确定性 ZIP（如可行）。
-- [ ] 设计输出路径限制、符号链接处理、ZIP Slip 防护、秘密扫描、文件大小/数量限制及错误码。
-- [ ] 设计依赖声明：如果 Skill 依赖 Usora MCP，明确不可独立运行或提供可移植替代；绝不能把仅有 Markdown 的包装误报为独立可执行。
-- [ ] 记录方案到 `docs/plans/skill-portability-v1-design.md`，含接口示例、目录结构、失败行为、兼容性矩阵。
+- [x] 明确 Publish（内部状态）、Export（只读快照）、Distribute（外部发布）的边界；Export 不得自动发布或修改 Skill。
+- [x] 定义 `skill_validate` 与 `skill_export` MCP 输入输出 schema，覆盖 skill_id、格式、输出路径、冲突策略、dry_run、结构化诊断。
+- [x] 设计统一中间表示、Agent Skills renderer、资源收集器、验证器、文件系统写入器、ZIP 打包器；复用仓库现有抽象。
+- [x] 明确导出状态策略：默认仅已发布 Skill；草稿导出若支持，必须显式标注，且不能绕过审核。
+- [x] 定义稳定文件命名、frontmatter 字段、相对资源引用、换行与 UTF-8、可重复导出、确定性 ZIP（如可行）。
+- [x] 设计输出路径限制、符号链接处理、ZIP Slip 防护、秘密扫描、文件大小/数量限制及错误码。
+- [x] 设计依赖声明：如果 Skill 依赖 Usora MCP，明确不可独立运行或提供可移植替代；绝不能把仅有 Markdown 的包装误报为独立可执行。
+- [x] 记录方案到 `docs/plans/skill-portability-v1-design.md`，含接口示例、目录结构、失败行为、兼容性矩阵。
 - **门禁**：设计能支持无需 Usora 的独立 Skill；对不支持的场景给出明确拒绝或依赖报告。
 
 ## 3. 核心校验能力
