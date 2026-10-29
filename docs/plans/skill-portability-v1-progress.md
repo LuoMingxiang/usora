@@ -95,3 +95,14 @@ The next chronological commit records each stage commit's full SHA; final delive
 - `9a3b1365aeadd8e22b9f8f9f58c6a61be0b006f3` — feat(foundry): export Skill directories and deterministic ZIP archives
 - `0c2d32a4ce5994372f039abdf0b140cde201f9ed` — fix(foundry): detect quoted credentials and redact validation reports
 - `779d2e8faf580a6f883ecc78189d93c76ddba3dc` — feat(foundry): expose read-only Skill validation and export tools
+
+## Stage 7 — documentation and PR delivery
+
+- Status: completed delivery with the stage 6 external model-task blocker explicitly retained.
+- Files: README English/Chinese, plugin guides English/Chinese, portability usage/API/troubleshooting guide, audit/design/plan/progress, fixture and acceptance evidence. No UI, publisher, cloud sync or release changes.
+- Prior commits: `f278a23` acceptance harness/evidence; `c30fd0a82cc2a0461eb3b891a386b842ad39be81` user documentation and initially pushed head. Full SHAs are in git history; final delivery HEAD is recorded in PR metadata and user report rather than self-referencing this file.
+- Verified: `git diff --check`; final document Prettier check passed; final tested code passed full check133/133 plus doctor/package/unzip/demo. Worktree contained only intended documentation before delivery update. Git fetch confirmed master remains `3eb0e8876070a8306b096c0e27590ef731bc9ca2`.
+- Git workflow: normal non-force push to `feat/skill-portability-v1` succeeded; created **draft PR https://github.com/LuoMingxiang/usora/pull/14**, base master. The draft records the incomplete model-task gate rather than claiming all requirements passed. No PR merge or production release.
+- Actual artifacts: deterministic Skill directory+ZIP, per-file and archive SHA256, local evidence and blocked host evidence. Durable evidence lives in docs/examples/skill-portability; downloadable outputs are also supplied with the final user report.
+- Remaining work: permit chatgpt.com through supported environment policy, rerun `node scripts/skill-portability-demo.ts --host --host-timeout-ms 60000`, require actual release-notes.json contract assertion, then update evidence/checkbox and mark PR ready. Native Windows/CodeBuddy tasks remain unverified; static scanner and cooperating-process filesystem limits remain documented.
+- Next: observe remote CI where available; final report must say stage 6 is blocked and supply exact HEAD/PR/artifact links.
