@@ -211,6 +211,142 @@ test("failed atomic commit rolls back overwritten target and cleans temporary fi
   assert.deepEqual(await fs.readdir(root), ["portable-demo"]);
 });
 
+test("committed directory export reports staging cleanup failure and preserves its backup path", async (t) => {
+  const root = await temp(t);
+  const target = path.join(root, "portable-demo");
+  const lock = path.join(root, ".usora-export-portable-demo.lock");
+  await fs.mkdir(target);
+  await fs.writeFile(path.join(target, "keep"), "previous target");
+  const remove = fs.rm;
+  let stage = "";
+  const spy = vi.spyOn(fs, "rm").mockImplementation(async (file, options) => {
+    if (path.dirname(String(file)) === root && String(file) !== lock) {
+      stage = String(file);
+      throw Object.assign(new Error("injected staging cleanup failure"), { code: "EACCES" });
+    }
+    return remove(file, options);
+  });
+  let result;
+  try {
+    result = await exportSkillSnapshot(snapshot(), report(), { output_path: root, conflict: "overwrite" });
+  } finally {
+    spy.mockRestore();
+  }
+  assert.equal(result.exported, true);
+  assert.ok(stage);
+  assert.ok(result.warnings.some((warning) => warning.code === "EXPORT_CLEANUP_FAILED"));
+  assert.deepEqual(result.recovery?.cleanup, [{ path: stage, code: "EACCES" }]);
+  assert.equal(result.recovery?.backup_path, path.join(stage, "previous"));
+  assert.equal(result.recovery?.lock_path, undefined);
+  assert.equal(await fs.readFile(path.join(stage, "previous", "keep"), "utf8"), "previous target");
+  assert.deepEqual(await fs.readFile(path.join(target, "SKILL.md")), markdown);
+  await assert.rejects(fs.lstat(lock), /ENOENT/);
+});
+
+test("committed export reports lock cleanup failure without misreporting the artifact as failed", async (t) => {
+  const root = await temp(t);
+  const target = path.join(root, "portable-demo");
+  const lock = path.join(root, ".usora-export-portable-demo.lock");
+  const remove = fs.rm;
+  const spy = vi.spyOn(fs, "rm").mockImplementation(async (file, options) => {
+    if (String(file) === lock) throw Object.assign(new Error("injected lock cleanup failure"), { code: "EACCES" });
+    return remove(file, options);
+  });
+  let result;
+  try {
+    result = await exportSkillSnapshot(snapshot(), report(), { output_path: root });
+  } finally {
+    spy.mockRestore();
+  }
+  assert.equal(result.exported, true);
+  assert.ok(result.warnings.some((warning) => warning.code === "EXPORT_CLEANUP_FAILED"));
+  assert.deepEqual(result.recovery?.cleanup, [{ path: lock, code: "EACCES" }]);
+  assert.equal(result.recovery?.lock_path, lock);
+  assert.deepEqual(await fs.readFile(path.join(target, "SKILL.md")), markdown);
+  assert.deepEqual((await fs.readdir(root)).sort(), [path.basename(lock), "portable-demo"]);
+});
+
+test("commit and rollback failures retain the backup recovery message when lock cleanup also fails", async (t) => {
+  const root = await temp(t);
+  const target = path.join(root, "portable-demo");
+  const lock = path.join(root, ".usora-export-portable-demo.lock");
+  await fs.mkdir(target);
+  await fs.writeFile(path.join(target, "keep"), "recover these original bytes");
+  const rename = fs.rename;
+  const remove = fs.rm;
+  let backup = "";
+  let failure: unknown;
+  const renameSpy = vi.spyOn(fs, "rename").mockImplementation(async (from, to) => {
+    if (String(to) === target) {
+      if (path.basename(String(from)) === "previous") backup = String(from);
+      throw Object.assign(new Error("injected commit or rollback failure"), { code: "EACCES" });
+    }
+    return rename(from, to);
+  });
+  const removeSpy = vi.spyOn(fs, "rm").mockImplementation(async (file, options) => {
+    if (String(file) === lock) throw Object.assign(new Error("injected lock cleanup failure"), { code: "EACCES" });
+    return remove(file, options);
+  });
+  try {
+    await exportSkillSnapshot(snapshot(), report(), { output_path: root, conflict: "overwrite" });
+  } catch (error) {
+    failure = error;
+  } finally {
+    renameSpy.mockRestore();
+    removeSpy.mockRestore();
+  }
+  assert.ok(backup);
+  assert.match(String(failure), /PORTABILITY_EXPORT_FAILED: commit and rollback failed/);
+  assert.ok(String(failure).includes(`original target preserved at ${backup}`));
+  assert.ok(String(failure).includes(lock));
+  assert.match(String(failure), /EACCES/);
+  assert.equal(await fs.readFile(path.join(backup, "keep"), "utf8"), "recover these original bytes");
+  await assert.rejects(fs.lstat(target), /ENOENT/);
+  assert.equal((await fs.lstat(lock)).isDirectory(), true);
+});
+
+test("a preexisting export lock remains owned and reports a precise safe recovery instruction", async (t) => {
+  const root = await temp(t);
+  const lock = path.join(root, ".usora-export-portable-demo.lock");
+  await fs.mkdir(lock);
+  await fs.writeFile(path.join(lock, "owner"), "another export");
+  await fs.utimes(lock, new Date("2000-01-01T00:00:00Z"), new Date("2000-01-01T00:00:00Z"));
+  await assert.rejects(exportSkillSnapshot(snapshot(), report(), { output_path: root }), (error) => {
+    assert.match(String(error), /PORTABILITY_EXPORT_BUSY/);
+    assert.ok(String(error).includes(lock));
+    assert.match(String(error), /confirm/i);
+    assert.match(String(error), /stopped|finished/i);
+    return true;
+  });
+  assert.equal(await fs.readFile(path.join(lock, "owner"), "utf8"), "another export");
+  assert.deepEqual(await fs.readdir(root), [path.basename(lock)]);
+});
+
+test("ZIP default publication never clobbers a late external target before the atomic link", async (t) => {
+  const root = await temp(t);
+  const target = path.join(root, "portable-demo.zip");
+  const link = fs.link;
+  let injected = false;
+  const spy = vi.spyOn(fs, "link").mockImplementation(async (from, to) => {
+    if (String(to) === target) {
+      injected = true;
+      await fs.writeFile(target, "late external target", { flag: "wx" });
+    }
+    return link(from, to);
+  });
+  try {
+    await assert.rejects(
+      exportSkillSnapshot(snapshot(), report(), { output_path: root, format: "zip" }),
+      /PORTABILITY_CONFLICT/,
+    );
+  } finally {
+    spy.mockRestore();
+  }
+  assert.equal(injected, true);
+  assert.equal(await fs.readFile(target, "utf8"), "late external target");
+  assert.deepEqual(await fs.readdir(root), ["portable-demo.zip"]);
+});
+
 test("invalid validation report cannot write an artifact", async (t) => {
   const root = await temp(t);
   const invalid = report();
@@ -223,6 +359,136 @@ test("invalid validation report cannot write an artifact", async (t) => {
     assert.match(String(error), /INVALID|VALIDATION|SECRET/);
   }
   assert.deepEqual(await fs.readdir(root), []);
+});
+
+test("malformed snapshot records fail with an actionable guard error before writing", async (t) => {
+  const root = await temp(t);
+  const cases: unknown[] = [
+    null,
+    {},
+    { ...snapshot(), source: undefined },
+    { ...snapshot(), source: null },
+    { ...snapshot(), source: { ...snapshot().source, revision: 0 } },
+    { ...snapshot(), source: { ...snapshot().source, revision: Number.NaN } },
+    { ...snapshot(), source: { ...snapshot().source, revision: -1 } },
+    { ...snapshot(), files: null },
+    { ...snapshot(), files: [null] },
+    { ...snapshot(), files: [{ path: "SKILL.md", data: "not a Buffer" }] },
+    { ...snapshot(), files: [{ path: 42, data: markdown }] },
+    { ...snapshot(), files: [{ path: "SKILL.md", data: markdown, mode: Number.NaN }] },
+  ];
+  for (const malformed of cases) {
+    await assert.rejects(exportSkillSnapshot(malformed as SkillSnapshot, report(), { output_path: root }), (error) => {
+      assert.match(String(error), /PORTABILITY_SNAPSHOT/);
+      assert.ok(!(error instanceof TypeError));
+      return true;
+    });
+    assert.deepEqual(await fs.readdir(root), []);
+  }
+});
+
+test("export ignores unknown report callbacks and debug fields while retaining validated evidence", async (t) => {
+  const root = await temp(t);
+  const skill = snapshot();
+  const validation = report(skill);
+  validation.warnings.push({ code: "OPTIONAL_NOTE", message: "Retain this diagnostic.", file: "SKILL.md" });
+  validation.dependencies.push({ kind: "runtime", name: "optional-example", required: false, reason: "An example." });
+  const expected = JSON.parse(JSON.stringify(validation)) as ValidationResult;
+  Object.assign(validation, { callback: () => "ignored", debug: { callback: () => "ignored" } });
+  Object.assign(validation.files[0]!, { callback: () => "ignored", debug: { trace: true } });
+  Object.assign(validation.warnings[0]!, { callback: () => "ignored", debug: { trace: true } });
+  Object.assign(validation.dependencies[0]!, { callback: () => "ignored", debug: { trace: true } });
+  Object.assign(validation.compatibility, { callback: () => "ignored", debug: { trace: true } });
+  const result = await exportSkillSnapshot(skill, validation, { output_path: root });
+  assert.equal(result.exported, true);
+  assert.deepEqual(
+    {
+      valid: result.valid,
+      errors: result.errors,
+      warnings: result.warnings,
+      files: result.files,
+      dependencies: result.dependencies,
+      compatibility: result.compatibility,
+    },
+    expected,
+  );
+  assert.deepEqual(Object.keys(result).sort(), [
+    "compatibility",
+    "conflict",
+    "dependencies",
+    "dry_run",
+    "errors",
+    "exported",
+    "files",
+    "format",
+    "target",
+    "valid",
+    "warnings",
+  ]);
+  assert.deepEqual(await fs.readFile(path.join(result.target, "SKILL.md")), markdown);
+});
+
+test("snapshot export rejects report file evidence with mismatched hash, bytes, path or duplicates", async (t) => {
+  const root = await temp(t);
+  for (const mismatch of ["hash", "bytes", "path", "duplicate", "missing"] as const) {
+    const skill = snapshot();
+    const validation = report(skill);
+    const first = validation.files[0]!;
+    if (mismatch === "hash") first.sha256 = "0".repeat(64);
+    if (mismatch === "bytes") first.bytes += 1;
+    if (mismatch === "path") first.path = "assets/other.txt";
+    if (mismatch === "duplicate") validation.files.push({ ...first });
+    if (mismatch === "missing") validation.files.pop();
+    await assert.rejects(
+      exportSkillSnapshot(skill, validation, { output_path: root }),
+      /PORTABILITY_SNAPSHOT/,
+      mismatch,
+    );
+    assert.deepEqual(await fs.readdir(root), [], mismatch);
+  }
+});
+
+test("export captures snapshot buffers, validation evidence and output parent before asynchronous work", async (t) => {
+  const root = await temp(t);
+  const redirect = await temp(t);
+  const skill = snapshot();
+  const validation = report(skill);
+  const originalReport = JSON.parse(JSON.stringify(validation)) as ValidationResult;
+  const originalFiles = skill.files.map((file) => ({ path: file.path, data: Buffer.from(file.data) }));
+  const args = { output_path: root };
+  const pending = exportSkillSnapshot(skill, validation, args);
+  for (const file of skill.files) file.data.fill(0x78);
+  skill.files[0]!.path = "assets/changed.txt";
+  skill.files.splice(0, skill.files.length, { path: "assets/replacement.txt", data: Buffer.from("replacement") });
+  skill.name = "changed-name";
+  skill.source.skill_id = "changed-name";
+  skill.source.state = "DRAFT";
+  skill.source.revision = 99;
+  validation.files[0]!.path = "assets/changed.txt";
+  validation.files[0]!.bytes = 0;
+  validation.files[0]!.sha256 = "0".repeat(64);
+  validation.files.reverse();
+  validation.warnings.push({ code: "CALLER_MUTATION", message: "not part of validated evidence" });
+  validation.errors.push({ code: "CALLER_MUTATION", message: "not part of validated evidence" });
+  validation.dependencies.push({ kind: "runtime", name: "changed-runtime", required: true, reason: "mutated" });
+  validation.compatibility.independent = false;
+  validation.compatibility.notes.push("mutated note");
+  validation.valid = false;
+  args.output_path = redirect;
+  const result = await pending;
+  assert.equal(result.exported, true);
+  assert.equal(result.target, path.join(root, "portable-demo"));
+  for (const file of originalFiles) {
+    assert.deepEqual(await fs.readFile(path.join(result.target, file.path)), file.data);
+  }
+  assert.equal(result.valid, originalReport.valid);
+  assert.deepEqual(result.files, originalReport.files);
+  assert.deepEqual(result.errors, originalReport.errors);
+  assert.deepEqual(result.warnings, originalReport.warnings);
+  assert.deepEqual(result.dependencies, originalReport.dependencies);
+  assert.deepEqual(result.compatibility, originalReport.compatibility);
+  assert.deepEqual(await fs.readdir(root), ["portable-demo"]);
+  assert.deepEqual(await fs.readdir(redirect), []);
 });
 
 test("output parent must exist, be absolute and be a directory", async (t) => {
@@ -274,7 +540,7 @@ test("canonical output cannot overlap a symlink-aliased host or Knowledge Hub", 
       `import { exportSkillSnapshot } from ${JSON.stringify(exporter)};`,
       `const snapshot = ${JSON.stringify({ name: "portable-demo", source: { skill_id: "portable-demo", state: "PUBLISHED", revision: 2 } })};`,
       `snapshot.files = [{ path: "SKILL.md", data: Buffer.from(${JSON.stringify(markdown.toString("utf8"))}) }];`,
-      `const report = ${JSON.stringify(report())};`,
+      `const report = ${JSON.stringify(report({ ...snapshot(), files: [{ path: "SKILL.md", data: markdown }] }))};`,
       "try {",
       ` await exportSkillSnapshot(snapshot, report, { output_path: ${JSON.stringify(realHub)} });`,
       " console.log(JSON.stringify({ rejected: false }));",
@@ -368,6 +634,25 @@ test("ZIP helper rejects ZIP32 filename/count bounds and file/directory collisio
   for (const name of ["root/CON.txt", "root/nul", "root/trailing.", "root/trailing "]) {
     assert.throws(() => deterministicZip([{ path: name, data: markdown }]), /ZIP_PATH/);
   }
+});
+
+test("ZIP helper rejects malformed surrogate filenames and preserves supplementary Unicode", () => {
+  for (const filename of ["root/\ud800.txt", "root/\udfff.txt", "root/a\udbffz.txt"]) {
+    assert.throws(() => deterministicZip([{ path: filename, data: markdown }]), /ZIP_PATH/);
+  }
+  assert.throws(
+    () =>
+      deterministicZip([
+        { path: "root/\ud800.txt", data: markdown },
+        { path: "root/\ud801.txt", data: markdown },
+      ]),
+    /ZIP_PATH|ZIP_DUPLICATE/,
+  );
+  const filename = "root/\u{1f680}补充说明.md";
+  const archive = deterministicZip([{ path: filename, data: markdown }]);
+  const nameLength = archive.readUInt16LE(26);
+  assert.equal(archive.subarray(30, 30 + nameLength).toString("utf8"), filename);
+  assert.equal(archive.readUInt16LE(6) & 0x800, 0x800);
 });
 
 test("unsafe snapshot paths and duplicate entries cannot escape the target", async (t) => {

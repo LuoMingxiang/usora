@@ -144,3 +144,13 @@ The next chronological commit records each stage commit's full SHA; final delive
 - Green commands: `node_modules/.bin/vitest run test/unit/skill-portability-process.test.ts` **7/7 passed**,2.01s; owned Prettier/Oxlint passed. Tests use real children and verify no live descendants, including ignoredTERM, inherited pipes, overflow, interactive stop, callback failure, ENOENT and normal IO.
 - Real no-host demo exit0: artifacts/skill-portability/run-Zc1rhx/evidence.json, source hashes equal, ZIP unchanged. This used the existing built runtime; final build+demo will be repeated after other concrete fixes. No network attempt while user is preparing policy.
 - Files: dedicated helper, demo orchestration,7-case unit file, plan/progress. Remaining core/export changes are still in progress and not falsely covered by this checkpoint. Commit SHA is recorded at subsequent checkpoint.
+
+### Follow-up checkpoint B — export transaction integrity
+
+- Previous checkpoint commit: `de2684a6c601c2da8b3917cd0be8120dbf198d45`.
+- Concrete red evidence: work/portability-failure-audit.json,5 passing reproduction assertions of old broken behavior: postcommit EACCES replaced success, lock cleanup blocked retries, cleanup masked recovery failure; late ZIP target overwrote default policy; invalid Unicode entries collapsed to duplicate encoded names. No source data was modified by repro.
+- Fixed: committed output returns exported=true even if cleanup fails, with EXPORT_CLEANUP_FAILED and optional recovery cleanup paths/backup/lock evidence. Precommit failures preserve their primary code and any rollback backup location. No active/stale lock is stolen; BUSY gives recovery location and requires confirming prior process stopped.
+- Default ZIP now atomically links staged file to absent target; EEXIST preserves another writer's bytes. It requires hard-link support on the output filesystem and fails safely otherwise. Existing directory concurrency threat boundary remains unchanged.
+- Reject invalid Unicode filenames before ZIP encoding. Validate malformed helper snapshot/report shape and positive revision; match path/bytes/SHA256 evidence and copy buffers/report/options before first await to avoid in-process changes corrupting consistency. Public fields are reconstructed without cloning unknown callbacks/debug data.
+- Actual verification: `node_modules/.bin/vitest run test/unit/skill-portability-export.test.ts` **29/29 passed**,803ms; owned Prettier/Oxlint and git diff --check passed. No broad typecheck success is claimed while parallel validator refactor is incomplete.
+- Files: export.ts, shared zip.ts,29-case exporter unit suite, plan/progress. Commit SHA is recorded at the next checkpoint.

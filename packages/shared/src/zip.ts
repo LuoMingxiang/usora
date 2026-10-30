@@ -24,6 +24,7 @@ export function validateArchivePaths(paths: string[]): void {
     const parts = file.split("/");
     if (
       !file ||
+      Buffer.from(file, "utf8").toString("utf8") !== file ||
       /[\\:*?"<>|]/.test(file) ||
       [...file].some((character) => character.charCodeAt(0) < 32 || character.charCodeAt(0) === 127) ||
       Buffer.byteLength(file, "utf8") > 0xffff ||
