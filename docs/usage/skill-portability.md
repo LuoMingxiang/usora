@@ -32,7 +32,7 @@ Static resource collection is restricted to `scripts/`, `references/` and `asset
 
 Static analysis also caps unique references, dependencies and diagnostics at 100 entries, including external and failed references. `ANALYSIS_LIMIT` rejects an incomplete analysis; it never silently truncates the report and claims independence. Repeated references are deduplicated. Meaningful Markdown indentation and trailing spaces survive rendering; only boundary newlines are normalized.
 
-`compatibility.independent` is static eligibility, not proof that a host executed the Skill. Required Usora/MCP tools, runtimes, OS commands, credentials, dynamic resources or external services are reported as dependencies. A structurally valid package can still require provisioning. Review warnings and run a concrete task in the target host before sharing. `allowed-tools` is experimental and does not grant permission across hosts.
+`compatibility.independent` is static eligibility, not proof that a host executed the Skill. Required Usora/MCP tools, runtimes, OS commands, credentials, dynamic resources or external services are reported as dependencies. Every bundled script requires a runtime review; an unrecognized extension is reported explicitly instead of being assumed independent. A structurally valid package can still require provisioning. Review warnings and run a concrete task in the target host before sharing. `allowed-tools` is experimental and does not grant permission across hosts.
 
 For a reproducible developer demo, build first and run:
 

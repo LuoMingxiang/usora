@@ -1,6 +1,6 @@
 # Skill Portability v1 — executed acceptance
 
-Date: 2026-10-29 (Asia/Shanghai). Tested code commit: `b68fbf75a12a3620c66a6bcc27330f5f94f48bc7`. Node v24.19.0, Bun 1.3.14, Vitest 4.1.12, Linux. This is local validation plus actual host loading; the independent model task remains **blocked**, not passed.
+Date: 2026-10-30 (Asia/Shanghai). Tested code commit: `d3f0f8b7d661a38c5bcf05bf16f9e9722667fd5d`. Node v24.19.0, Bun 1.3.14, Vitest 4.1.12, Linux. This is local validation plus actual host loading; the independent model task remains **blocked**, not passed.
 
 ## Reproduce
 
@@ -26,9 +26,9 @@ The repository marketplace checker uses any root `artifacts/usora-foundry-<versi
 | Validator unit suite                 | 46 passed                                                                                                                                           |
 | Export/ZIP unit suite                | 19 passed                                                                                                                                           |
 | MCP integration addition             | 5 passed                                                                                                                                            |
-| Full `bun run check`                 | 18 files, **135 passed**, 37.38s; format/lint/type/build/package/runtime/marketplace/doctor passed                                                  |
+| Full `bun run check`                 | 19 files, **175 passed**, 21.64s; format/lint/type/build/package/runtime/marketplace/doctor passed                                                  |
 | Explicit `bun run doctor`            | Canonical/Codex/CodeBuddy/marketplace metadata OK                                                                                                   |
-| Actual plugin packaging + `unzip -t` | 12 files OK; archive SHA256 `1b12b5a51c18493c5fc56d0a2ffdbb37e26bd025cd98523750051c430f9c0d37`                                                      |
+| Actual plugin packaging + `unzip -t` | 12 files OK; archive SHA256 `de518ec84de859ea54c26de99cfa3870e8d306c30050fd2ea212c39e0f1055d0`                                                      |
 | Final demo, no model invocation      | Exit 0; real built Node MCP lifecycle, exports and Python verification passed                                                                       |
 | Codex 0.163.0 native Skill loader    | `app-server skills/list` passed; repo scope, enabled=true, pluginId=null, correct `.agents/skills/portable-release-notes/SKILL.md`, no parse errors |
 | Independent Codex model task         | **Blocked**: proxy CONNECT HTTP403 to `chatgpt.com`; 60s bounded attempt, no successful task output                                                 |
@@ -73,3 +73,13 @@ Unit/review failures found missed PowerShell/environment dependencies, quoted JS
 The only outstanding required acceptance is the real independent model task. Allow the authenticated Codex endpoint through the supported environment configuration workflow, then rerun the existing `--host` command. This session exposes no environment-policy mutation tool, and the enforced proxy was not bypassed.
 
 Dependency/secret scanning remains static and conservative. Native Windows/CodeBuddy execution is unverified. Usora uses an ASCII Skill-name subset and three resource directories; arbitrary directories/dynamic references are outside v1. Per-target locks protect cooperating exporters; hostile concurrent local filesystem replacement is outside the documented threat model. No cloud sync, market upload, automatic installation, release or PR merge was performed.
+
+## 2026-10-30 robustness follow-up
+
+Pure content analysis now depends on a neutral protocol-name catalog rather than initializing MCP schemas. The registry checks its completeness/types. All bundled scripts require a known or explicitly unrecognized runtime review; PowerShell/TypeScript/Windows script requirements are no longer omitted. Computed token variables are distinguished from quoted/config credential literals; closed code fences, typed literals and saturated diagnostics retain safe redaction.
+
+Unique reference attempts, dependencies and diagnostics are capped; failed resources are visited once. Input reads use bounded buffers; Markdown scanning and boundary normalization avoid quadratic behavior and preserve meaningful spaces. Malformed-input tests execute real validators in independently killable processes, so synchronous CPU regressions cannot hang Vitest indefinitely.
+
+Export copies validated buffers/report/options before yielding and verifies path/size/hash evidence. Postcommit cleanup failures preserve exported=true with recovery warnings, and cannot erase a primary rollback recovery location. Default ZIP uses atomic no-clobber linking. Subprocess tests prove TERM/KILL escalation, inherited-pipe and output limits. Final local check175/175, actual demo, package/unzip and fixture/ZIP byte comparisons passed. Earlier failed/killed attempts are recorded in the progress log rather than counted as green.
+
+The user is preparing chatgpt.com allowance. Fresh policy remains restricted/enforced at revision2 without that host. No new model task was run while allowance is pending; the preserved host JSON is the prior real blocked attempt, not a successful current task. Stage6 stays unchecked until actual execution and output verification succeed.
