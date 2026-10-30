@@ -157,12 +157,14 @@ export function analyzeSkillContent(content: string, file: string): ContentAnaly
   }
   const extension = path.posix.extname(file).toLowerCase();
   const runtime = extensionRuntimes[extension];
-  if (file.startsWith("scripts/") && runtime)
+  if (file.startsWith("scripts/"))
     add({
       kind: "runtime",
-      name: runtime,
+      name: runtime ?? "Unrecognized script runtime",
       required: true,
-      reason: `Bundled script ${file} needs its interpreter or compiler; availability is not verified.`,
+      reason: runtime
+        ? `Bundled script ${file} needs its interpreter or compiler; availability is not verified.`
+        : `Identify the interpreter, compiler or execution requirements for bundled script ${file} before independent use.`,
     });
   if (
     (file.startsWith("scripts/") && [".ps1", ".cmd", ".bat"].includes(extension)) ||

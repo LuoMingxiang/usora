@@ -164,3 +164,11 @@ The next chronological commit records each stage commit's full SHA; final delive
 - Verification: validator **68/68 passed**,1.60s. Independent retest: closed fence secrets rejected/redacted;1,000,000 malformed brackets138ms and unclosed links56ms. Full `npm exec --yes --package bun@1.3.14 -- bun run check` **19 files/174 tests passed**,19.80s:68 validator+29 exporter+7 process+5 MCP+65 existing. Format/lint/types/build/package/runtime/marketplace/doctor all passed. Log work/followup-final-full-check.log.
 - Remaining original gate: effective network policy spec2 still lacks chatgpt.com; user has said they will allow it and notify. Actual CLI task is not rerun or marked passed.
 - Files: pure analysis, neutral catalog, validator+68 tests, MCP registry typing, generated runtime, design/usage and plan/progress. Commit recorded by final evidence update.
+
+### Follow-up checkpoint D — complete runtime fallback and real pressure-test deadlines
+
+- Prior analysis commit: `d9738dcca94a1c5785fc251f0ff90eebd2fbf374`.
+- Closed the runtime-extension family rather than only patching named examples: any collected file under scripts/ now reports a required interpreter/compiler/execution dependency. Unrecognized Lua/JSX/custom extensions are explicit review requirements, never independently eligible by omission. Added a test first (failed with independent=true), then fixed the fallback. Existing recognized runtime names remain precise.
+- Converted malformed-Markdown pressure tests to independently killable Node children using the bounded acceptance runner. A synchronous regex loop cannot block Vitest's own timeout anymore; each actual validator execution has a3s external deadline.
+- Actual latest validation:69/69 focused passed,2.48s. Final full `npm exec --yes --package bun@1.3.14 -- bun run check` **19 files/175 tests passed**,21.64s; all format/lint/type/build/package/runtime/marketplace/doctor stages pass. Evidence work/followup-delivery-check.log. Counts:69 validator+29 export+7 process+5 MCP+65 existing.
+- Only pending original acceptance remains the live isolated Codex task after effective network allowance. User promised to allow/notify; latest observed spec2 is restricted/enforced and still lacks chatgpt.com. No repeated unauthorized attempt.

@@ -4,8 +4,10 @@ import fs from "node:fs/promises";
 import { mkdir, mkdtemp, readFile, readdir, rm, symlink, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
+import { pathToFileURL } from "node:url";
 import { test, vi } from "vitest";
 import { PORTABILITY_LIMITS, validateSkillDirectory } from "../../plugins/foundry/src/core/portability/validate.ts";
+import { runPortabilityProcess } from "../../scripts/lib/skill-portability-process.ts";
 
 type FixtureOptions = {
   name?: string;
@@ -262,6 +264,20 @@ test("does not confuse a computed Python token variable with a literal credentia
   assert.ok(!result.report.errors.some((error) => error.code === "SECRET_DETECTED"));
 });
 
+test("unrecognized bundled script runtimes require review instead of claiming independence", async (t) => {
+  for (const extension of ["lua", "jsx", "custom"]) {
+    const file = `scripts/run.${extension}`;
+    const f = await fixture(t, {
+      content: `Execute [the bundled script](${file}).\n`,
+      files: { [file]: "print('local output')\n" },
+    });
+    const result = await validateSkillDirectory(f.dir, f.name);
+    assert.equal(result.report.valid, true, JSON.stringify(result.report.errors));
+    assert.equal(result.report.compatibility.independent, false);
+    assert.ok(result.report.dependencies.some((dependency) => dependency.kind === "runtime" && dependency.required));
+  }
+});
+
 for (const [extension, expression, literal] of [
   ["py", "token = word.lower()\nprint(token)\n", 'token = "synthetic-secret-1234"\nprint(token)\n'],
   [
@@ -319,11 +335,23 @@ for (const [title, pattern] of [
     const malformed = pattern.repeat(Math.floor((900 * 1024) / pattern.length));
     const content = pattern === "\n" ? `Do work.\n${malformed}Return the result.\n` : malformed;
     const f = await fixture(t, { content });
-    const started = performance.now();
-    const result = await validateSkillDirectory(f.dir, f.name);
-    const elapsed = performance.now() - started;
-    assert.equal(result.report.valid, true, JSON.stringify(result.report.errors));
-    assert.ok(elapsed < 2000, `validation exceeded its analysis budget: ${elapsed.toFixed(0)} ms`);
+    // A synchronous regex regression cannot be interrupted by Vitest's in-worker
+    // timeout. Exercise the real validator in an independently killable process.
+    const source = pathToFileURL(path.resolve("plugins/foundry/src/core/portability/validate.ts")).href;
+    const program = [
+      `import { validateSkillDirectory } from ${JSON.stringify(source)};`,
+      "const result = await validateSkillDirectory(process.argv[1], process.argv[2]);",
+      "process.stdout.write(JSON.stringify(result.report));",
+    ].join("\n");
+    const processResult = await runPortabilityProcess(
+      "node",
+      ["--experimental-transform-types", "--input-type=module", "-e", program, f.dir, f.name],
+      { cwd: path.resolve("."), env: process.env, timeoutMs: 3000, maxOutputBytes: 64 * 1024 },
+    );
+    assert.equal(processResult.timedOut, false, "validation exceeded its independent analysis deadline");
+    assert.equal(processResult.code, 0, processResult.stderr);
+    const report = JSON.parse(processResult.stdout);
+    assert.equal(report.valid, true, JSON.stringify(report.errors));
   });
 }
 
