@@ -6,13 +6,17 @@ import { TextDecoder } from "node:util";
 import { parseDocument, visit, isAlias, isPair, isScalar } from "yaml";
 import { validateArchivePaths } from "../../../../../packages/shared/src/zip.ts";
 import { anchorHome, HUB_SCHEMA_VERSION, knowledgeDirPath } from "../storage.ts";
-import { listTools } from "../../mcp/registry.ts";
-import type { BufferedSkillFile, Dependency, Diagnostic, SkillSnapshot, ValidationResult } from "./types.ts";
+import { analyzeSkillContent, CONTENT_ANALYSIS_LIMIT } from "./content-analysis.ts";
+import type { BufferedSkillFile, Diagnostic, SkillSnapshot, ValidationResult } from "./types.ts";
 
-export const PORTABILITY_LIMITS = { files: 100, file_bytes: 1024 * 1024, total_bytes: 16 * 1024 * 1024 };
+export const PORTABILITY_LIMITS = {
+  files: 100,
+  file_bytes: 1024 * 1024,
+  total_bytes: 16 * 1024 * 1024,
+  analysis_entries: CONTENT_ANALYSIS_LIMIT,
+};
 const portableName = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const resourceRoots = new Set(["scripts", "references", "assets"]);
-const usoraToolNames = new Set(listTools().map((tool) => tool.name));
 const textExtensions = new Set([
   ".md",
   ".mdx",
@@ -85,10 +89,38 @@ function diagnostic(code: string, message: string, file?: string): Diagnostic {
   return file === undefined ? { code, message } : { code, message, file };
 }
 
+function analysisLimit(report: ValidationResult): void {
+  const item = diagnostic(
+    "ANALYSIS_LIMIT",
+    "Static analysis exceeds the 100-entry reference, dependency or diagnostic limit. Reduce the selected Skill's references and dependencies before retrying.",
+  );
+  if (report.errors.some((entry) => entry.code === item.code)) return;
+  if (report.errors.length >= CONTENT_ANALYSIS_LIMIT) report.errors[CONTENT_ANALYSIS_LIMIT - 1] = item;
+  else report.errors.push(item);
+}
+
 function addError(report: ValidationResult, code: string, message: string, file?: string): void {
   const item = diagnostic(code, message, file);
-  if (!report.errors.some((entry) => entry.code === code && entry.file === file && entry.message === message))
-    report.errors.push(item);
+  if (report.errors.some((entry) => entry.code === code && entry.file === file && entry.message === message)) return;
+  if (report.errors.length >= CONTENT_ANALYSIS_LIMIT) {
+    analysisLimit(report);
+    return;
+  }
+  report.errors.push(item);
+}
+
+function addWarning(report: ValidationResult, item: Diagnostic): void {
+  if (
+    report.warnings.some(
+      (entry) => entry.code === item.code && entry.file === item.file && entry.message === item.message,
+    )
+  )
+    return;
+  if (report.warnings.length >= CONTENT_ANALYSIS_LIMIT) {
+    analysisLimit(report);
+    return;
+  }
+  report.warnings.push(item);
 }
 
 function failureResult(error: unknown): ReadResult {
@@ -159,12 +191,22 @@ async function readSourceFile(absolute: string, relative: string): Promise<Sourc
     const opened = await handle.stat();
     if (opened.ino !== stat.ino || opened.dev !== stat.dev)
       throw new ValidationFailure("SNAPSHOT_CHANGED", "Skill changed while reading; retry validation.", relative);
-    const data = await handle.readFile();
+    if (opened.size > PORTABILITY_LIMITS.file_bytes)
+      throw new ValidationFailure("FILE_TOO_LARGE", "A file exceeds the 1 MiB portability limit.", relative);
+    const buffer = Buffer.allocUnsafe(PORTABILITY_LIMITS.file_bytes + 1);
+    let bytes = 0;
+    while (bytes < buffer.length) {
+      const { bytesRead } = await handle.read(buffer, bytes, buffer.length - bytes, bytes);
+      if (bytesRead === 0) break;
+      bytes += bytesRead;
+    }
     const after = await handle.stat();
-    if (data.length > PORTABILITY_LIMITS.file_bytes)
+    if (bytes > PORTABILITY_LIMITS.file_bytes)
       throw new ValidationFailure("FILE_TOO_LARGE", "A file exceeds the 1 MiB portability limit.", relative);
     if (after.size !== opened.size || after.mtimeMs !== opened.mtimeMs)
       throw new ValidationFailure("SNAPSHOT_CHANGED", "Skill changed while reading; retry validation.", relative);
+    // Copy the used portion so small resources do not retain the 1 MiB read buffer.
+    const data = Buffer.from(buffer.subarray(0, bytes));
     return { absolute, relative, data, mode: stat.mode & 0o777 };
   } finally {
     await handle.close();
@@ -241,7 +283,8 @@ function validateFrontmatter(value: JsonRecord, skillId: string, report: Validat
     addError(report, "INVALID_FRONTMATTER_METADATA", "metadata must map string keys to string values.", "SKILL.md");
   }
   if ("allowed-tools" in value)
-    report.warnings.push(
+    addWarning(
+      report,
       diagnostic(
         "EXPERIMENTAL_ALLOWED_TOOLS",
         "allowed-tools is experimental; hosts may ignore it and it does not grant permissions.",
@@ -288,7 +331,8 @@ function renderSkill(content: string, meta: JsonRecord, skillId: string, report:
     fields = { name: meta.name, description: meta.description };
     body = content;
     header = `---\nname: ${skillId}\ndescription: ${JSON.stringify(meta.description)}\n---\n`;
-    report.warnings.push(
+    addWarning(
+      report,
       diagnostic(
         "FRONTMATTER_RENDERED",
         "Standard frontmatter was rendered from existing Skill metadata; the source is unchanged.",
@@ -305,187 +349,84 @@ function renderSkill(content: string, meta: JsonRecord, skillId: string, report:
       "SKILL.md",
     );
   if (body.split("\n").length > 500)
-    report.warnings.push(
+    addWarning(
+      report,
       diagnostic(
         "LONG_BODY",
         "Consider moving reference material out of SKILL.md (recommended fewer than 500 lines).",
         "SKILL.md",
       ),
     );
-  return `${header}\n${body.trimStart().trimEnd()}\n`;
+  // Only normalize boundary newlines; spaces can encode Markdown code blocks
+  // and hard line breaks and must survive rendering unchanged.
+  let start = 0;
+  let end = body.length;
+  while (start < end && body.charCodeAt(start) === 10) start++;
+  while (end > start && body.charCodeAt(end - 1) === 10) end--;
+  return `${header}\n${body.slice(start, end)}\n`;
 }
 
-function addDependency(report: ValidationResult, dependency: Dependency): void {
-  if (!report.dependencies.some((entry) => entry.kind === dependency.kind && entry.name === dependency.name))
-    report.dependencies.push(dependency);
-}
-
-function scanContent(content: string, file: string, report: ValidationResult): void {
-  const secretPatterns = [
-    /-----BEGIN (?:[A-Z0-9 ]*PRIVATE KEY|OPENSSH PRIVATE KEY)-----/,
-    /\b(?:gh[pousr]_[A-Za-z0-9_]{20,}|github_pat_[A-Za-z0-9_]{20,})\b/,
-    /\b(?:AKIA|ASIA)[0-9A-Z]{16}\b/,
-    /\bAIza[0-9A-Za-z_-]{30,}\b/,
-    /\bnpm_[A-Za-z0-9]{20,}\b/,
-    /\bsk-(?:proj-|ant-)?[A-Za-z0-9_-]{20,}\b/,
-    /\bxox[baprs]-[A-Za-z0-9-]{16,}\b/,
-    /\bBearer\s+(?!TOKEN\b|YOUR_|<|\$)[A-Za-z0-9._~-]{16,}/i,
-    /https?:\/\/[^\s/:]+:[^\s/@]+@/i,
-  ];
-  const assignedSecrets = content.matchAll(
-    /\b(?:api[_-]?key|(?:access[_-]?|auth[_-]?)?token|client[_-]?secret|password|passwd|secret(?:[_-]?key)?)\b["']?\s*[=:]\s*(?:"([^"\n]*)"|'([^'\n]*)'|([^\s,}\]]+))/gi,
-  );
-  const literalSecret = [...assignedSecrets].some((match) => {
-    const value = (match[1] ?? match[2] ?? match[3] ?? "").trim();
-    return (
-      value.length > 0 &&
-      !/^(?:\$|%|<|\{|YOUR_|example\b|placeholder\b|changeme\b|REDACTED\b|REPLACE_ME\b|process\.env\b|os\.environ\b|(?:os\.)?getenv\(|(?:config|args|options)\.|null$|undefined$|true$|false$)/i.test(
-        value,
-      )
-    );
-  });
-  if (literalSecret || secretPatterns.some((pattern) => pattern.test(content)))
-    addError(
-      report,
-      "SECRET_DETECTED",
-      "Potential credential or private key detected. Remove it from the source and rotate it if real; values are never included in diagnostics.",
-      file,
-    );
-  if (
-    [...content.matchAll(/\b[a-z]+(?:_[a-z0-9]+)+\b/g)].some((match) => usoraToolNames.has(match[0])) ||
-    /\busora\b[\s\S]{0,40}\bmcp\b|\bmcp\b[\s\S]{0,40}\b(?:usora|foundry)\b/i.test(content)
-  ) {
-    addDependency(report, {
-      kind: "usora_mcp",
-      name: "Usora MCP",
-      required: true,
-      reason: `Usora tool or MCP reference in ${file}; provision Usora or replace the workflow before independent use.`,
-    });
-  } else if (/\bmcp(?:__|[ .:/_-]|\b)/i.test(content)) {
-    addDependency(report, {
-      kind: "mcp",
-      name: "MCP server",
-      required: true,
-      reason: `MCP reference in ${file}; configure the required server in the target host.`,
-    });
-  }
-  const runtimePatterns: [string, RegExp][] = [
-    ["Python", /(?:\bpython[23]?\s|^#![^\n]*\bpython[23]?\b|\bpip[3]?\s+(?:install|run)\b)/im],
-    ["Node.js", /(?:\bnode\s+(?:scripts\/|[^\n ]+\.[mc]?js)|\b(?:npm|npx|pnpm|yarn)\s+|^#![^\n]*\bnode\b)/im],
-    ["Bun", /\bbun\s+(?:run|x|install|scripts\/)/i],
-    ["shell", /(?:^#![^\n]*\b(?:ba|z|da|k)?sh\b|\b(?:bash|sh|zsh)\s+scripts\/)/im],
-  ];
-  for (const [name, pattern] of runtimePatterns)
-    if (pattern.test(content))
-      addDependency(report, {
-        kind: "runtime",
-        name,
-        required: true,
-        reason: `${name} command or interpreter in ${file}; availability is not verified by static validation.`,
-      });
-  const extensions: Record<string, string> = {
-    ".py": "Python",
-    ".js": "Node.js",
-    ".mjs": "Node.js",
-    ".cjs": "Node.js",
-    ".sh": "shell",
-    ".bash": "shell",
-    ".rb": "Ruby",
-    ".pl": "Perl",
-  };
-  const runtime = extensions[path.posix.extname(file).toLowerCase()];
-  if (file.startsWith("scripts/") && runtime)
-    addDependency(report, {
-      kind: "runtime",
-      name: runtime,
-      required: true,
-      reason: `Bundled script ${file} needs its interpreter; interpreter availability is not verified.`,
-    });
-  if (
-    /\b(?:powershell|pwsh|cmd\.exe|winget|choco|apt-get|apt install|brew install|systemctl|launchctl)\b|\b[A-Za-z]:\\/i.test(
-      content,
-    )
-  )
-    addDependency(report, {
-      kind: "platform",
-      name: "platform-specific command",
-      required: true,
-      reason: `Platform-specific command or path in ${file}; review target OS support.`,
-    });
-  const credentials = [
-    ...content.matchAll(/\$\{?([A-Z][A-Z0-9_]*)\}?|(?:getenv|environ\.get)\(["']([A-Z][A-Z0-9_]*)["']\)/g),
-  ]
-    .map((match) => match[1] || match[2]!)
-    .filter((name) => /TOKEN|KEY|SECRET|PASSWORD/.test(name));
-  if (/\benvironment\b|\bcredential|\bprovide\b|\brequires?\b/i.test(content)) {
-    for (const match of content.matchAll(/\b[A-Z][A-Z0-9_]*\b/g))
-      if (/TOKEN|KEY|SECRET|PASSWORD/.test(match[0])) credentials.push(match[0]);
-  }
-  for (const name of credentials)
-    addDependency(report, {
-      kind: "credential",
-      name,
-      required: true,
-      reason: `Environment credential reference in ${file}; values must be supplied separately.`,
-    });
-  for (const match of content.matchAll(/https?:\/\/([^\s/<>"')]+)/g)) {
-    const host = match[1]!.split("@").at(-1)!;
-    addDependency(report, {
-      kind: "external_service",
-      name: host,
-      required: true,
-      reason: `External URL in ${file}; resource is not bundled and offline operation is not verified.`,
-    });
-  }
-  if (/\b(?:scripts|references|assets)\/(?:[^\s`]*\$|[^\s`]*\{|\*)/.test(content))
-    addDependency(report, {
-      kind: "dynamic_resource",
-      name: "dynamic resource path",
-      required: true,
-      reason: `Dynamic path in ${file} cannot be resolved statically; replace it with explicit resource references.`,
-    });
-}
-
-function referencePaths(content: string): string[] {
+function referencePaths(content: string): { references: string[]; limited: boolean } {
   const refs: string[] = [];
+  const seen = new Set<string>();
+  let limited = false;
+  function add(value: string): boolean {
+    if (seen.has(value)) return true;
+    if (refs.length >= CONTENT_ANALYSIS_LIMIT) {
+      limited = true;
+      return false;
+    }
+    seen.add(value);
+    refs.push(value);
+    return true;
+  }
   let remaining = content.replace(
-    /!?\[[^\]]*\]\(\s*(<[^>]*>|[^\s)]+)(?:\s+["'][^\n]*?["'])?\s*\)/g,
+    /!?\[[^[\]\n]*\]\([ \t]*(<[^<>\n]*>|[^\s()[\]<>]+)(?:[ \t]+(?:"[^"\n]*"|'[^'\n]*'))?[ \t]*\)/g,
     (_match, target: string) => {
-      refs.push(target.replace(/^<|>$/g, ""));
+      add(target.replace(/^<|>$/g, ""));
       return " ";
     },
   );
-  remaining = remaining.replace(/^\s*\[[^\]]+\]:\s*(<[^>]*>|[^\s]+)(?:\s|$)/gm, (_match, target: string) => {
-    refs.push(target.replace(/^<|>$/g, ""));
-    return " ";
-  });
+  if (limited) return { references: refs, limited };
+  remaining = remaining.replace(
+    /^[ \t]*\[[^[\]\n]+\]:[ \t]*(<[^<>\n]*>|[^\s]+)(?:[ \t]|$)/gm,
+    (_match, target: string) => {
+      add(target.replace(/^<|>$/g, ""));
+      return " ";
+    },
+  );
+  if (limited) return { references: refs, limited };
   remaining = remaining.replace(/`([^`\n]+)`/g, (match, code: string) => {
     const value = code.trim();
     if (/^(?:\.\/)?(?:scripts|references|assets)\//.test(value) && !/\s+-/.test(value)) {
-      refs.push(value);
+      add(value);
       return " ";
     }
     return match;
   });
+  if (limited) return { references: refs, limited };
   remaining = remaining.replace(
     /(["'])((?:\.\/)?(?:scripts|references|assets)\/[^"'\n]+)\1/g,
     (_match, _quote: string, target: string) => {
-      refs.push(target);
+      add(target);
       return " ";
     },
   );
+  if (limited) return { references: refs, limited };
   for (const match of remaining.matchAll(
     /(?:^|[\s"'(<])((?:\.\/)?(?:scripts|references|assets)\/[A-Za-z0-9_./%+@=\-\u0080-\uFFFF]+)(?=$|[\s"')>`,;])/gm,
-  ))
-    refs.push(match[1]!);
-  return [...new Set(refs)];
+  )) {
+    if (!add(match[1]!)) break;
+  }
+  return { references: refs, limited };
 }
 
 function safeResourcePath(raw: string, file: string, report: ValidationResult): string | null {
   if (!raw || raw.startsWith("#")) return null;
   if (/^[A-Za-z][A-Za-z0-9+.-]*:/.test(raw) && !/^[A-Za-z]:/.test(raw)) {
     if (/^https?:/i.test(raw))
-      report.warnings.push(
+      addWarning(
+        report,
         diagnostic(
           "EXTERNAL_REFERENCE",
           "External URL is not downloaded or bundled; target-host access is unverified.",
@@ -596,18 +537,64 @@ async function collectOnce(dir: string, skillId: string): Promise<{ result: Read
   if (renderedData.length > PORTABILITY_LIMITS.file_bytes)
     addError(report, "FILE_TOO_LARGE", "Rendered SKILL.md exceeds the 1 MiB limit.", "SKILL.md");
   const files: BufferedSkillFile[] = [{ path: "SKILL.md", data: renderedData, mode: 0o644 }];
-  const states = new Map<string, "visiting" | "done">();
+  const states = new Map<string, "visiting" | "done" | "failed">();
   const caseNames = new Map<string, string>([["skill.md", "SKILL.md"]]);
+  const seenReferences = new Set<string>();
+  const dependencyKeys = new Set<string>();
+  let limited = false;
+  let secretDetected = false;
   let totalBytes = renderedData.length;
+
+  function scanContent(content: string, relative: string): void {
+    const analysis = analyzeSkillContent(content, relative);
+    // Redaction is a security decision, independent of the bounded diagnostic list.
+    secretDetected ||= analysis.hasSecrets;
+    if (analysis.hasSecrets)
+      addError(
+        report,
+        "SECRET_DETECTED",
+        "Potential credential or private key detected. Values are omitted from diagnostics.",
+      );
+    for (const dependency of analysis.dependencies) {
+      const key = `${dependency.kind}\0${dependency.name}`;
+      if (dependencyKeys.has(key)) continue;
+      if (dependencyKeys.size >= CONTENT_ANALYSIS_LIMIT) {
+        limited = true;
+        analysisLimit(report);
+        break;
+      }
+      dependencyKeys.add(key);
+      report.dependencies.push(dependency);
+    }
+    if (analysis.limited) {
+      limited = true;
+      analysisLimit(report);
+    }
+  }
 
   async function follow(relative: string, content: string): Promise<void> {
     states.set(relative, "visiting");
-    scanContent(content, relative, report);
-    for (const raw of referencePaths(content)) {
+    scanContent(content, relative);
+    const extracted = referencePaths(content);
+    if (extracted.limited) {
+      limited = true;
+      analysisLimit(report);
+    }
+    for (const raw of extracted.references) {
+      if (limited) break;
+      if (!seenReferences.has(raw)) {
+        if (seenReferences.size >= CONTENT_ANALYSIS_LIMIT) {
+          limited = true;
+          analysisLimit(report);
+          break;
+        }
+        seenReferences.add(raw);
+      }
       const resource = safeResourcePath(raw, relative, report);
       if (!resource) continue;
       if (states.get(resource) === "visiting") {
-        report.warnings.push(
+        addWarning(
+          report,
           diagnostic(
             "CYCLIC_REFERENCE",
             "Cyclic resource reference detected; review host loading order. Each file is included once.",
@@ -617,6 +604,8 @@ async function collectOnce(dir: string, skillId: string): Promise<{ result: Read
         continue;
       }
       if (states.has(resource)) continue;
+      // Failed paths are visited too, so later documents cannot retry their I/O.
+      states.set(resource, "failed");
       const caseKey = resource.normalize("NFC").toLowerCase();
       const previous = caseNames.get(caseKey);
       if (previous && previous !== resource) {
@@ -645,7 +634,7 @@ async function collectOnce(dir: string, skillId: string): Promise<{ result: Read
         if (textExtensions.has(path.posix.extname(resource).toLowerCase()) || resource.startsWith("scripts/")) {
           await follow(resource, decodeText(source.data, resource));
         } else {
-          scanContent(source.data.toString("utf8").replaceAll("\0", ""), resource, report);
+          scanContent(source.data.toString("utf8").replaceAll("\0", ""), resource);
           states.set(resource, "done");
         }
       } catch (error) {
@@ -675,7 +664,7 @@ async function collectOnce(dir: string, skillId: string): Promise<{ result: Read
   report.valid = report.errors.length === 0;
   report.compatibility.agent_skills = report.valid;
   report.compatibility.independent = report.valid && !report.dependencies.some((dependency) => dependency.required);
-  if (report.errors.some((error) => error.code === "SECRET_DETECTED")) {
+  if (secretDetected) {
     const redacted = freshReport();
     redacted.errors.push(
       diagnostic(
@@ -686,7 +675,8 @@ async function collectOnce(dir: string, skillId: string): Promise<{ result: Read
     return { result: { report: redacted, snapshot: null }, originals };
   }
   if (report.dependencies.length)
-    report.warnings.push(
+    addWarning(
+      report,
       diagnostic(
         "DEPENDENCIES_REQUIRE_REVIEW",
         "Provision or replace reported dependencies before claiming independent operation.",

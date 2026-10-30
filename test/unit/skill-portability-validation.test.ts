@@ -1,10 +1,11 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
+import fs from "node:fs/promises";
 import { mkdir, mkdtemp, readFile, readdir, rm, symlink, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import { test } from "vitest";
-import { validateSkillDirectory } from "../../plugins/foundry/src/core/portability/validate.ts";
+import { test, vi } from "vitest";
+import { PORTABILITY_LIMITS, validateSkillDirectory } from "../../plugins/foundry/src/core/portability/validate.ts";
 
 type FixtureOptions = {
   name?: string;
@@ -113,6 +114,18 @@ test("existing standard frontmatter supports scalar and string-map optional fiel
   assert.ok(result.report.warnings.length > 0, "experimental allowed-tools support must be qualified");
 });
 
+test("rendering preserves meaningful Markdown body indentation and trailing spaces", async (t) => {
+  const body = "    keep the code block indentation  \n";
+  for (const header of ["", "---\nname: portable-demo\ndescription: Preserve the supplied format.\n---\n\n"]) {
+    const f = await fixture(t, { content: `${header}${body}` });
+    const before = await treeHash(f.root);
+    const result = await validateSkillDirectory(f.dir, f.name);
+    assert.equal(result.report.valid, true, JSON.stringify(result.report.errors));
+    assert.ok(result.snapshot?.files[0]?.data.toString("utf8").endsWith(body));
+    assert.equal(await treeHash(f.root), before);
+  }
+});
+
 for (const [title, content] of [
   ["malformed YAML", "---\nname: [unterminated\ndescription: words\n---\nDo work.\n"],
   ["duplicate YAML key", "---\nname: portable-demo\nname: alternate\ndescription: words\n---\nDo work.\n"],
@@ -212,6 +225,108 @@ test("script paths in commands are collected and interpreter dependency is repor
   assert.equal(result.report.compatibility.independent, false);
 });
 
+for (const [extension, content] of [
+  ["ps1", "Write-Output 'ok'\n"],
+  ["cmd", "@echo off\necho ok\n"],
+  ["bat", "@echo off\necho ok\n"],
+  ["ts", "const answer = 1;\n"],
+] as const) {
+  test(`reports interpreter or platform dependency for bundled .${extension} scripts without explicit commands`, async (t) => {
+    const file = `scripts/run.${extension}`;
+    const f = await fixture(t, {
+      content: `Execute [the bundled procedure](${file}).\n`,
+      files: { [file]: content },
+    });
+    const result = await validateSkillDirectory(f.dir, f.name);
+    assert.equal(result.report.valid, true, JSON.stringify(result.report.errors));
+    assert.equal(result.report.compatibility.independent, false);
+    assert.ok(
+      result.report.dependencies.some(
+        (dependency) => dependency.required && ["runtime", "platform"].includes(dependency.kind),
+      ),
+    );
+  });
+}
+
+test("does not confuse a computed Python token variable with a literal credential", async (t) => {
+  const f = await fixture(t, {
+    content: "Run [the word normalization script](scripts/normalize.py).\n",
+    files: { "scripts/normalize.py": "word = 'Pear'\ntoken = word.lower()\nprint(token)\n" },
+  });
+  const result = await validateSkillDirectory(f.dir, f.name);
+  assert.equal(result.report.valid, true, JSON.stringify(result.report.errors));
+  assert.equal(result.report.compatibility.independent, false);
+  assert.ok(
+    result.report.dependencies.some((dependency) => dependency.kind === "runtime" && /python/i.test(dependency.name)),
+  );
+  assert.ok(!result.report.errors.some((error) => error.code === "SECRET_DETECTED"));
+});
+
+for (const [extension, expression, literal] of [
+  ["py", "token = word.lower()\nprint(token)\n", 'token = "synthetic-secret-1234"\nprint(token)\n'],
+  [
+    "js",
+    "const token = word.toLowerCase();\nconsole.log(token);\n",
+    'const token = "synthetic-secret-1234";\nconsole.log(token);\n',
+  ],
+  [
+    "ts",
+    "const token: string = word.toLowerCase();\nconsole.log(token);\n",
+    'const token: string = "synthetic-secret-1234";\nconsole.log(token);\n',
+  ],
+] as const) {
+  test(`distinguishes computed .${extension} token expressions from quoted secrets in the same script`, async (t) => {
+    const file = `scripts/normalize.${extension}`;
+    const f = await fixture(t, {
+      content: `Run [the word normalization script](${file}).\n`,
+      files: { [file]: expression },
+    });
+    const computed = await validateSkillDirectory(f.dir, f.name);
+    assert.equal(computed.report.valid, true, JSON.stringify(computed.report.errors));
+    assert.equal(computed.report.compatibility.independent, false);
+    assert.ok(computed.report.dependencies.some((dependency) => dependency.kind === "runtime" && dependency.required));
+    await writeFile(path.join(f.dir, file), literal);
+    const secret = await validateSkillDirectory(f.dir, f.name);
+    assertRejected(secret);
+    assert.equal(secret.report.errors[0]?.code, "SECRET_DETECTED");
+    assert.ok(!JSON.stringify(secret).includes("synthetic-secret-1234"));
+  });
+}
+
+for (const [title, afterFence] of [
+  ["immediately after a closing code fence", "token: abcdef1234567890\n"],
+  ["after a closing code fence, blank lines and prose", "\nText.\n\ntoken: abcdef1234567890\n"],
+] as const) {
+  test(`rejects and redacts literal secrets ${title}`, async (t) => {
+    const f = await fixture(t, {
+      content: `\`\`\`python\ntoken = word.lower()\n\`\`\`\n${afterFence}`,
+    });
+    const result = await validateSkillDirectory(f.dir, f.name);
+    assertRejected(result);
+    assert.equal(result.report.errors[0]?.code, "SECRET_DETECTED");
+    assert.ok(!JSON.stringify(result).includes("abcdef1234567890"));
+    assert.deepEqual(result.report.files, []);
+    assert.deepEqual(result.report.dependencies, []);
+  });
+}
+
+for (const [title, pattern] of [
+  ["unclosed brackets", "["],
+  ["unclosed Markdown links", "[x]("],
+  ["blank lines between prose", "\n"],
+] as const) {
+  test(`validates 900 KiB of ${title} within a bounded analysis time`, async (t) => {
+    const malformed = pattern.repeat(Math.floor((900 * 1024) / pattern.length));
+    const content = pattern === "\n" ? `Do work.\n${malformed}Return the result.\n` : malformed;
+    const f = await fixture(t, { content });
+    const started = performance.now();
+    const result = await validateSkillDirectory(f.dir, f.name);
+    const elapsed = performance.now() - started;
+    assert.equal(result.report.valid, true, JSON.stringify(result.report.errors));
+    assert.ok(elapsed < 2000, `validation exceeded its analysis budget: ${elapsed.toFixed(0)} ms`);
+  });
+}
+
 test("deduplicates repeated references to the same resource", async (t) => {
   const f = await fixture(t, {
     content: "Read [first](references/guide.md), then [again](references/guide.md).\n",
@@ -257,6 +372,78 @@ test("missing and cyclic references produce actionable diagnostics", async (t) =
   assert.ok(result.report.files.length <= 3, "cycle must not duplicate resource entries");
 });
 
+test("caps filesystem attempts and diagnostics when a Skill declares many distinct missing resources", async (t) => {
+  const links = Array.from({ length: 1500 }, (_value, index) => `[${index}](assets/missing-${index}.txt)`);
+  const f = await fixture(t, { content: links.join("\n"), files: { "assets/present.txt": "unused\n" } });
+  const lstat = vi.spyOn(fs, "lstat");
+  try {
+    const result = await validateSkillDirectory(f.dir, f.name);
+    assertRejected(result);
+    const reads = lstat.mock.calls.filter(([file]) => /^missing-\d+\.txt$/.test(path.basename(String(file))));
+    assert.ok(reads.length <= PORTABILITY_LIMITS.files, `attempted ${reads.length} missing resource reads`);
+    assert.ok(
+      result.report.errors.length <= PORTABILITY_LIMITS.files + 1,
+      `returned ${result.report.errors.length} diagnostics`,
+    );
+  } finally {
+    lstat.mockRestore();
+  }
+});
+
+test("attempts a missing resource only once when multiple included documents reference it", async (t) => {
+  const f = await fixture(t, {
+    content: "Read [first](references/first.md) and [second](references/second.md).\n",
+    files: {
+      "references/first.md": "Read [missing](references/missing.md).\n",
+      "references/second.md": "Read [missing again](references/missing.md).\n",
+    },
+  });
+  const missing = path.join(f.dir, "references", "missing.md");
+  const lstat = vi.spyOn(fs, "lstat");
+  try {
+    assertRejected(await validateSkillDirectory(f.dir, f.name));
+    assert.equal(lstat.mock.calls.filter(([file]) => String(file) === missing).length, 1);
+  } finally {
+    lstat.mockRestore();
+  }
+});
+
+test("caps dependency analysis and rejects a Skill with many distinct HTTP service hosts", async (t) => {
+  const links = Array.from(
+    { length: 1500 },
+    (_value, index) => `[${index}](https://service-${index}.example.test/guide)`,
+  );
+  const f = await fixture(t, { content: links.join("\n") });
+  const result = await validateSkillDirectory(f.dir, f.name);
+  assertRejected(result);
+  assert.ok(result.report.errors.some((error) => error.code === "ANALYSIS_LIMIT"));
+  for (const entries of [result.report.dependencies, result.report.warnings, result.report.errors]) {
+    assert.ok(entries.length <= 100, `returned ${entries.length} analysis entries`);
+  }
+});
+
+test("caps diagnostics and rejects a Skill with many distinct unsafe references", async (t) => {
+  const links = Array.from({ length: 1500 }, (_value, index) => `[${index}](../outside-${index}.txt)`);
+  const f = await fixture(t, { content: links.join("\n") });
+  const result = await validateSkillDirectory(f.dir, f.name);
+  assertRejected(result);
+  assert.ok(result.report.errors.some((error) => error.code === "ANALYSIS_LIMIT"));
+  for (const entries of [result.report.dependencies, result.report.warnings, result.report.errors]) {
+    assert.ok(entries.length <= 100, `returned ${entries.length} analysis entries`);
+  }
+});
+
+test("deduplicates repeated HTTP references without treating repetition as an analysis overflow", async (t) => {
+  const content = Array.from({ length: 1500 }, () => "Read [guide](https://example.test/guide).").join("\n");
+  const f = await fixture(t, { content });
+  const result = await validateSkillDirectory(f.dir, f.name);
+  assert.equal(result.report.valid, true, JSON.stringify(result.report.errors));
+  assert.equal(result.report.compatibility.independent, false);
+  assert.equal(result.report.dependencies.filter((dependency) => dependency.kind === "external_service").length, 1);
+  assert.equal(result.report.warnings.filter((warning) => warning.code === "EXTERNAL_REFERENCE").length, 1);
+  assert.ok(!result.report.errors.some((error) => error.code === "ANALYSIS_LIMIT"));
+});
+
 for (const target of [
   "../outside.txt",
   "references/../../outside.txt",
@@ -298,6 +485,63 @@ test("rejects malformed UTF-8 Markdown and bounded file sizes", async (t) => {
     files: { "assets/large.txt": Buffer.alloc(1024 * 1024 + 1, 0x61) },
   });
   assertRejected(await validateSkillDirectory(oversized.dir, oversized.name));
+});
+
+test("bounds reads when a resource grows after its initial stat", async (t) => {
+  const f = await fixture(t, {
+    content: "Read [data](assets/growing.bin).\n",
+    files: { "assets/growing.bin": Buffer.from([1, 2, 3]) },
+  });
+  const growing = path.join(f.dir, "assets", "growing.bin");
+  const originalOpen = fs.open.bind(fs);
+  let grew = false;
+  let unboundedReads = 0;
+  let requestedBytes = 0;
+  let largestBuffer = 0;
+  const open = vi.spyOn(fs, "open").mockImplementation(async (...args: Parameters<typeof fs.open>) => {
+    const handle = await originalOpen(...args);
+    if (String(args[0]) !== growing) return handle;
+    const originalRead = handle.read.bind(handle) as (...readArgs: unknown[]) => Promise<unknown>;
+    return {
+      stat: async () => {
+        const before = await handle.stat();
+        if (!grew) {
+          grew = true;
+          await fs.truncate(growing, PORTABILITY_LIMITS.file_bytes * 2);
+        }
+        return before;
+      },
+      read: async (...readArgs: unknown[]) => {
+        const first = readArgs[0] as Buffer | { buffer: Buffer; length?: number };
+        const buffer = Buffer.isBuffer(first) ? first : first.buffer;
+        const length =
+          typeof readArgs[2] === "number"
+            ? readArgs[2]
+            : Buffer.isBuffer(first)
+              ? buffer.byteLength
+              : (first.length ?? buffer.byteLength);
+        largestBuffer = Math.max(largestBuffer, buffer.byteLength);
+        requestedBytes += length;
+        return originalRead(...readArgs);
+      },
+      readFile: async () => {
+        unboundedReads++;
+        throw Error("Unbounded readFile is disabled in the growth fault injection.");
+      },
+      close: () => handle.close(),
+    } as unknown as typeof handle;
+  });
+  try {
+    const result = await validateSkillDirectory(f.dir, f.name);
+    assertRejected(result);
+    assert.equal(grew, true, "fault injection must run after the initial file stat");
+    assert.equal(unboundedReads, 0, "growing input must not use unbounded readFile");
+    assert.ok(result.report.errors.some((error) => ["FILE_TOO_LARGE", "SNAPSHOT_CHANGED"].includes(error.code)));
+    assert.ok(requestedBytes <= PORTABILITY_LIMITS.file_bytes + 1, `requested ${requestedBytes} bytes`);
+    assert.ok(largestBuffer <= PORTABILITY_LIMITS.file_bytes + 1, `allocated buffer of ${largestBuffer} bytes`);
+  } finally {
+    open.mockRestore();
+  }
 });
 
 test("enforces resource count bound before allocating a complete oversized package", async (t) => {
@@ -367,6 +611,21 @@ test("rejects quoted JSON, YAML and TOML credentials including punctuation", asy
   }
 });
 
+test("keeps quoted and bare JSON, YAML and TOML scalar secrets rejected and redacted", async (t) => {
+  for (const [file, content] of [
+    ["assets/settings.json", '{"token":"synthetic-secret-1234"}'],
+    ["assets/settings.yaml", 'token: "synthetic-secret-1234"\n'],
+    ["assets/settings.yaml", "token: synthetic-secret-1234\n"],
+    ["assets/settings.toml", 'token = "synthetic-secret-1234"\n'],
+  ]) {
+    const f = await fixture(t, { content: `Read [settings](${file}).\n`, files: { [file]: content } });
+    const result = await validateSkillDirectory(f.dir, f.name);
+    assertRejected(result);
+    assert.equal(result.report.errors[0]?.code, "SECRET_DETECTED");
+    assert.ok(!JSON.stringify(result).includes("synthetic-secret-1234"));
+  }
+});
+
 test("redacts every source-derived report field when tokens occur in keys, URLs or filenames", async (t) => {
   const token = `ghp_${"x".repeat(36)}`;
   for (const content of [
@@ -382,6 +641,32 @@ test("redacts every source-derived report field when tokens occur in keys, URLs 
     assert.deepEqual(result.report.files, []);
     assert.deepEqual(result.report.dependencies, []);
   }
+});
+
+test("secret redaction takes priority even after the diagnostic budget is exhausted", async (t) => {
+  const secret = `ghp_${"R".repeat(36)}`;
+  const files: Record<string, string> = {};
+  for (let index = 0; index < 95; index++) files[`references/error-${index}.md`] = "[outside](../outside.md)\n";
+  files["references/last.md"] = `See https://${secret}.example.com\n`;
+  const content = [
+    "---",
+    "name: wrong-name",
+    'description: ""',
+    "custom: value",
+    "license: false",
+    "allowed-tools: false",
+    'compatibility: ""',
+    "metadata: {version: 1}",
+    "---",
+    ...Object.keys(files).map((file) => `[reference](${file})`),
+  ].join("\n");
+  const f = await fixture(t, { content, files });
+  const result = await validateSkillDirectory(f.dir, f.name);
+  assertRejected(result);
+  assert.ok(result.report.errors.some((error) => error.code === "SECRET_DETECTED"));
+  assert.equal(JSON.stringify(result.report).includes(secret), false);
+  assert.deepEqual(result.report.files, []);
+  assert.deepEqual(result.report.dependencies, []);
 });
 
 test("does not misreport Usora MCP, external services or credential requirements as independently executable", async (t) => {

@@ -51,3 +51,13 @@ Validation returns `valid`, structured `errors`/`warnings` (`code`, `message`, o
 ## Acceptance
 
 Unit tests cover YAML, naming, resources, dependencies, secrets, limits, paths, cycles and ZIP. MCP tests exercise Candidate→Draft→Evaluate→Publish→Validate→directory→ZIP, hash the source tree before/after, test failures and overwrite rollback. The demo exports an instruction-only self-contained Skill, unzips in a temp project without Hub/MCP, loads it in installed Codex 0.163.0 and verifies a concrete output. Record host evidence and limits honestly; no CodeBuddy/native Windows claim without execution.
+
+## Follow-up robustness boundaries (2026-10-30)
+
+The core imports an adapter-neutral `core/tool-catalog.ts`, not MCP registry/schema code. The MCP registry checks catalog completeness and typed tool names; pure `portability/content-analysis.ts` owns secret/dependency analysis and returns data without filesystem access or report mutation. The validator owns snapshot IO, diagnostics and final redaction. Security redaction state is independent of diagnostic truncation.
+
+Reference attempts (including failed/external references), dependencies and diagnostics each have a100-entry analysis cap. Exceeding it returns ANALYSIS_LIMIT and rejects export rather than silently claiming independent eligibility. Failed canonical resources are visited once. Input reads use a1MiB+1 sentinel buffer and retain only used bytes; malformed Markdown reference parsing and code-fence context scans are bounded. Markdown rendering preserves indentation and trailing spaces; boundary newline scanning is linear.
+
+Exporter input shapes, revision and evidence hashes/byte counts are verified and copied before its first asynchronous operation. A successful artifact commit remains exported=true when later cleanup fails; warnings include EXPORT_CLEANUP_FAILED and an optional recovery object with cleanup/backup/lock paths. Primary failure and rollback recovery locations survive cleanup errors. No active lock is stolen. Default ZIP no-clobber commit uses an atomic hard link in the same output filesystem; lack of support fails safely. Directory no-clobber still assumes cooperating exporters as described above.
+
+The acceptance runner is a separate scripts/lib helper: bounded combined output, explicit timeout state, TERM→KILL, owned POSIX process-group cleanup and a stream-drain deadline. It is not imported by the production MCP runtime. Windows process behavior and native host tasks remain unverified unless separately recorded.

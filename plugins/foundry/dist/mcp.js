@@ -6949,7 +6949,7 @@ var require_public_api = __commonJS((exports) => {
 import readline from "node:readline";
 import { readFileSync } from "node:fs";
 import { fileURLToPath as fileURLToPath4 } from "node:url";
-import path22 from "node:path";
+import path23 from "node:path";
 
 // plugins/foundry/src/core/storage.ts
 import fs from "node:fs/promises";
@@ -9170,7 +9170,7 @@ function validateArchivePaths(paths) {
   const normalized = [];
   for (const file of paths) {
     const parts = file.split("/");
-    if (!file || /[\\:*?"<>|]/.test(file) || [...file].some((character) => character.charCodeAt(0) < 32 || character.charCodeAt(0) === 127) || Buffer.byteLength(file, "utf8") > 65535 || parts.some((part) => !part || part === "." || part === ".." || /[. ]$/.test(part) || /^(?:con|prn|aux|nul|com[1-9]|lpt[1-9])(?:\.|$)/i.test(part))) {
+    if (!file || Buffer.from(file, "utf8").toString("utf8") !== file || /[\\:*?"<>|]/.test(file) || [...file].some((character) => character.charCodeAt(0) < 32 || character.charCodeAt(0) === 127) || Buffer.byteLength(file, "utf8") > 65535 || parts.some((part) => !part || part === "." || part === ".." || /[. ]$/.test(part) || /^(?:con|prn|aux|nul|com[1-9]|lpt[1-9])(?:\.|$)/i.test(part))) {
       throw Error(`ZIP_PATH: unsafe archive entry ${JSON.stringify(file)}`);
     }
     const key = file.normalize("NFC").toLowerCase();
@@ -9339,20 +9339,66 @@ async function assertTargetType(target, format) {
   }
   return true;
 }
-function assertSnapshot(snapshot) {
-  if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(snapshot.name) || snapshot.name.length > 64 || snapshot.source.skill_id !== snapshot.name || snapshot.source.state !== "PUBLISHED" || !snapshot.files.some((file) => file.path === "SKILL.md"))
+function isRecord11(value) {
+  return value !== null && typeof value === "object" && !Array.isArray(value);
+}
+function diagnostic(value) {
+  return isRecord11(value) && typeof value.code === "string" && typeof value.message === "string" && (value.file === undefined || typeof value.file === "string");
+}
+function copyReport(value) {
+  if (!isRecord11(value) || typeof value.valid !== "boolean" || !Array.isArray(value.errors) || !value.errors.every(diagnostic) || !Array.isArray(value.warnings) || !value.warnings.every(diagnostic) || !Array.isArray(value.files) || !value.files.every((file) => isRecord11(file) && typeof file.path === "string" && Number.isSafeInteger(file.bytes) && typeof file.bytes === "number" && file.bytes >= 0 && typeof file.sha256 === "string" && /^[a-f0-9]{64}$/.test(file.sha256)) || !Array.isArray(value.dependencies) || !value.dependencies.every((dependency) => isRecord11(dependency) && typeof dependency.kind === "string" && ["usora_mcp", "mcp", "runtime", "platform", "external_service", "credential", "dynamic_resource"].includes(dependency.kind) && typeof dependency.name === "string" && typeof dependency.required === "boolean" && typeof dependency.reason === "string") || !isRecord11(value.compatibility) || typeof value.compatibility.agent_skills !== "boolean" || typeof value.compatibility.independent !== "boolean" || !Array.isArray(value.compatibility.notes) || !value.compatibility.notes.every((note) => typeof note === "string"))
+    throw Error("PORTABILITY_SNAPSHOT: a complete validation report is required");
+  return {
+    valid: value.valid,
+    errors: value.errors.map(({ code, message, file }) => ({ code, message, ...file !== undefined ? { file } : {} })),
+    warnings: value.warnings.map(({ code, message, file }) => ({
+      code,
+      message,
+      ...file !== undefined ? { file } : {}
+    })),
+    files: value.files.map(({ path: filePath, bytes, sha256 }) => ({ path: filePath, bytes, sha256 })),
+    dependencies: value.dependencies.map(({ kind, name, required, reason }) => ({ kind, name, required, reason })),
+    compatibility: {
+      agent_skills: value.compatibility.agent_skills,
+      independent: value.compatibility.independent,
+      notes: [...value.compatibility.notes]
+    }
+  };
+}
+function copySnapshot(value, report) {
+  if (!isRecord11(value) || typeof value.name !== "string" || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(value.name) || value.name.length > 64 || !isRecord11(value.source) || value.source.skill_id !== value.name || value.source.state !== "PUBLISHED" || typeof value.source.revision !== "number" || !Number.isSafeInteger(value.source.revision) || value.source.revision < 1 || !Array.isArray(value.files) || !value.files.length || value.files.length > 100 || !report.compatibility.agent_skills)
     throw Error("PORTABILITY_SNAPSHOT: a validated published Skill snapshot is required");
-  validateArchivePaths(snapshot.files.map((file) => `${snapshot.name}/${file.path}`));
   let bytes = 0;
-  if (snapshot.files.length > 100)
-    throw Error("PORTABILITY_SNAPSHOT: snapshot exceeds 100 files");
-  for (const file of snapshot.files) {
-    if (!Buffer.isBuffer(file.data) || file.data.length > 1024 * 1024)
-      throw Error("PORTABILITY_SNAPSHOT: invalid or oversized file buffer");
+  const files = value.files.map((file) => {
+    if (!isRecord11(file) || typeof file.path !== "string" || !Buffer.isBuffer(file.data) || file.data.length > 1024 * 1024 || file.mode !== undefined && (typeof file.mode !== "number" || !Number.isSafeInteger(file.mode) || file.mode < 0 || file.mode > 65535))
+      throw Error("PORTABILITY_SNAPSHOT: invalid file path, buffer, size, or mode");
     bytes += file.data.length;
+    if (bytes > 16 * 1024 * 1024)
+      throw Error("PORTABILITY_SNAPSHOT: snapshot exceeds 16 MiB");
+    return {
+      path: file.path,
+      data: Buffer.from(file.data),
+      ...typeof file.mode === "number" ? { mode: file.mode } : {}
+    };
+  });
+  if (!files.some((file) => file.path === "SKILL.md"))
+    throw Error("PORTABILITY_SNAPSHOT: SKILL.md is required");
+  validateArchivePaths(files.map((file) => `${value.name}/${file.path}`));
+  const evidence = new Map(report.files.map((file) => [file.path, file]));
+  if (report.files.length !== files.length || evidence.size !== files.length) {
+    throw Error("PORTABILITY_SNAPSHOT: snapshot files do not match the validation report");
   }
-  if (bytes > 16 * 1024 * 1024)
-    throw Error("PORTABILITY_SNAPSHOT: snapshot exceeds 16 MiB");
+  for (const file of files) {
+    const entry = evidence.get(file.path);
+    if (!entry || entry.bytes !== file.data.length || entry.sha256 !== createHash("sha256").update(file.data).digest("hex")) {
+      throw Error("PORTABILITY_SNAPSHOT: snapshot bytes do not match the validation report; validate again");
+    }
+  }
+  return {
+    name: value.name,
+    files,
+    source: { skill_id: value.name, state: "PUBLISHED", revision: value.source.revision }
+  };
 }
 async function exportSkillSnapshot(snapshot, report, args) {
   const format = args.format ?? "directory";
@@ -9364,11 +9410,13 @@ async function exportSkillSnapshot(snapshot, report, args) {
     throw Error("PORTABILITY_ARGUMENT: conflict must be error or overwrite");
   if (typeof dryRun !== "boolean")
     throw Error("PORTABILITY_ARGUMENT: dry_run must be boolean");
+  report = copyReport(report);
+  const outputPath = args.output_path;
   const base = { ...report, exported: false, dry_run: dryRun, target: null, format, conflict: false };
   if (!report.valid || report.errors.length)
     return base;
-  assertSnapshot(snapshot);
-  const target = await outputTarget(args.output_path, snapshot.name, format);
+  snapshot = copySnapshot(snapshot, report);
+  const target = await outputTarget(outputPath, snapshot.name, format);
   const exists3 = await assertTargetType(target, format);
   const preview = { ...base, target, conflict: exists3 };
   if (dryRun)
@@ -9381,15 +9429,18 @@ async function exportSkillSnapshot(snapshot, report, args) {
     await fs14.mkdir(lock, { mode: 448 });
   } catch (error) {
     if (codeOf(error) === "EEXIST")
-      throw Error("PORTABILITY_EXPORT_BUSY: another export owns this target; retry after it finishes");
+      throw Error(`PORTABILITY_EXPORT_BUSY: export lock exists at ${lock}; retry after the export finishes. If a prior export stopped unexpectedly, remove this lock only after confirming that process is no longer running.`);
     throw Error(`PORTABILITY_EXPORT_FAILED: cannot claim target (${codeOf(error) || "I/O error"})`);
   }
   let stage = null;
   let backup = null;
   let preserveBackup = false;
   let sha256;
+  let committed = false;
+  let primaryError = null;
+  const cleanupIssues = [];
   try {
-    await outputTarget(args.output_path, snapshot.name, format);
+    await outputTarget(outputPath, snapshot.name, format);
     if (await assertTargetType(target, format) && conflictPolicy === "error") {
       throw Error("PORTABILITY_CONFLICT: target appeared during export");
     }
@@ -9408,7 +9459,7 @@ async function exportSkillSnapshot(snapshot, report, args) {
         await fs14.chmod(full, (file.mode ?? 420) & 511);
       }
     }
-    await outputTarget(args.output_path, snapshot.name, format);
+    await outputTarget(outputPath, snapshot.name, format);
     if (await assertTargetType(target, format)) {
       if (conflictPolicy === "error")
         throw Error("PORTABILITY_CONFLICT: target appeared during staging");
@@ -9416,7 +9467,18 @@ async function exportSkillSnapshot(snapshot, report, args) {
       await fs14.rename(target, backup);
     }
     try {
-      await fs14.rename(payload, target);
+      if (format === "zip" && conflictPolicy === "error") {
+        try {
+          await fs14.link(payload, target);
+        } catch (error) {
+          if (codeOf(error) === "EEXIST")
+            throw Error("PORTABILITY_CONFLICT: target appeared during commit");
+          throw error;
+        }
+      } else {
+        await fs14.rename(payload, target);
+      }
+      committed = true;
     } catch (error) {
       if (backup) {
         try {
@@ -9429,25 +9491,48 @@ async function exportSkillSnapshot(snapshot, report, args) {
       }
       throw error;
     }
-    return { ...preview, exported: true, ...sha256 ? { sha256 } : {} };
   } catch (error) {
-    if (error instanceof Error && /^(?:PORTABILITY_|ZIP_)/.test(error.message))
-      throw error;
-    throw Error(`PORTABILITY_EXPORT_FAILED: export was not committed (${codeOf(error) || "I/O error"})`);
+    primaryError = error instanceof Error && /^(?:PORTABILITY_|ZIP_)/.test(error.message) ? error : Error(`PORTABILITY_EXPORT_FAILED: export was not committed (${codeOf(error) || "I/O error"})`, {
+      cause: error
+    });
   } finally {
-    try {
-      if (stage && !preserveBackup)
-        await fs14.rm(stage, { recursive: true, force: true });
-    } finally {
-      await fs14.rm(lock, { recursive: true, force: true });
+    for (const leftover of [...stage && !preserveBackup ? [stage] : [], lock]) {
+      try {
+        await fs14.rm(leftover, { recursive: true, force: true });
+      } catch (error) {
+        cleanupIssues.push({ path: leftover, code: codeOf(error) || "I/O error" });
+      }
     }
   }
+  if (primaryError) {
+    if (!cleanupIssues.length)
+      throw primaryError;
+    throw Error(`${primaryError.message}; cleanup incomplete: ${cleanupIssues.map((issue) => `${issue.path} (${issue.code})`).join(", ")}`, { cause: primaryError });
+  }
+  if (!committed)
+    throw Error("PORTABILITY_EXPORT_FAILED: export was not committed");
+  const result = { ...preview, exported: true, ...sha256 ? { sha256 } : {} };
+  if (cleanupIssues.length) {
+    result.warnings = [
+      ...report.warnings,
+      {
+        code: "EXPORT_CLEANUP_FAILED",
+        message: "The export was committed, but temporary files or its lock could not be removed. See recovery for paths; remove a lock only after confirming its export process has stopped."
+      }
+    ];
+    result.recovery = {
+      cleanup: cleanupIssues,
+      ...backup && stage && cleanupIssues.some((issue) => issue.path === stage) ? { backup_path: backup } : {},
+      ...cleanupIssues.some((issue) => issue.path === lock) ? { lock_path: lock } : {}
+    };
+  }
+  return result;
 }
 
 // plugins/foundry/src/core/portability/validate.ts
 import fs15 from "node:fs/promises";
 import { constants } from "node:fs";
-import path19 from "node:path";
+import path20 from "node:path";
 import { createHash as createHash2 } from "node:crypto";
 import { TextDecoder } from "node:util";
 
@@ -9496,6 +9581,1262 @@ var $parseDocument = publicApi.parseDocument;
 var $stringify = publicApi.stringify;
 var $visit = visit.visit;
 var $visitAsync = visit.visitAsync;
+
+// plugins/foundry/src/core/portability/content-analysis.ts
+import path19 from "node:path";
+
+// plugins/foundry/src/core/tool-catalog.ts
+var USORA_TOOL_NAMES = [
+  "hub_init",
+  "hub_status",
+  "hub_query",
+  "hub_migrate",
+  "hub_doctor",
+  "hub_cleanup",
+  "plugin_cache_cleanup",
+  "hub_config",
+  "activity_capture",
+  "activity_list",
+  "activity_digest_list",
+  "activity_query",
+  "activity_get",
+  "context_budget",
+  "candidate_create",
+  "candidate_match",
+  "candidate_resolve",
+  "pattern_index",
+  "pattern_query",
+  "pattern_get",
+  "candidate_list",
+  "candidate_query",
+  "candidate_get",
+  "candidate_evaluate",
+  "skill_create",
+  "skill_generate",
+  "skill_evolve",
+  "skill_evaluate",
+  "skill_publish",
+  "skill_read",
+  "skill_list",
+  "skill_index",
+  "skill_query",
+  "skill_get",
+  "skill_validate",
+  "skill_export",
+  "usage_capture",
+  "governance_scan",
+  "governance_resolve",
+  "skill_graph_validate",
+  "event_list",
+  "telemetry_metrics"
+];
+
+// plugins/foundry/src/core/portability/content-analysis.ts
+var CONTENT_ANALYSIS_LIMIT = 100;
+var usoraToolNames = new Set(USORA_TOOL_NAMES);
+var expressionLanguages = new Set([".py", ".js", ".mjs", ".cjs", ".ts", ".tsx", ".jsx", ".rb", ".pl", ".ps1"]);
+var secretPatterns = [
+  /-----BEGIN (?:[A-Z0-9 ]*PRIVATE KEY|OPENSSH PRIVATE KEY)-----/,
+  /\b(?:gh[pousr]_[A-Za-z0-9_]{20,}|github_pat_[A-Za-z0-9_]{20,})\b/,
+  /\b(?:AKIA|ASIA)[0-9A-Z]{16}\b/,
+  /\bAIza[0-9A-Za-z_-]{30,}\b/,
+  /\bnpm_[A-Za-z0-9]{20,}\b/,
+  /\bsk-(?:proj-|ant-)?[A-Za-z0-9_-]{20,}\b/,
+  /\bxox[baprs]-[A-Za-z0-9-]{16,}\b/,
+  /\bBearer\s+(?!TOKEN\b|YOUR_|<|\$)[A-Za-z0-9._~-]{16,}/i,
+  /https?:\/\/[^\s/:]+:[^\s/@]+@/i
+];
+var runtimePatterns = [
+  ["Python", /(?:\bpython[23]?\s|^#![^\n]*\bpython[23]?\b|\bpip[3]?\s+(?:install|run)\b)/im],
+  ["Node.js", /(?:\bnode\s+(?:scripts\/|[^\n ]+\.[mc]?js)|\b(?:npm|npx|pnpm|yarn)\s+|^#![^\n]*\bnode\b)/im],
+  ["Bun", /\bbun\s+(?:run|x|install|scripts\/)/i],
+  ["shell", /(?:^#![^\n]*\b(?:ba|z|da|k)?sh\b|\b(?:bash|sh|zsh)\s+scripts\/)/im],
+  ["PowerShell", /\b(?:powershell|pwsh)(?:\.exe)?\s+/i],
+  ["Windows command processor", /\bcmd(?:\.exe)?\s+\/[ck]\b/i],
+  ["TypeScript runtime or compiler", /\b(?:tsx|ts-node|tsc|deno)\s+/i]
+];
+var extensionRuntimes = {
+  ".py": "Python",
+  ".js": "Node.js",
+  ".mjs": "Node.js",
+  ".cjs": "Node.js",
+  ".ts": "TypeScript runtime or compiler",
+  ".tsx": "TypeScript runtime or compiler",
+  ".sh": "shell",
+  ".bash": "shell",
+  ".rb": "Ruby",
+  ".pl": "Perl",
+  ".ps1": "PowerShell",
+  ".cmd": "Windows command processor",
+  ".bat": "Windows command processor"
+};
+function expressionContext(file, content) {
+  if (expressionLanguages.has(path19.posix.extname(file).toLowerCase()))
+    return () => true;
+  if (!/\.mdx?$/i.test(file))
+    return () => false;
+  const ranges = [];
+  let open = null;
+  for (const fence of content.matchAll(/^ {0,3}(`{3,}|~{3,})([^\n]*)$/gm)) {
+    const marker = fence[1][0];
+    const info = fence[2].trim();
+    if (!open)
+      open = {
+        marker,
+        width: fence[1].length,
+        language: info.split(/[ \t]/, 1)[0],
+        start: fence.index + fence[0].length
+      };
+    else if (marker === open.marker && fence[1].length >= open.width && !info) {
+      if (/^(?:python|py|javascript|js|typescript|ts|ruby|perl|powershell|ps1)$/i.test(open.language))
+        ranges.push({ start: open.start, end: fence.index });
+      open = null;
+    }
+  }
+  if (open && /^(?:python|py|javascript|js|typescript|ts|ruby|perl|powershell|ps1)$/i.test(open.language))
+    ranges.push({ start: open.start, end: content.length });
+  let current = 0;
+  return (offset) => {
+    while (current < ranges.length && ranges[current].end <= offset)
+      current++;
+    return current < ranges.length && ranges[current].start <= offset;
+  };
+}
+function hasLiteralSecret(content, file) {
+  const inExpression = expressionContext(file, content);
+  const assignments = content.matchAll(/\b(?:api[_-]?key|(?:access[_-]?|auth[_-]?)?token|client[_-]?secret|password|passwd|secret(?:[_-]?key)?)\b["']?[ \t]*([=:])[ \t]*/gi);
+  for (const assignment of assignments) {
+    const code = inExpression(assignment.index);
+    let start = assignment.index + assignment[0].length;
+    if (code && assignment[1] === ":") {
+      const type = /^[^\n=;'"{}]+=[ \t]*/.exec(content.slice(start));
+      if (type)
+        start += type[0].length;
+    }
+    const match = /^(?:"([^"\n]*)"|'([^'\n]*)'|([^\s,}\]]+))/.exec(content.slice(start));
+    if (!match)
+      continue;
+    const quoted = match[1] !== undefined || match[2] !== undefined;
+    const value = (match[1] ?? match[2] ?? match[3] ?? "").trim();
+    if (!value || /^(?:\$|%|<|\{|YOUR_|example\b|placeholder\b|changeme\b|REDACTED\b|REPLACE_ME\b|process\.env\b|os\.environ\b|(?:os\.)?getenv\(|(?:config|args|options)\.|null$|undefined$|true$|false$)/i.test(value))
+      continue;
+    if (!quoted && code && /^(?:[A-Za-z_$][A-Za-z0-9_$]*(?:[.([?+*/%&|^<>=!-]|$)|[([{])/.test(value))
+      continue;
+    return true;
+  }
+  return false;
+}
+function analyzeSkillContent(content, file) {
+  const result = {
+    hasSecrets: secretPatterns.some((pattern) => pattern.test(content)) || hasLiteralSecret(content, file),
+    dependencies: [],
+    limited: false
+  };
+  const seen = new Set;
+  function add(dependency) {
+    const key = `${dependency.kind}\x00${dependency.name}`;
+    if (seen.has(key))
+      return;
+    if (result.dependencies.length >= CONTENT_ANALYSIS_LIMIT) {
+      result.limited = true;
+      return;
+    }
+    seen.add(key);
+    result.dependencies.push(dependency);
+  }
+  let usoraMentioned = /\busora\b[\s\S]{0,40}\bmcp\b|\bmcp\b[\s\S]{0,40}\b(?:usora|foundry)\b/i.test(content);
+  if (!usoraMentioned) {
+    for (const match of content.matchAll(/\b[a-z]+(?:_[a-z0-9]+)+\b/g)) {
+      if (usoraToolNames.has(match[0])) {
+        usoraMentioned = true;
+        break;
+      }
+    }
+  }
+  if (usoraMentioned)
+    add({
+      kind: "usora_mcp",
+      name: "Usora MCP",
+      required: true,
+      reason: `Usora tool or MCP reference in ${file}; provision Usora or replace the workflow before independent use.`
+    });
+  else if (/\bmcp(?:__|[ .:/_-]|\b)/i.test(content))
+    add({
+      kind: "mcp",
+      name: "MCP server",
+      required: true,
+      reason: `MCP reference in ${file}; configure the required server in the target host.`
+    });
+  for (const [name, pattern] of runtimePatterns) {
+    if (pattern.test(content))
+      add({
+        kind: "runtime",
+        name,
+        required: true,
+        reason: `${name} command or interpreter in ${file}; availability is not verified by static validation.`
+      });
+  }
+  const extension = path19.posix.extname(file).toLowerCase();
+  const runtime = extensionRuntimes[extension];
+  if (file.startsWith("scripts/") && runtime)
+    add({
+      kind: "runtime",
+      name: runtime,
+      required: true,
+      reason: `Bundled script ${file} needs its interpreter or compiler; availability is not verified.`
+    });
+  if (file.startsWith("scripts/") && [".ps1", ".cmd", ".bat"].includes(extension) || /\b(?:powershell|pwsh|cmd\.exe|winget|choco|apt-get|apt install|brew install|systemctl|launchctl)\b|\b[A-Za-z]:\\/i.test(content))
+    add({
+      kind: "platform",
+      name: "platform-specific command",
+      required: true,
+      reason: `Platform-specific script, command or path in ${file}; review target OS support.`
+    });
+  for (const match of content.matchAll(/\$\{?([A-Z][A-Z0-9_]*)\}?|(?:getenv|environ\.get)\(["']([A-Z][A-Z0-9_]*)["']\)/g)) {
+    const name = match[1] || match[2];
+    if (/TOKEN|KEY|SECRET|PASSWORD/.test(name))
+      add({
+        kind: "credential",
+        name,
+        required: true,
+        reason: `Environment credential reference in ${file}; values must be supplied separately.`
+      });
+    if (result.limited)
+      break;
+  }
+  if (!result.limited && /\benvironment\b|\bcredential|\bprovide\b|\brequires?\b/i.test(content)) {
+    for (const match of content.matchAll(/\b[A-Z][A-Z0-9_]*\b/g)) {
+      if (/TOKEN|KEY|SECRET|PASSWORD/.test(match[0]))
+        add({
+          kind: "credential",
+          name: match[0],
+          required: true,
+          reason: `Environment credential reference in ${file}; values must be supplied separately.`
+        });
+      if (result.limited)
+        break;
+    }
+  }
+  if (!result.limited) {
+    for (const match of content.matchAll(/https?:\/\/([^\s/<>"')]+)/g)) {
+      const host = match[1].split("@").at(-1);
+      add({
+        kind: "external_service",
+        name: host,
+        required: true,
+        reason: `External URL in ${file}; resource is not bundled and offline operation is not verified.`
+      });
+      if (result.limited)
+        break;
+    }
+  }
+  if (/\b(?:scripts|references|assets)\/(?:[^\s`]*\$|[^\s`]*\{|\*)/.test(content))
+    add({
+      kind: "dynamic_resource",
+      name: "dynamic resource path",
+      required: true,
+      reason: `Dynamic path in ${file} cannot be resolved statically; replace it with explicit resource references.`
+    });
+  return result;
+}
+
+// plugins/foundry/src/core/portability/validate.ts
+var PORTABILITY_LIMITS = {
+  files: 100,
+  file_bytes: 1024 * 1024,
+  total_bytes: 16 * 1024 * 1024,
+  analysis_entries: CONTENT_ANALYSIS_LIMIT
+};
+var portableName = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+var resourceRoots = new Set(["scripts", "references", "assets"]);
+var textExtensions = new Set([
+  ".md",
+  ".mdx",
+  ".txt",
+  ".json",
+  ".yaml",
+  ".yml",
+  ".toml",
+  ".xml",
+  ".svg",
+  ".csv",
+  ".tsv",
+  ".js",
+  ".mjs",
+  ".cjs",
+  ".ts",
+  ".py",
+  ".sh",
+  ".bash",
+  ".ps1",
+  ".cmd",
+  ".bat",
+  ".rb",
+  ".pl",
+  ".sql",
+  ".html",
+  ".css",
+  ".ini",
+  ".cfg",
+  ".env",
+  ".conf"
+]);
+
+class ValidationFailure extends Error {
+  code;
+  file;
+  constructor(code, message, file) {
+    super(message);
+    this.code = code;
+    this.file = file;
+  }
+}
+function isRecord12(value) {
+  return value !== null && typeof value === "object" && !Array.isArray(value);
+}
+function freshReport() {
+  return {
+    valid: false,
+    errors: [],
+    warnings: [],
+    files: [],
+    dependencies: [],
+    compatibility: {
+      agent_skills: false,
+      independent: false,
+      notes: [
+        "Static eligibility is not proof of independent execution; dynamic references and undeclared dependencies require review.",
+        "Host loading, allowed-tools support and runtime permissions vary; no automatic installation or execution is performed."
+      ]
+    }
+  };
+}
+function diagnostic2(code, message, file) {
+  return file === undefined ? { code, message } : { code, message, file };
+}
+function analysisLimit(report) {
+  const item = diagnostic2("ANALYSIS_LIMIT", "Static analysis exceeds the 100-entry reference, dependency or diagnostic limit. Reduce the selected Skill's references and dependencies before retrying.");
+  if (report.errors.some((entry) => entry.code === item.code))
+    return;
+  if (report.errors.length >= CONTENT_ANALYSIS_LIMIT)
+    report.errors[CONTENT_ANALYSIS_LIMIT - 1] = item;
+  else
+    report.errors.push(item);
+}
+function addError(report, code, message, file) {
+  const item = diagnostic2(code, message, file);
+  if (report.errors.some((entry) => entry.code === code && entry.file === file && entry.message === message))
+    return;
+  if (report.errors.length >= CONTENT_ANALYSIS_LIMIT) {
+    analysisLimit(report);
+    return;
+  }
+  report.errors.push(item);
+}
+function addWarning(report, item) {
+  if (report.warnings.some((entry) => entry.code === item.code && entry.file === item.file && entry.message === item.message))
+    return;
+  if (report.warnings.length >= CONTENT_ANALYSIS_LIMIT) {
+    analysisLimit(report);
+    return;
+  }
+  report.warnings.push(item);
+}
+function failureResult(error) {
+  const report = freshReport();
+  if (error instanceof ValidationFailure) {
+    const trustedFile = ["SKILL.md", "skill.json", "config.json"].includes(error.file || "") ? error.file : undefined;
+    report.errors.push(diagnostic2(error.code, error.message, trustedFile));
+  } else {
+    const code = isRecord12(error) && typeof error.code === "string" ? error.code : "";
+    report.errors.push(diagnostic2(code === "EACCES" || code === "EPERM" ? "PERMISSION_DENIED" : "SOURCE_READ_FAILED", "Cannot read the selected Skill. Check file permissions and Hub integrity."));
+  }
+  return { report, snapshot: null };
+}
+async function requireRealDirectory(dir) {
+  const full = path20.resolve(dir);
+  let current = path20.parse(full).root;
+  for (const segment of full.slice(current.length).split(path20.sep).filter(Boolean)) {
+    current = path20.join(current, segment);
+    const stat = await fs15.lstat(current);
+    if (stat.isSymbolicLink())
+      throw new ValidationFailure("SYMLINK_NOT_ALLOWED", "Replace symlink ancestors with real directories before validating.");
+    if (!stat.isDirectory())
+      throw new ValidationFailure("UNSAFE_PATH", "Skill ancestors must be real directories.");
+  }
+}
+async function readSourceFile(absolute, relative) {
+  try {
+    await requireRealDirectory(path20.dirname(absolute));
+  } catch (error) {
+    if (isRecord12(error) && error.code === "ENOENT")
+      throw new ValidationFailure(relative === "skill.json" ? "SKILL_NOT_FOUND" : "RESOURCE_NOT_FOUND", "A required Skill or resource file is missing. Repair the selected source reference before retrying.", relative);
+    throw error;
+  }
+  let stat;
+  try {
+    stat = await fs15.lstat(absolute);
+  } catch (error) {
+    if (isRecord12(error) && error.code === "ENOENT") {
+      throw new ValidationFailure(relative === "skill.json" ? "SKILL_NOT_FOUND" : "RESOURCE_NOT_FOUND", "A required Skill or resource file is missing. Repair the selected source reference before retrying.", relative);
+    }
+    throw error;
+  }
+  if (stat.isSymbolicLink())
+    throw new ValidationFailure("SYMLINK_NOT_ALLOWED", "Symlinks are not included in portable Skills.", relative);
+  if (!stat.isFile())
+    throw new ValidationFailure("UNSAFE_FILE_TYPE", "Only regular files can be included in a Skill.", relative);
+  if (stat.size > PORTABILITY_LIMITS.file_bytes)
+    throw new ValidationFailure("FILE_TOO_LARGE", "A file exceeds the 1 MiB portability limit.", relative);
+  const handle = await fs15.open(absolute, constants.O_RDONLY | (constants.O_NOFOLLOW || 0));
+  try {
+    const opened = await handle.stat();
+    if (opened.ino !== stat.ino || opened.dev !== stat.dev)
+      throw new ValidationFailure("SNAPSHOT_CHANGED", "Skill changed while reading; retry validation.", relative);
+    if (opened.size > PORTABILITY_LIMITS.file_bytes)
+      throw new ValidationFailure("FILE_TOO_LARGE", "A file exceeds the 1 MiB portability limit.", relative);
+    const buffer = Buffer.allocUnsafe(PORTABILITY_LIMITS.file_bytes + 1);
+    let bytes = 0;
+    while (bytes < buffer.length) {
+      const { bytesRead } = await handle.read(buffer, bytes, buffer.length - bytes, bytes);
+      if (bytesRead === 0)
+        break;
+      bytes += bytesRead;
+    }
+    const after = await handle.stat();
+    if (bytes > PORTABILITY_LIMITS.file_bytes)
+      throw new ValidationFailure("FILE_TOO_LARGE", "A file exceeds the 1 MiB portability limit.", relative);
+    if (after.size !== opened.size || after.mtimeMs !== opened.mtimeMs)
+      throw new ValidationFailure("SNAPSHOT_CHANGED", "Skill changed while reading; retry validation.", relative);
+    const data = Buffer.from(buffer.subarray(0, bytes));
+    return { absolute, relative, data, mode: stat.mode & 511 };
+  } finally {
+    await handle.close();
+  }
+}
+function decodeText(data, file) {
+  try {
+    const text2 = new TextDecoder("utf-8", { fatal: true }).decode(data);
+    if (text2.includes("\x00"))
+      throw Error("nul");
+    return text2.replace(/^\uFEFF/, "").replace(/\r\n?/g, `
+`);
+  } catch {
+    throw new ValidationFailure("INVALID_ENCODING", "Text files must contain valid UTF-8 without NUL bytes.", file);
+  }
+}
+function parseMetadata(data) {
+  try {
+    const value = JSON.parse(decodeText(data, "skill.json"));
+    if (!isRecord12(value))
+      throw Error("object");
+    return value;
+  } catch (error) {
+    if (error instanceof ValidationFailure)
+      throw error;
+    throw new ValidationFailure("INVALID_METADATA", "skill.json must be a valid JSON metadata object.", "skill.json");
+  }
+}
+function validateFrontmatter(value, skillId, report) {
+  if (typeof value.name !== "string" || value.name.length > 64 || !portableName.test(value.name) || value.name !== skillId) {
+    addError(report, "INVALID_NAME", "Use the existing directory name: 1–64 lowercase ASCII letters/numbers with single internal hyphens.", "SKILL.md");
+  }
+  if (typeof value.description !== "string" || !value.description.trim() || value.description.length > 1024) {
+    addError(report, "INVALID_DESCRIPTION", "Provide a nonempty description of at most 1024 characters.", "SKILL.md");
+  }
+  const allowed = new Set(["name", "description", "license", "compatibility", "metadata", "allowed-tools"]);
+  for (const key of Object.keys(value)) {
+    if (!allowed.has(key))
+      addError(report, "UNKNOWN_FRONTMATTER_FIELD", "Unsupported standard frontmatter field. Move custom fields into metadata.", "SKILL.md");
+  }
+  for (const key of ["license", "allowed-tools"]) {
+    if (key in value && (typeof value[key] !== "string" || !value[key].trim()))
+      addError(report, "INVALID_FRONTMATTER_FIELD", `${key} must be a nonempty string.`, "SKILL.md");
+  }
+  if ("compatibility" in value && (typeof value.compatibility !== "string" || !value.compatibility.trim() || value.compatibility.length > 500)) {
+    addError(report, "INVALID_COMPATIBILITY", "compatibility must be a nonempty string of at most 500 characters.", "SKILL.md");
+  }
+  if ("metadata" in value && (!isRecord12(value.metadata) || Object.values(value.metadata).some((entry) => typeof entry !== "string"))) {
+    addError(report, "INVALID_FRONTMATTER_METADATA", "metadata must map string keys to string values.", "SKILL.md");
+  }
+  if ("allowed-tools" in value)
+    addWarning(report, diagnostic2("EXPERIMENTAL_ALLOWED_TOOLS", "allowed-tools is experimental; hosts may ignore it and it does not grant permissions.", "SKILL.md"));
+}
+function renderSkill(content, meta, skillId, report) {
+  let fields;
+  let body;
+  let header;
+  if (content.startsWith(`---
+`) || content === "---") {
+    const match = /^---\n([\s\S]*?)\n---(?:\n|$)([\s\S]*)$/.exec(content);
+    if (!match)
+      throw new ValidationFailure("INVALID_YAML", "Close the YAML frontmatter with a standalone --- line.", "SKILL.md");
+    const document = $parseDocument(match[1], { uniqueKeys: true, strict: true });
+    let unsupported = false;
+    let nonstringKey = false;
+    $visit(document, (_key, node) => {
+      if ($isAlias(node) || node && typeof node === "object" && "tag" in node && node.tag)
+        unsupported = true;
+      if ($isPair(node) && (!$isScalar(node.key) || typeof node.key.value !== "string"))
+        nonstringKey = true;
+    });
+    if (document.errors.length || document.warnings.length || unsupported) {
+      throw new ValidationFailure("INVALID_YAML", "Use valid YAML with unique keys, no aliases and no explicit/custom tags.", "SKILL.md");
+    }
+    if (nonstringKey)
+      throw new ValidationFailure("INVALID_FRONTMATTER_METADATA", "YAML mappings must use string keys; quote numeric keys and replace complex keys with strings.", "SKILL.md");
+    const parsed = document.toJS({ maxAliasCount: 0 });
+    if (!isRecord12(parsed))
+      throw new ValidationFailure("INVALID_YAML", "YAML frontmatter must be a mapping.", "SKILL.md");
+    fields = parsed;
+    body = match[2];
+    header = `---
+${match[1]}
+---
+`;
+  } else {
+    fields = { name: meta.name, description: meta.description };
+    body = content;
+    header = `---
+name: ${skillId}
+description: ${JSON.stringify(meta.description)}
+---
+`;
+    addWarning(report, diagnostic2("FRONTMATTER_RENDERED", "Standard frontmatter was rendered from existing Skill metadata; the source is unchanged.", "SKILL.md"));
+  }
+  validateFrontmatter(fields, skillId, report);
+  if (!body.trim())
+    addError(report, "EMPTY_BODY", "Add actionable Markdown instructions; Usora portability requires a nonempty body.", "SKILL.md");
+  if (body.split(`
+`).length > 500)
+    addWarning(report, diagnostic2("LONG_BODY", "Consider moving reference material out of SKILL.md (recommended fewer than 500 lines).", "SKILL.md"));
+  let start = 0;
+  let end = body.length;
+  while (start < end && body.charCodeAt(start) === 10)
+    start++;
+  while (end > start && body.charCodeAt(end - 1) === 10)
+    end--;
+  return `${header}
+${body.slice(start, end)}
+`;
+}
+function referencePaths(content) {
+  const refs = [];
+  const seen = new Set;
+  let limited = false;
+  function add(value) {
+    if (seen.has(value))
+      return true;
+    if (refs.length >= CONTENT_ANALYSIS_LIMIT) {
+      limited = true;
+      return false;
+    }
+    seen.add(value);
+    refs.push(value);
+    return true;
+  }
+  let remaining = content.replace(/!?\[[^[\]\n]*\]\([ \t]*(<[^<>\n]*>|[^\s()[\]<>]+)(?:[ \t]+(?:"[^"\n]*"|'[^'\n]*'))?[ \t]*\)/g, (_match, target) => {
+    add(target.replace(/^<|>$/g, ""));
+    return " ";
+  });
+  if (limited)
+    return { references: refs, limited };
+  remaining = remaining.replace(/^[ \t]*\[[^[\]\n]+\]:[ \t]*(<[^<>\n]*>|[^\s]+)(?:[ \t]|$)/gm, (_match, target) => {
+    add(target.replace(/^<|>$/g, ""));
+    return " ";
+  });
+  if (limited)
+    return { references: refs, limited };
+  remaining = remaining.replace(/`([^`\n]+)`/g, (match, code) => {
+    const value = code.trim();
+    if (/^(?:\.\/)?(?:scripts|references|assets)\//.test(value) && !/\s+-/.test(value)) {
+      add(value);
+      return " ";
+    }
+    return match;
+  });
+  if (limited)
+    return { references: refs, limited };
+  remaining = remaining.replace(/(["'])((?:\.\/)?(?:scripts|references|assets)\/[^"'\n]+)\1/g, (_match, _quote, target) => {
+    add(target);
+    return " ";
+  });
+  if (limited)
+    return { references: refs, limited };
+  for (const match of remaining.matchAll(/(?:^|[\s"'(<])((?:\.\/)?(?:scripts|references|assets)\/[A-Za-z0-9_./%+@=\-\u0080-\uFFFF]+)(?=$|[\s"')>`,;])/gm)) {
+    if (!add(match[1]))
+      break;
+  }
+  return { references: refs, limited };
+}
+function safeResourcePath(raw, file, report) {
+  if (!raw || raw.startsWith("#"))
+    return null;
+  if (/^[A-Za-z][A-Za-z0-9+.-]*:/.test(raw) && !/^[A-Za-z]:/.test(raw)) {
+    if (/^https?:/i.test(raw))
+      addWarning(report, diagnostic2("EXTERNAL_REFERENCE", "External URL is not downloaded or bundled; target-host access is unverified.", file));
+    else
+      addError(report, "UNSAFE_PATH", "Only Skill-relative local resources and HTTP(S) reference URLs are supported.", file);
+    return null;
+  }
+  let decoded;
+  try {
+    decoded = decodeURIComponent(raw.split("#", 1)[0].split("?", 1)[0]);
+  } catch {
+    addError(report, "UNSAFE_PATH", "Resource path contains invalid percent encoding.", file);
+    return null;
+  }
+  if (/^[A-Za-z]:|^[/\\]|\\/.test(decoded) || [...decoded].some((character) => character.charCodeAt(0) < 32 || character.charCodeAt(0) === 127) || /%(?:2e|2f|5c|00)/i.test(decoded)) {
+    addError(report, "UNSAFE_PATH", "Use root-relative resource paths without absolute/drive/UNC paths, backslashes or encoded escapes.", file);
+    return null;
+  }
+  const segments = decoded.replace(/^\.\//, "").split("/");
+  if (segments.some((part) => part === ".." || part === "." || !part || part.includes(":"))) {
+    addError(report, "UNSAFE_PATH", "Resource path cannot traverse directories or contain empty/ambiguous segments.", file);
+    return null;
+  }
+  if (segments[0] === "SKILL.md" && segments.length === 1)
+    return "SKILL.md";
+  if (segments.some((part) => /[. ]$/.test(part) || /^(?:con|prn|aux|nul|com[1-9]|lpt[1-9])(?:\.|$)/i.test(part))) {
+    addError(report, "UNSAFE_PATH", "Resource names must avoid Windows reserved names and trailing dots/spaces.", file);
+    return null;
+  }
+  if (!resourceRoots.has(segments[0])) {
+    addError(report, "RESOURCE_NOT_ALLOWED", "Keep bundled resources under scripts/, references/ or assets/ and reference them from the Skill root.", file);
+    return null;
+  }
+  if (segments.some((part) => /^(?:\.env(?:\..*)?|\.(?:npmrc|pypirc|netrc|aws|ssh)|credentials?(?:\..*)?|id_(?:rsa|ed25519)|.*\.(?:pem|p12|pfx|key))$/i.test(part))) {
+    addError(report, "SENSITIVE_FILE", "Sensitive configuration/key files cannot be included in an export.", file);
+    return null;
+  }
+  return segments.join("/");
+}
+async function collectOnce(dir, skillId) {
+  const report = freshReport();
+  const originals = [];
+  await requireRealDirectory(dir);
+  const metadata = await readSourceFile(path20.join(dir, "skill.json"), "skill.json");
+  originals.push(metadata);
+  const meta = parseMetadata(metadata.data);
+  if (meta.name !== skillId)
+    throw new ValidationFailure("INVALID_METADATA", "Skill metadata name must match the selected directory.", "skill.json");
+  if (meta.schema_version !== undefined && meta.schema_version !== 1 && meta.schema_version !== 2)
+    throw new ValidationFailure("INVALID_METADATA", "Unsupported Skill metadata schema; inspect Hub version before exporting.", "skill.json");
+  if (meta.state !== "PUBLISHED" || !isRecord12(meta.evaluation) || meta.evaluation.result !== "pass")
+    throw new ValidationFailure("SKILL_NOT_PUBLISHED", "Export requires a PUBLISHED Skill with a passing evaluation. Use the normal review and Maintainer publication workflow.", "skill.json");
+  if (typeof meta.revision !== "number" || !Number.isSafeInteger(meta.revision) || meta.revision < 1)
+    throw new ValidationFailure("INVALID_METADATA", "Published Skill must have a positive integer revision.", "skill.json");
+  const markdown = await readSourceFile(path20.join(dir, "SKILL.md"), "SKILL.md");
+  originals.push(markdown);
+  const rendered = renderSkill(decodeText(markdown.data, "SKILL.md"), meta, skillId, report);
+  const renderedData = Buffer.from(rendered, "utf8");
+  if (renderedData.length > PORTABILITY_LIMITS.file_bytes)
+    addError(report, "FILE_TOO_LARGE", "Rendered SKILL.md exceeds the 1 MiB limit.", "SKILL.md");
+  const files = [{ path: "SKILL.md", data: renderedData, mode: 420 }];
+  const states = new Map;
+  const caseNames = new Map([["skill.md", "SKILL.md"]]);
+  const seenReferences = new Set;
+  const dependencyKeys = new Set;
+  let limited = false;
+  let secretDetected = false;
+  let totalBytes = renderedData.length;
+  function scanContent(content, relative) {
+    const analysis = analyzeSkillContent(content, relative);
+    secretDetected ||= analysis.hasSecrets;
+    if (analysis.hasSecrets)
+      addError(report, "SECRET_DETECTED", "Potential credential or private key detected. Values are omitted from diagnostics.");
+    for (const dependency of analysis.dependencies) {
+      const key = `${dependency.kind}\x00${dependency.name}`;
+      if (dependencyKeys.has(key))
+        continue;
+      if (dependencyKeys.size >= CONTENT_ANALYSIS_LIMIT) {
+        limited = true;
+        analysisLimit(report);
+        break;
+      }
+      dependencyKeys.add(key);
+      report.dependencies.push(dependency);
+    }
+    if (analysis.limited) {
+      limited = true;
+      analysisLimit(report);
+    }
+  }
+  async function follow(relative, content) {
+    states.set(relative, "visiting");
+    scanContent(content, relative);
+    const extracted = referencePaths(content);
+    if (extracted.limited) {
+      limited = true;
+      analysisLimit(report);
+    }
+    for (const raw of extracted.references) {
+      if (limited)
+        break;
+      if (!seenReferences.has(raw)) {
+        if (seenReferences.size >= CONTENT_ANALYSIS_LIMIT) {
+          limited = true;
+          analysisLimit(report);
+          break;
+        }
+        seenReferences.add(raw);
+      }
+      const resource = safeResourcePath(raw, relative, report);
+      if (!resource)
+        continue;
+      if (states.get(resource) === "visiting") {
+        addWarning(report, diagnostic2("CYCLIC_REFERENCE", "Cyclic resource reference detected; review host loading order. Each file is included once.", relative));
+        continue;
+      }
+      if (states.has(resource))
+        continue;
+      states.set(resource, "failed");
+      const caseKey = resource.normalize("NFC").toLowerCase();
+      const previous = caseNames.get(caseKey);
+      if (previous && previous !== resource) {
+        addError(report, "DUPLICATE_RESOURCE_NAME", "Resource names collide on case-insensitive/Unicode-normalizing filesystems.", relative);
+        continue;
+      }
+      caseNames.set(caseKey, resource);
+      if (files.length >= PORTABILITY_LIMITS.files) {
+        addError(report, "FILE_LIMIT", "A Skill may include at most 100 files.", relative);
+        continue;
+      }
+      try {
+        const source = await readSourceFile(path20.join(dir, ...resource.split("/")), resource);
+        originals.push(source);
+        totalBytes += source.data.length;
+        if (totalBytes > PORTABILITY_LIMITS.total_bytes) {
+          addError(report, "TOTAL_SIZE_LIMIT", "Skill resources exceed the 16 MiB total limit.", resource);
+          break;
+        }
+        files.push({ path: resource, data: source.data, mode: source.mode & 73 ? 493 : 420 });
+        if (textExtensions.has(path20.posix.extname(resource).toLowerCase()) || resource.startsWith("scripts/")) {
+          await follow(resource, decodeText(source.data, resource));
+        } else {
+          scanContent(source.data.toString("utf8").replaceAll("\x00", ""), resource);
+          states.set(resource, "done");
+        }
+      } catch (error) {
+        if (!(error instanceof ValidationFailure))
+          throw error;
+        addError(report, error.code, error.message, error.file);
+      }
+    }
+    states.set(relative, "done");
+  }
+  await follow("SKILL.md", rendered);
+  try {
+    validateArchivePaths(files.map((file) => `${skillId}/${file.path}`));
+  } catch {
+    addError(report, "UNSAFE_PATH", "Skill/resource names must be unique and portable across POSIX and Windows filesystems, including reserved names and invalid filename characters.");
+  }
+  files.sort((a, b) => a.path < b.path ? -1 : a.path > b.path ? 1 : 0);
+  report.files = files.map((file) => ({
+    path: file.path,
+    bytes: file.data.length,
+    sha256: createHash2("sha256").update(file.data).digest("hex")
+  }));
+  report.valid = report.errors.length === 0;
+  report.compatibility.agent_skills = report.valid;
+  report.compatibility.independent = report.valid && !report.dependencies.some((dependency) => dependency.required);
+  if (secretDetected) {
+    const redacted = freshReport();
+    redacted.errors.push(diagnostic2("SECRET_DETECTED", "Potential credential or private key detected. Remove sensitive data from the selected Skill and rotate real credentials before retrying. Source-derived details are omitted."));
+    return { result: { report: redacted, snapshot: null }, originals };
+  }
+  if (report.dependencies.length)
+    addWarning(report, diagnostic2("DEPENDENCIES_REQUIRE_REVIEW", "Provision or replace reported dependencies before claiming independent operation."));
+  const snapshot = {
+    name: skillId,
+    files,
+    source: { skill_id: skillId, state: "PUBLISHED", revision: meta.revision }
+  };
+  return { result: { report, snapshot: report.valid ? snapshot : null }, originals };
+}
+async function validateSkillDirectory(dir, skillId) {
+  if (!portableName.test(skillId) || skillId.length > 64)
+    return failureResult(new ValidationFailure("INVALID_NAME", "Skill identifier must use 1–64 lowercase ASCII letters/numbers with single internal hyphens."));
+  for (let attempt = 0;attempt < 3; attempt++) {
+    try {
+      const { result, originals } = await collectOnce(path20.resolve(dir), skillId);
+      for (const original of originals) {
+        const current = await readSourceFile(original.absolute, original.relative);
+        if (!current.data.equals(original.data) || current.mode !== original.mode)
+          throw new ValidationFailure("SNAPSHOT_CHANGED", "Skill changed while reading; retry validation.", original.relative);
+      }
+      return result;
+    } catch (error) {
+      if (error instanceof ValidationFailure && error.code === "SNAPSHOT_CHANGED" && attempt < 2)
+        continue;
+      return failureResult(error);
+    }
+  }
+  return failureResult(new ValidationFailure("SNAPSHOT_CHANGED", "Skill changed repeatedly; retry when lifecycle writes finish."));
+}
+async function validateSkillSnapshot(skillId) {
+  if (typeof skillId !== "string" || !skillId)
+    return failureResult(new ValidationFailure("INVALID_ARGUMENT", "skill_id is required and must be a string."));
+  if (!portableName.test(skillId) || skillId.length > 64)
+    return failureResult(new ValidationFailure("INVALID_NAME", "Skill identifier must use 1–64 lowercase ASCII letters/numbers with single internal hyphens."));
+  try {
+    let configFile;
+    try {
+      configFile = await readSourceFile(path20.join(anchorHome, "config.json"), "config.json");
+    } catch (error) {
+      if (error instanceof ValidationFailure && error.code === "RESOURCE_NOT_FOUND" || isRecord12(error) && error.code === "ENOENT")
+        throw new ValidationFailure("HUB_NOT_FOUND", "Initialize the Hub explicitly with hub_init before validating a Skill.");
+      throw error;
+    }
+    let config;
+    try {
+      config = JSON.parse(decodeText(configFile.data, "config.json"));
+    } catch {
+      throw new ValidationFailure("INVALID_METADATA", "Hub config.json is malformed; inspect hub_doctor before exporting.", "config.json");
+    }
+    if (!isRecord12(config))
+      throw new ValidationFailure("INVALID_METADATA", "Hub config.json must contain an object.", "config.json");
+    const schema = config.hub_schema_version ?? config.version ?? 1;
+    if (typeof schema !== "number" || schema < HUB_SCHEMA_VERSION)
+      throw new ValidationFailure("MIGRATION_REQUIRED", "Hub schema v1 requires an explicit hub_migrate dry_run and confirmed migration before portability tools.");
+    if (schema > HUB_SCHEMA_VERSION)
+      throw new ValidationFailure("UNSUPPORTED_HUB_SCHEMA", "Hub schema is newer than this runtime; upgrade the plugin before exporting.");
+    const dir = path20.join(await knowledgeDirPath("skills"), skillId);
+    try {
+      await requireRealDirectory(dir);
+    } catch (error) {
+      if (isRecord12(error) && error.code === "ENOENT")
+        throw new ValidationFailure("SKILL_NOT_FOUND", "Selected Skill does not exist; use skill_query with a targeted filter.");
+      throw error;
+    }
+    const writerLock = path20.join(await knowledgeDirPath("indexes"), "locks", "skills.lock");
+    async function requireNoWriter() {
+      const lock = await fs15.lstat(writerLock).catch((error) => {
+        if (isRecord12(error) && error.code === "ENOENT")
+          return null;
+        throw error;
+      });
+      if (lock)
+        throw new ValidationFailure("SOURCE_BUSY", "A Skill lifecycle writer holds the skills lock; retry after it completes. No lock is removed by validation.");
+    }
+    await requireNoWriter();
+    const result = await validateSkillDirectory(dir, skillId);
+    await requireNoWriter();
+    const currentConfig = await readSourceFile(configFile.absolute, configFile.relative);
+    if (!currentConfig.data.equals(configFile.data))
+      throw new ValidationFailure("SNAPSHOT_CHANGED", "Hub configuration changed during validation; retry the read.");
+    return result;
+  } catch (error) {
+    return failureResult(error);
+  }
+}
+
+// plugins/foundry/src/core/skill-portability.ts
+function validateArgs(args, exporting) {
+  const allowed = new Set(exporting ? ["skill_id", "format", "output_path", "conflict", "dry_run"] : ["skill_id"]);
+  for (const key of Object.keys(args)) {
+    if (!allowed.has(key))
+      throw Error(`INVALID_ARGUMENT: Unknown portability argument: ${key}`);
+  }
+  if (typeof args.skill_id !== "string" || !args.skill_id.trim()) {
+    throw Error("INVALID_ARGUMENT: skill_id must be a nonempty existing Skill name");
+  }
+  if (!exporting)
+    return;
+  if (args.format !== undefined && args.format !== "directory" && args.format !== "zip") {
+    throw Error("INVALID_ARGUMENT: format must be directory or zip");
+  }
+  if (args.conflict !== undefined && args.conflict !== "error" && args.conflict !== "overwrite") {
+    throw Error("INVALID_ARGUMENT: conflict must be error or overwrite");
+  }
+  if (args.dry_run !== undefined && typeof args.dry_run !== "boolean") {
+    throw Error("INVALID_ARGUMENT: dry_run must be a boolean");
+  }
+  if (typeof args.output_path !== "string" || !args.output_path.trim()) {
+    throw Error("INVALID_ARGUMENT: output_path must be an existing absolute export parent directory");
+  }
+}
+async function handleSkillValidate(args = {}) {
+  validateArgs(args, false);
+  const { report } = await validateSkillSnapshot(args.skill_id);
+  return report;
+}
+async function handleSkillExport(args = {}) {
+  validateArgs(args, true);
+  const { report, snapshot } = await validateSkillSnapshot(args.skill_id);
+  if (!report.valid || !snapshot) {
+    return {
+      ...report,
+      exported: false,
+      dry_run: args.dry_run ?? false,
+      format: args.format ?? "directory",
+      target: null
+    };
+  }
+  return exportSkillSnapshot(snapshot, report, args);
+}
+
+// plugins/foundry/src/core/skills.ts
+import fs16 from "node:fs/promises";
+import path21 from "node:path";
+function isRecord13(value) {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
+function asArray2(value) {
+  return Array.isArray(value) ? value : [];
+}
+function asRecords(value) {
+  return asArray2(value).filter(isRecord13);
+}
+function stringValue(value) {
+  return typeof value === "string" ? value : undefined;
+}
+function numberValue2(value) {
+  return typeof value === "number" ? value : 0;
+}
+async function readCandidate(id) {
+  return readJson(path21.join(await knowledgeDirPath("candidates"), `${safeName(id, "candidate_id")}.json`));
+}
+async function requirePassingCandidate(candidateId) {
+  if (!candidateId)
+    throw Error("candidate_id is required");
+  const candidate = await readCandidate(candidateId);
+  if (!isRecord13(candidate))
+    throw Error("Candidate not found");
+  if (candidate.state !== "EVALUATED" || candidate.evaluation?.result !== "pass") {
+    throw Error("Skill requires a passing Candidate evaluation");
+  }
+  return candidate;
+}
+async function readSkillMeta(name) {
+  const skillName2 = safeName(name, "name");
+  const file = path21.join(await knowledgeDirPath("skills"), skillName2, "skill.json");
+  const meta = await readJson(file);
+  if (!isRecord13(meta))
+    throw Error("Skill not found");
+  return { skillName: skillName2, file, meta, dir: path21.dirname(file) };
+}
+function generatedSkillName(candidate, fallback = "generated-skill") {
+  const slug = String(candidate.title || fallback).toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 64);
+  return slug || fallback;
+}
+function generatedSkillContent(candidate, similarSkills) {
+  const evidence = asRecords(candidate.evidence).slice(0, 3).map((item) => `- ${item.activity_id || item.id || "evidence"}${item.reason ? `: ${item.reason}` : ""}`).join(`
+`);
+  const similar = similarSkills.slice(0, 3).map((skill) => `- ${skill.name}: ${skill.description || skill.state || "metadata only"}`).join(`
+`);
+  return [
+    `# ${candidate.title}`,
+    "",
+    "## When To Use",
+    candidate.summary,
+    "",
+    "## Evidence",
+    evidence || "- No evidence refs provided.",
+    "",
+    "## Similar Skills Checked",
+    similar || "- No similar Skill metadata found.",
+    ""
+  ].join(`
+`);
+}
+async function handleSkillCreate(args) {
+  return withKnowledgeLock("skills", () => createSkill(args));
+}
+async function createSkill(args) {
+  if (!args.name || !args.content) {
+    throw Error("name and content are required");
+  }
+  if (args.candidate_id)
+    await requirePassingCandidate(args.candidate_id);
+  const skillName2 = safeName(args.name, "name");
+  const dir = path21.join(await knowledgeDirPath("skills"), skillName2);
+  await fs16.mkdir(dir, { recursive: true });
+  const meta = {
+    schema_version: SKILL_METADATA_SCHEMA_VERSION,
+    name: skillName2,
+    description: args.description || "",
+    content: args.content,
+    source_candidate: args.candidate_id || null,
+    generation: args.generation || null,
+    state: "DRAFT",
+    revision: 0,
+    created_at: now(),
+    updated_at: now()
+  };
+  await writeJson(path21.join(dir, "skill.json"), meta);
+  const content = args.content.endsWith(`
+`) ? args.content : `${args.content}
+`;
+  await fs16.writeFile(path21.join(dir, "SKILL.md"), content, "utf8");
+  await rebuildSkillIndex();
+  await writeEvent("SkillDraftCreated", meta);
+  return meta;
+}
+async function handleSkillGenerate(args = {}) {
+  return withKnowledgeLock("skills", () => generateSkill(args));
+}
+async function generateSkill(args = {}) {
+  const started = Date.now();
+  const candidate = await requirePassingCandidate(args.candidate_id);
+  const similar = await querySkillIndex({
+    q: [candidate.title, candidate.summary, ...asArray2(candidate.technologies)].join(" "),
+    limit: 3
+  });
+  const similarSkills = similar.skills;
+  const content = generatedSkillContent(candidate, similarSkills);
+  const generation = {
+    source: "candidate_spec",
+    evidence_loaded: Math.min(asArray2(candidate.evidence).length, 3),
+    skills_loaded: similarSkills.length,
+    full_activity_load: false,
+    full_skill_load: false
+  };
+  const budget = await checkContextBudget("skill_compiler", {
+    required: { candidate: { ...candidate, evidence: asArray2(candidate.evidence).slice(0, 3) } },
+    recommended: { similar_skills: similarSkills.slice(0, 3) },
+    optional: {}
+  });
+  const skillArgs = {
+    name: args.name || generatedSkillName(candidate),
+    description: args.description || stringValue(candidate.summary),
+    content,
+    candidate_id: candidate.id,
+    generation
+  };
+  const skill = await handleSkillCreate(skillArgs);
+  await recordIntelligenceRun({
+    stage: "skill_compiler",
+    input: {
+      candidate: { ...candidate, evidence: asArray2(candidate.evidence).slice(0, 3) },
+      similar_skills: similarSkills
+    },
+    output: skill,
+    evidence_loaded: generation.evidence_loaded,
+    skills_loaded: generation.skills_loaded,
+    full_activity_load: false,
+    full_skill_load: false,
+    cache_hit: false,
+    duration_ms: Date.now() - started,
+    budget
+  });
+  return skill;
+}
+function skillDelta(args, candidate, action) {
+  return {
+    schema_version: 1,
+    action,
+    reason: args.reason || "",
+    evidence: asArray2(args.evidence || candidate?.evidence).slice(0, 3),
+    source_candidate: candidate?.id || args.candidate_id || null,
+    source_pattern: args.pattern_fingerprint || candidate?.fingerprint || null,
+    changes: isRecord13(args.changes) ? args.changes : {},
+    target_skill: args.target_skill || null,
+    created_at: now()
+  };
+}
+async function patchSkill(name, delta) {
+  const { file, meta, dir } = await readSkillMeta(name);
+  const current = await fs16.readFile(path21.join(dir, "SKILL.md"), "utf8").catch(() => meta.content || "");
+  const append = typeof delta.changes.content_append === "string" ? delta.changes.content_append : "";
+  const nextContent = typeof delta.changes.content === "string" ? delta.changes.content : append ? `${current.trimEnd()}
+
+${append.trim()}
+` : current;
+  meta.content = nextContent;
+  meta.description = stringValue(delta.changes.description) || meta.description;
+  meta.source_candidate = delta.source_candidate || meta.source_candidate || null;
+  meta.source_patterns = [...new Set([...asArray2(meta.source_patterns), delta.source_pattern].filter(Boolean))];
+  meta.revision = numberValue2(meta.revision) + 1;
+  meta.updated_at = now();
+  meta.evolution = [...meta.evolution || [], delta].slice(-20);
+  await writeJson(file, meta);
+  await fs16.writeFile(path21.join(dir, "SKILL.md"), nextContent.endsWith(`
+`) ? nextContent : `${nextContent}
+`, "utf8");
+  await rebuildSkillIndex();
+  await writeEvent("SkillEvolved", { name: meta.name, revision: meta.revision, delta });
+  return meta;
+}
+async function handleSkillEvolve(args = {}) {
+  return withKnowledgeLock("skills", () => evolveSkill(args));
+}
+async function evolveSkill(args = {}) {
+  if (args.action && !["CREATE", "PATCH", "NOOP", "SPLIT", "MERGE"].includes(args.action)) {
+    throw Error("action must be CREATE, PATCH, NOOP, SPLIT, or MERGE");
+  }
+  const candidate = args.candidate_id ? await requirePassingCandidate(args.candidate_id) : null;
+  const action = args.action || null;
+  if ((action === "CREATE" || !action && !args.name) && !candidate) {
+    throw Error("candidate_id is required to create a Skill evolution");
+  }
+  if (action === "CREATE")
+    return handleSkillGenerate(args);
+  const similar = candidate ? await querySkillIndex({
+    q: [candidate.title, candidate.summary, ...asArray2(candidate.technologies)].join(" "),
+    limit: 3
+  }) : { skills: [] };
+  const target = args.name || similar.skills[0]?.name;
+  const resolvedAction = action || (target && (similar.skills[0]?.score || 0) >= (Number(args.threshold) || 0.2) ? "PATCH" : "CREATE");
+  if (resolvedAction === "CREATE")
+    return handleSkillGenerate({ ...args, candidate_id: candidate?.id || args.candidate_id });
+  const delta = skillDelta(args, candidate, resolvedAction);
+  if (resolvedAction === "PATCH") {
+    if (!target)
+      throw Error("name is required for PATCH");
+    const patch = delta.changes.content_append ? delta : {
+      ...delta,
+      changes: {
+        ...delta.changes,
+        content_append: `## Evolution
+${candidate?.summary || args.reason || "Updated behavior."}`
+      }
+    };
+    return patchSkill(target, patch);
+  }
+  const result = { action: resolvedAction, target_skill: target || null, delta, similar_skills: similar.skills };
+  await writeEvent("SkillEvolutionRecommended", result);
+  return result;
+}
+async function handleSkillEvaluate(args) {
+  return withKnowledgeLock("skills", () => evaluateSkill(args));
+}
+async function evaluateSkill(args) {
+  const skillName2 = safeName(args.name, "name");
+  const file = path21.join(await knowledgeDirPath("skills"), skillName2, "skill.json");
+  const item = await readJson(file);
+  if (!isRecord13(item))
+    throw Error("Skill not found");
+  const result = args.result;
+  if (result !== "pass" && result !== "fail") {
+    throw Error("result must be pass or fail");
+  }
+  item.evaluation = {
+    result,
+    reviewer: args.reviewer || "codex",
+    evaluated_at: now(),
+    notes: args.notes || ""
+  };
+  item.state = result === "pass" ? "EVALUATED" : "REJECTED";
+  item.updated_at = now();
+  await writeJson(file, item);
+  await rebuildSkillIndex();
+  await writeEvent("SkillEvaluationCompleted", item);
+  return item;
+}
+async function handleSkillPublish(args) {
+  return withKnowledgeLock("skills", () => publishSkill(args));
+}
+async function publishSkill(args) {
+  const config = await loadConfig();
+  if (config.maintainer !== (args.actor || "codex")) {
+    throw Error("Only the configured Maintainer can publish");
+  }
+  const skillName2 = safeName(args.name, "name");
+  const file = path21.join(await knowledgeDirPath("skills"), skillName2, "skill.json");
+  const meta = await readJson(file);
+  if (!isRecord13(meta))
+    throw Error("Skill not found");
+  const evaluation = isRecord13(meta.evaluation) ? meta.evaluation : {};
+  if (meta.state !== "EVALUATED" || evaluation.result !== "pass") {
+    throw Error("Skill requires a passing evaluation");
+  }
+  meta.revision = numberValue2(meta.revision) + 1;
+  meta.state = "PUBLISHED";
+  meta.published_at = now();
+  meta.updated_at = meta.published_at;
+  await writeJson(file, meta);
+  await rebuildSkillIndex();
+  await writeEvent("SkillPublished", meta);
+  return meta;
+}
+async function handleSkillRead(args) {
+  const skillName2 = safeName(args.name, "name");
+  const dir = path21.join(await knowledgeDirPath("skills"), skillName2);
+  const meta = await readJson(path21.join(dir, "skill.json"));
+  if (!isRecord13(meta))
+    throw Error("Skill not found");
+  const content = await fs16.readFile(path21.join(dir, "SKILL.md"), "utf8").catch(() => meta.content || "");
+  const { content: _storedContent, ...metadata } = meta;
+  return { metadata, content };
+}
+async function handleSkillList(args = {}) {
+  const limit = listLimit(args.limit);
+  const skillsDir = await knowledgeDirPath("skills");
+  const items = [];
+  for (const dir of await fs16.readdir(skillsDir).catch(() => [])) {
+    const meta = await readJson(path21.join(skillsDir, dir, "skill.json"));
+    if (!isRecord13(meta))
+      continue;
+    items.push(skillSummary(meta));
+  }
+  items.sort((a, b) => (b.updated_at || b.created_at || "").localeCompare(a.updated_at || a.created_at || ""));
+  return { count: items.length, skills: items.slice(0, limit) };
+}
+async function handleSkillQuery(args = {}) {
+  const queryArgs = { limit: args.limit, fields: args.fields };
+  const state = stringValue(args.state);
+  const candidateId = stringValue(args.candidate_id);
+  const q = stringValue(args.q);
+  if (state)
+    queryArgs.state = state;
+  if (candidateId)
+    queryArgs.candidate_id = candidateId;
+  if (q)
+    queryArgs.q = q;
+  return querySkillIndex(queryArgs);
+}
+async function handleSkillGet(args = {}) {
+  return handleSkillRead(args);
+}
+
+// plugins/foundry/src/core/usage.ts
+import path22 from "node:path";
+var OUTCOMES = ["success", "partial", "failure", "unknown"];
+function isRecord14(value) {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
+function bump(meta, outcome) {
+  meta.usage_count = (meta.usage_count || 0) + 1;
+  meta.success_count = (meta.success_count || 0) + (outcome === "success" ? 1 : 0);
+  meta.partial_count = (meta.partial_count || 0) + (outcome === "partial" ? 1 : 0);
+  meta.failure_count = (meta.failure_count || 0) + (outcome === "failure" ? 1 : 0);
+}
+async function handleUsageCapture(args = {}) {
+  return withKnowledgeLock("skills", () => captureUsage(args));
+}
+async function captureUsage(args = {}) {
+  const skill = safeName(args.skill, "skill");
+  const outcome = args.outcome || "unknown";
+  if (!OUTCOMES.includes(outcome))
+    throw Error("outcome must be success, partial, failure, or unknown");
+  const skillFile = path22.join(await knowledgeDirPath("skills"), skill, "skill.json");
+  const meta = await readJson(skillFile);
+  if (!isRecord14(meta))
+    throw Error("Skill not found");
+  const usedAt = args.used_at || now();
+  const usage = {
+    schema_version: 1,
+    id: newId("usage"),
+    session_id: args.session_id || null,
+    skill,
+    activity_id: args.activity_id || null,
+    outcome,
+    validation_evidence: args.validation_evidence || [],
+    project: args.project || null,
+    used_at: usedAt
+  };
+  await writeJson(path22.join(await knowledgeDirPath("usage"), `${usage.id}.json`), usage);
+  bump(meta, outcome);
+  meta.last_used_at = usedAt;
+  meta.projects_used = [
+    ...new Set([...meta.projects_used || [], args.project].filter((project) => typeof project === "string"))
+  ];
+  await writeJson(skillFile, meta);
+  await rebuildSkillIndex();
+  await writeEvent("UsageCaptured", usage);
+  return { usage, skill: meta };
+}
 
 // plugins/foundry/src/mcp/tools/activity.ts
 var activityTools = [
@@ -10089,6 +11430,10 @@ for (const tool of allToolDefinitions) {
     throw new Error(`Duplicate MCP tool: ${tool.name}`);
   seen.add(tool.name);
 }
+for (const name of USORA_TOOL_NAMES) {
+  if (!seen.has(name))
+    throw new Error(`Missing MCP tool definition: ${name}`);
+}
 var tools = allToolDefinitions;
 var toolRegistry = new Map(tools.map((tool) => [tool.name, tool]));
 function listTools() {
@@ -10096,1005 +11441,6 @@ function listTools() {
 }
 function getTool(name) {
   return toolRegistry.get(name);
-}
-
-// plugins/foundry/src/core/portability/validate.ts
-var PORTABILITY_LIMITS = { files: 100, file_bytes: 1024 * 1024, total_bytes: 16 * 1024 * 1024 };
-var portableName = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
-var resourceRoots = new Set(["scripts", "references", "assets"]);
-var usoraToolNames = new Set(listTools().map((tool) => tool.name));
-var textExtensions = new Set([
-  ".md",
-  ".mdx",
-  ".txt",
-  ".json",
-  ".yaml",
-  ".yml",
-  ".toml",
-  ".xml",
-  ".svg",
-  ".csv",
-  ".tsv",
-  ".js",
-  ".mjs",
-  ".cjs",
-  ".ts",
-  ".py",
-  ".sh",
-  ".bash",
-  ".ps1",
-  ".cmd",
-  ".bat",
-  ".rb",
-  ".pl",
-  ".sql",
-  ".html",
-  ".css",
-  ".ini",
-  ".cfg",
-  ".env",
-  ".conf"
-]);
-
-class ValidationFailure extends Error {
-  code;
-  file;
-  constructor(code, message, file) {
-    super(message);
-    this.code = code;
-    this.file = file;
-  }
-}
-function isRecord11(value) {
-  return value !== null && typeof value === "object" && !Array.isArray(value);
-}
-function freshReport() {
-  return {
-    valid: false,
-    errors: [],
-    warnings: [],
-    files: [],
-    dependencies: [],
-    compatibility: {
-      agent_skills: false,
-      independent: false,
-      notes: [
-        "Static eligibility is not proof of independent execution; dynamic references and undeclared dependencies require review.",
-        "Host loading, allowed-tools support and runtime permissions vary; no automatic installation or execution is performed."
-      ]
-    }
-  };
-}
-function diagnostic(code, message, file) {
-  return file === undefined ? { code, message } : { code, message, file };
-}
-function addError(report, code, message, file) {
-  const item = diagnostic(code, message, file);
-  if (!report.errors.some((entry) => entry.code === code && entry.file === file && entry.message === message))
-    report.errors.push(item);
-}
-function failureResult(error) {
-  const report = freshReport();
-  if (error instanceof ValidationFailure) {
-    const trustedFile = ["SKILL.md", "skill.json", "config.json"].includes(error.file || "") ? error.file : undefined;
-    report.errors.push(diagnostic(error.code, error.message, trustedFile));
-  } else {
-    const code = isRecord11(error) && typeof error.code === "string" ? error.code : "";
-    report.errors.push(diagnostic(code === "EACCES" || code === "EPERM" ? "PERMISSION_DENIED" : "SOURCE_READ_FAILED", "Cannot read the selected Skill. Check file permissions and Hub integrity."));
-  }
-  return { report, snapshot: null };
-}
-async function requireRealDirectory(dir) {
-  const full = path19.resolve(dir);
-  let current = path19.parse(full).root;
-  for (const segment of full.slice(current.length).split(path19.sep).filter(Boolean)) {
-    current = path19.join(current, segment);
-    const stat = await fs15.lstat(current);
-    if (stat.isSymbolicLink())
-      throw new ValidationFailure("SYMLINK_NOT_ALLOWED", "Replace symlink ancestors with real directories before validating.");
-    if (!stat.isDirectory())
-      throw new ValidationFailure("UNSAFE_PATH", "Skill ancestors must be real directories.");
-  }
-}
-async function readSourceFile(absolute, relative) {
-  try {
-    await requireRealDirectory(path19.dirname(absolute));
-  } catch (error) {
-    if (isRecord11(error) && error.code === "ENOENT")
-      throw new ValidationFailure(relative === "skill.json" ? "SKILL_NOT_FOUND" : "RESOURCE_NOT_FOUND", "A required Skill or resource file is missing. Repair the selected source reference before retrying.", relative);
-    throw error;
-  }
-  let stat;
-  try {
-    stat = await fs15.lstat(absolute);
-  } catch (error) {
-    if (isRecord11(error) && error.code === "ENOENT") {
-      throw new ValidationFailure(relative === "skill.json" ? "SKILL_NOT_FOUND" : "RESOURCE_NOT_FOUND", "A required Skill or resource file is missing. Repair the selected source reference before retrying.", relative);
-    }
-    throw error;
-  }
-  if (stat.isSymbolicLink())
-    throw new ValidationFailure("SYMLINK_NOT_ALLOWED", "Symlinks are not included in portable Skills.", relative);
-  if (!stat.isFile())
-    throw new ValidationFailure("UNSAFE_FILE_TYPE", "Only regular files can be included in a Skill.", relative);
-  if (stat.size > PORTABILITY_LIMITS.file_bytes)
-    throw new ValidationFailure("FILE_TOO_LARGE", "A file exceeds the 1 MiB portability limit.", relative);
-  const handle = await fs15.open(absolute, constants.O_RDONLY | (constants.O_NOFOLLOW || 0));
-  try {
-    const opened = await handle.stat();
-    if (opened.ino !== stat.ino || opened.dev !== stat.dev)
-      throw new ValidationFailure("SNAPSHOT_CHANGED", "Skill changed while reading; retry validation.", relative);
-    const data = await handle.readFile();
-    const after = await handle.stat();
-    if (data.length > PORTABILITY_LIMITS.file_bytes)
-      throw new ValidationFailure("FILE_TOO_LARGE", "A file exceeds the 1 MiB portability limit.", relative);
-    if (after.size !== opened.size || after.mtimeMs !== opened.mtimeMs)
-      throw new ValidationFailure("SNAPSHOT_CHANGED", "Skill changed while reading; retry validation.", relative);
-    return { absolute, relative, data, mode: stat.mode & 511 };
-  } finally {
-    await handle.close();
-  }
-}
-function decodeText(data, file) {
-  try {
-    const text2 = new TextDecoder("utf-8", { fatal: true }).decode(data);
-    if (text2.includes("\x00"))
-      throw Error("nul");
-    return text2.replace(/^\uFEFF/, "").replace(/\r\n?/g, `
-`);
-  } catch {
-    throw new ValidationFailure("INVALID_ENCODING", "Text files must contain valid UTF-8 without NUL bytes.", file);
-  }
-}
-function parseMetadata(data) {
-  try {
-    const value = JSON.parse(decodeText(data, "skill.json"));
-    if (!isRecord11(value))
-      throw Error("object");
-    return value;
-  } catch (error) {
-    if (error instanceof ValidationFailure)
-      throw error;
-    throw new ValidationFailure("INVALID_METADATA", "skill.json must be a valid JSON metadata object.", "skill.json");
-  }
-}
-function validateFrontmatter(value, skillId, report) {
-  if (typeof value.name !== "string" || value.name.length > 64 || !portableName.test(value.name) || value.name !== skillId) {
-    addError(report, "INVALID_NAME", "Use the existing directory name: 1–64 lowercase ASCII letters/numbers with single internal hyphens.", "SKILL.md");
-  }
-  if (typeof value.description !== "string" || !value.description.trim() || value.description.length > 1024) {
-    addError(report, "INVALID_DESCRIPTION", "Provide a nonempty description of at most 1024 characters.", "SKILL.md");
-  }
-  const allowed = new Set(["name", "description", "license", "compatibility", "metadata", "allowed-tools"]);
-  for (const key of Object.keys(value)) {
-    if (!allowed.has(key))
-      addError(report, "UNKNOWN_FRONTMATTER_FIELD", "Unsupported standard frontmatter field. Move custom fields into metadata.", "SKILL.md");
-  }
-  for (const key of ["license", "allowed-tools"]) {
-    if (key in value && (typeof value[key] !== "string" || !value[key].trim()))
-      addError(report, "INVALID_FRONTMATTER_FIELD", `${key} must be a nonempty string.`, "SKILL.md");
-  }
-  if ("compatibility" in value && (typeof value.compatibility !== "string" || !value.compatibility.trim() || value.compatibility.length > 500)) {
-    addError(report, "INVALID_COMPATIBILITY", "compatibility must be a nonempty string of at most 500 characters.", "SKILL.md");
-  }
-  if ("metadata" in value && (!isRecord11(value.metadata) || Object.values(value.metadata).some((entry) => typeof entry !== "string"))) {
-    addError(report, "INVALID_FRONTMATTER_METADATA", "metadata must map string keys to string values.", "SKILL.md");
-  }
-  if ("allowed-tools" in value)
-    report.warnings.push(diagnostic("EXPERIMENTAL_ALLOWED_TOOLS", "allowed-tools is experimental; hosts may ignore it and it does not grant permissions.", "SKILL.md"));
-}
-function renderSkill(content, meta, skillId, report) {
-  let fields;
-  let body;
-  let header;
-  if (content.startsWith(`---
-`) || content === "---") {
-    const match = /^---\n([\s\S]*?)\n---(?:\n|$)([\s\S]*)$/.exec(content);
-    if (!match)
-      throw new ValidationFailure("INVALID_YAML", "Close the YAML frontmatter with a standalone --- line.", "SKILL.md");
-    const document = $parseDocument(match[1], { uniqueKeys: true, strict: true });
-    let unsupported = false;
-    let nonstringKey = false;
-    $visit(document, (_key, node) => {
-      if ($isAlias(node) || node && typeof node === "object" && "tag" in node && node.tag)
-        unsupported = true;
-      if ($isPair(node) && (!$isScalar(node.key) || typeof node.key.value !== "string"))
-        nonstringKey = true;
-    });
-    if (document.errors.length || document.warnings.length || unsupported) {
-      throw new ValidationFailure("INVALID_YAML", "Use valid YAML with unique keys, no aliases and no explicit/custom tags.", "SKILL.md");
-    }
-    if (nonstringKey)
-      throw new ValidationFailure("INVALID_FRONTMATTER_METADATA", "YAML mappings must use string keys; quote numeric keys and replace complex keys with strings.", "SKILL.md");
-    const parsed = document.toJS({ maxAliasCount: 0 });
-    if (!isRecord11(parsed))
-      throw new ValidationFailure("INVALID_YAML", "YAML frontmatter must be a mapping.", "SKILL.md");
-    fields = parsed;
-    body = match[2];
-    header = `---
-${match[1]}
----
-`;
-  } else {
-    fields = { name: meta.name, description: meta.description };
-    body = content;
-    header = `---
-name: ${skillId}
-description: ${JSON.stringify(meta.description)}
----
-`;
-    report.warnings.push(diagnostic("FRONTMATTER_RENDERED", "Standard frontmatter was rendered from existing Skill metadata; the source is unchanged.", "SKILL.md"));
-  }
-  validateFrontmatter(fields, skillId, report);
-  if (!body.trim())
-    addError(report, "EMPTY_BODY", "Add actionable Markdown instructions; Usora portability requires a nonempty body.", "SKILL.md");
-  if (body.split(`
-`).length > 500)
-    report.warnings.push(diagnostic("LONG_BODY", "Consider moving reference material out of SKILL.md (recommended fewer than 500 lines).", "SKILL.md"));
-  return `${header}
-${body.trimStart().trimEnd()}
-`;
-}
-function addDependency(report, dependency) {
-  if (!report.dependencies.some((entry) => entry.kind === dependency.kind && entry.name === dependency.name))
-    report.dependencies.push(dependency);
-}
-function scanContent(content, file, report) {
-  const secretPatterns = [
-    /-----BEGIN (?:[A-Z0-9 ]*PRIVATE KEY|OPENSSH PRIVATE KEY)-----/,
-    /\b(?:gh[pousr]_[A-Za-z0-9_]{20,}|github_pat_[A-Za-z0-9_]{20,})\b/,
-    /\b(?:AKIA|ASIA)[0-9A-Z]{16}\b/,
-    /\bAIza[0-9A-Za-z_-]{30,}\b/,
-    /\bnpm_[A-Za-z0-9]{20,}\b/,
-    /\bsk-(?:proj-|ant-)?[A-Za-z0-9_-]{20,}\b/,
-    /\bxox[baprs]-[A-Za-z0-9-]{16,}\b/,
-    /\bBearer\s+(?!TOKEN\b|YOUR_|<|\$)[A-Za-z0-9._~-]{16,}/i,
-    /https?:\/\/[^\s/:]+:[^\s/@]+@/i
-  ];
-  const assignedSecrets = content.matchAll(/\b(?:api[_-]?key|(?:access[_-]?|auth[_-]?)?token|client[_-]?secret|password|passwd|secret(?:[_-]?key)?)\b["']?\s*[=:]\s*(?:"([^"\n]*)"|'([^'\n]*)'|([^\s,}\]]+))/gi);
-  const literalSecret = [...assignedSecrets].some((match) => {
-    const value = (match[1] ?? match[2] ?? match[3] ?? "").trim();
-    return value.length > 0 && !/^(?:\$|%|<|\{|YOUR_|example\b|placeholder\b|changeme\b|REDACTED\b|REPLACE_ME\b|process\.env\b|os\.environ\b|(?:os\.)?getenv\(|(?:config|args|options)\.|null$|undefined$|true$|false$)/i.test(value);
-  });
-  if (literalSecret || secretPatterns.some((pattern) => pattern.test(content)))
-    addError(report, "SECRET_DETECTED", "Potential credential or private key detected. Remove it from the source and rotate it if real; values are never included in diagnostics.", file);
-  if ([...content.matchAll(/\b[a-z]+(?:_[a-z0-9]+)+\b/g)].some((match) => usoraToolNames.has(match[0])) || /\busora\b[\s\S]{0,40}\bmcp\b|\bmcp\b[\s\S]{0,40}\b(?:usora|foundry)\b/i.test(content)) {
-    addDependency(report, {
-      kind: "usora_mcp",
-      name: "Usora MCP",
-      required: true,
-      reason: `Usora tool or MCP reference in ${file}; provision Usora or replace the workflow before independent use.`
-    });
-  } else if (/\bmcp(?:__|[ .:/_-]|\b)/i.test(content)) {
-    addDependency(report, {
-      kind: "mcp",
-      name: "MCP server",
-      required: true,
-      reason: `MCP reference in ${file}; configure the required server in the target host.`
-    });
-  }
-  const runtimePatterns = [
-    ["Python", /(?:\bpython[23]?\s|^#![^\n]*\bpython[23]?\b|\bpip[3]?\s+(?:install|run)\b)/im],
-    ["Node.js", /(?:\bnode\s+(?:scripts\/|[^\n ]+\.[mc]?js)|\b(?:npm|npx|pnpm|yarn)\s+|^#![^\n]*\bnode\b)/im],
-    ["Bun", /\bbun\s+(?:run|x|install|scripts\/)/i],
-    ["shell", /(?:^#![^\n]*\b(?:ba|z|da|k)?sh\b|\b(?:bash|sh|zsh)\s+scripts\/)/im]
-  ];
-  for (const [name, pattern] of runtimePatterns)
-    if (pattern.test(content))
-      addDependency(report, {
-        kind: "runtime",
-        name,
-        required: true,
-        reason: `${name} command or interpreter in ${file}; availability is not verified by static validation.`
-      });
-  const extensions = {
-    ".py": "Python",
-    ".js": "Node.js",
-    ".mjs": "Node.js",
-    ".cjs": "Node.js",
-    ".sh": "shell",
-    ".bash": "shell",
-    ".rb": "Ruby",
-    ".pl": "Perl"
-  };
-  const runtime = extensions[path19.posix.extname(file).toLowerCase()];
-  if (file.startsWith("scripts/") && runtime)
-    addDependency(report, {
-      kind: "runtime",
-      name: runtime,
-      required: true,
-      reason: `Bundled script ${file} needs its interpreter; interpreter availability is not verified.`
-    });
-  if (/\b(?:powershell|pwsh|cmd\.exe|winget|choco|apt-get|apt install|brew install|systemctl|launchctl)\b|\b[A-Za-z]:\\/i.test(content))
-    addDependency(report, {
-      kind: "platform",
-      name: "platform-specific command",
-      required: true,
-      reason: `Platform-specific command or path in ${file}; review target OS support.`
-    });
-  const credentials = [
-    ...content.matchAll(/\$\{?([A-Z][A-Z0-9_]*)\}?|(?:getenv|environ\.get)\(["']([A-Z][A-Z0-9_]*)["']\)/g)
-  ].map((match) => match[1] || match[2]).filter((name) => /TOKEN|KEY|SECRET|PASSWORD/.test(name));
-  if (/\benvironment\b|\bcredential|\bprovide\b|\brequires?\b/i.test(content)) {
-    for (const match of content.matchAll(/\b[A-Z][A-Z0-9_]*\b/g))
-      if (/TOKEN|KEY|SECRET|PASSWORD/.test(match[0]))
-        credentials.push(match[0]);
-  }
-  for (const name of credentials)
-    addDependency(report, {
-      kind: "credential",
-      name,
-      required: true,
-      reason: `Environment credential reference in ${file}; values must be supplied separately.`
-    });
-  for (const match of content.matchAll(/https?:\/\/([^\s/<>"')]+)/g)) {
-    const host = match[1].split("@").at(-1);
-    addDependency(report, {
-      kind: "external_service",
-      name: host,
-      required: true,
-      reason: `External URL in ${file}; resource is not bundled and offline operation is not verified.`
-    });
-  }
-  if (/\b(?:scripts|references|assets)\/(?:[^\s`]*\$|[^\s`]*\{|\*)/.test(content))
-    addDependency(report, {
-      kind: "dynamic_resource",
-      name: "dynamic resource path",
-      required: true,
-      reason: `Dynamic path in ${file} cannot be resolved statically; replace it with explicit resource references.`
-    });
-}
-function referencePaths(content) {
-  const refs = [];
-  let remaining = content.replace(/!?\[[^\]]*\]\(\s*(<[^>]*>|[^\s)]+)(?:\s+["'][^\n]*?["'])?\s*\)/g, (_match, target) => {
-    refs.push(target.replace(/^<|>$/g, ""));
-    return " ";
-  });
-  remaining = remaining.replace(/^\s*\[[^\]]+\]:\s*(<[^>]*>|[^\s]+)(?:\s|$)/gm, (_match, target) => {
-    refs.push(target.replace(/^<|>$/g, ""));
-    return " ";
-  });
-  remaining = remaining.replace(/`([^`\n]+)`/g, (match, code) => {
-    const value = code.trim();
-    if (/^(?:\.\/)?(?:scripts|references|assets)\//.test(value) && !/\s+-/.test(value)) {
-      refs.push(value);
-      return " ";
-    }
-    return match;
-  });
-  remaining = remaining.replace(/(["'])((?:\.\/)?(?:scripts|references|assets)\/[^"'\n]+)\1/g, (_match, _quote, target) => {
-    refs.push(target);
-    return " ";
-  });
-  for (const match of remaining.matchAll(/(?:^|[\s"'(<])((?:\.\/)?(?:scripts|references|assets)\/[A-Za-z0-9_./%+@=\-\u0080-\uFFFF]+)(?=$|[\s"')>`,;])/gm))
-    refs.push(match[1]);
-  return [...new Set(refs)];
-}
-function safeResourcePath(raw, file, report) {
-  if (!raw || raw.startsWith("#"))
-    return null;
-  if (/^[A-Za-z][A-Za-z0-9+.-]*:/.test(raw) && !/^[A-Za-z]:/.test(raw)) {
-    if (/^https?:/i.test(raw))
-      report.warnings.push(diagnostic("EXTERNAL_REFERENCE", "External URL is not downloaded or bundled; target-host access is unverified.", file));
-    else
-      addError(report, "UNSAFE_PATH", "Only Skill-relative local resources and HTTP(S) reference URLs are supported.", file);
-    return null;
-  }
-  let decoded;
-  try {
-    decoded = decodeURIComponent(raw.split("#", 1)[0].split("?", 1)[0]);
-  } catch {
-    addError(report, "UNSAFE_PATH", "Resource path contains invalid percent encoding.", file);
-    return null;
-  }
-  if (/^[A-Za-z]:|^[/\\]|\\/.test(decoded) || [...decoded].some((character) => character.charCodeAt(0) < 32 || character.charCodeAt(0) === 127) || /%(?:2e|2f|5c|00)/i.test(decoded)) {
-    addError(report, "UNSAFE_PATH", "Use root-relative resource paths without absolute/drive/UNC paths, backslashes or encoded escapes.", file);
-    return null;
-  }
-  const segments = decoded.replace(/^\.\//, "").split("/");
-  if (segments.some((part) => part === ".." || part === "." || !part || part.includes(":"))) {
-    addError(report, "UNSAFE_PATH", "Resource path cannot traverse directories or contain empty/ambiguous segments.", file);
-    return null;
-  }
-  if (segments[0] === "SKILL.md" && segments.length === 1)
-    return "SKILL.md";
-  if (segments.some((part) => /[. ]$/.test(part) || /^(?:con|prn|aux|nul|com[1-9]|lpt[1-9])(?:\.|$)/i.test(part))) {
-    addError(report, "UNSAFE_PATH", "Resource names must avoid Windows reserved names and trailing dots/spaces.", file);
-    return null;
-  }
-  if (!resourceRoots.has(segments[0])) {
-    addError(report, "RESOURCE_NOT_ALLOWED", "Keep bundled resources under scripts/, references/ or assets/ and reference them from the Skill root.", file);
-    return null;
-  }
-  if (segments.some((part) => /^(?:\.env(?:\..*)?|\.(?:npmrc|pypirc|netrc|aws|ssh)|credentials?(?:\..*)?|id_(?:rsa|ed25519)|.*\.(?:pem|p12|pfx|key))$/i.test(part))) {
-    addError(report, "SENSITIVE_FILE", "Sensitive configuration/key files cannot be included in an export.", file);
-    return null;
-  }
-  return segments.join("/");
-}
-async function collectOnce(dir, skillId) {
-  const report = freshReport();
-  const originals = [];
-  await requireRealDirectory(dir);
-  const metadata = await readSourceFile(path19.join(dir, "skill.json"), "skill.json");
-  originals.push(metadata);
-  const meta = parseMetadata(metadata.data);
-  if (meta.name !== skillId)
-    throw new ValidationFailure("INVALID_METADATA", "Skill metadata name must match the selected directory.", "skill.json");
-  if (meta.schema_version !== undefined && meta.schema_version !== 1 && meta.schema_version !== 2)
-    throw new ValidationFailure("INVALID_METADATA", "Unsupported Skill metadata schema; inspect Hub version before exporting.", "skill.json");
-  if (meta.state !== "PUBLISHED" || !isRecord11(meta.evaluation) || meta.evaluation.result !== "pass")
-    throw new ValidationFailure("SKILL_NOT_PUBLISHED", "Export requires a PUBLISHED Skill with a passing evaluation. Use the normal review and Maintainer publication workflow.", "skill.json");
-  if (typeof meta.revision !== "number" || !Number.isSafeInteger(meta.revision) || meta.revision < 1)
-    throw new ValidationFailure("INVALID_METADATA", "Published Skill must have a positive integer revision.", "skill.json");
-  const markdown = await readSourceFile(path19.join(dir, "SKILL.md"), "SKILL.md");
-  originals.push(markdown);
-  const rendered = renderSkill(decodeText(markdown.data, "SKILL.md"), meta, skillId, report);
-  const renderedData = Buffer.from(rendered, "utf8");
-  if (renderedData.length > PORTABILITY_LIMITS.file_bytes)
-    addError(report, "FILE_TOO_LARGE", "Rendered SKILL.md exceeds the 1 MiB limit.", "SKILL.md");
-  const files = [{ path: "SKILL.md", data: renderedData, mode: 420 }];
-  const states = new Map;
-  const caseNames = new Map([["skill.md", "SKILL.md"]]);
-  let totalBytes = renderedData.length;
-  async function follow(relative, content) {
-    states.set(relative, "visiting");
-    scanContent(content, relative, report);
-    for (const raw of referencePaths(content)) {
-      const resource = safeResourcePath(raw, relative, report);
-      if (!resource)
-        continue;
-      if (states.get(resource) === "visiting") {
-        report.warnings.push(diagnostic("CYCLIC_REFERENCE", "Cyclic resource reference detected; review host loading order. Each file is included once.", relative));
-        continue;
-      }
-      if (states.has(resource))
-        continue;
-      const caseKey = resource.normalize("NFC").toLowerCase();
-      const previous = caseNames.get(caseKey);
-      if (previous && previous !== resource) {
-        addError(report, "DUPLICATE_RESOURCE_NAME", "Resource names collide on case-insensitive/Unicode-normalizing filesystems.", relative);
-        continue;
-      }
-      caseNames.set(caseKey, resource);
-      if (files.length >= PORTABILITY_LIMITS.files) {
-        addError(report, "FILE_LIMIT", "A Skill may include at most 100 files.", relative);
-        continue;
-      }
-      try {
-        const source = await readSourceFile(path19.join(dir, ...resource.split("/")), resource);
-        originals.push(source);
-        totalBytes += source.data.length;
-        if (totalBytes > PORTABILITY_LIMITS.total_bytes) {
-          addError(report, "TOTAL_SIZE_LIMIT", "Skill resources exceed the 16 MiB total limit.", resource);
-          break;
-        }
-        files.push({ path: resource, data: source.data, mode: source.mode & 73 ? 493 : 420 });
-        if (textExtensions.has(path19.posix.extname(resource).toLowerCase()) || resource.startsWith("scripts/")) {
-          await follow(resource, decodeText(source.data, resource));
-        } else {
-          scanContent(source.data.toString("utf8").replaceAll("\x00", ""), resource, report);
-          states.set(resource, "done");
-        }
-      } catch (error) {
-        if (!(error instanceof ValidationFailure))
-          throw error;
-        addError(report, error.code, error.message, error.file);
-      }
-    }
-    states.set(relative, "done");
-  }
-  await follow("SKILL.md", rendered);
-  try {
-    validateArchivePaths(files.map((file) => `${skillId}/${file.path}`));
-  } catch {
-    addError(report, "UNSAFE_PATH", "Skill/resource names must be unique and portable across POSIX and Windows filesystems, including reserved names and invalid filename characters.");
-  }
-  files.sort((a, b) => a.path < b.path ? -1 : a.path > b.path ? 1 : 0);
-  report.files = files.map((file) => ({
-    path: file.path,
-    bytes: file.data.length,
-    sha256: createHash2("sha256").update(file.data).digest("hex")
-  }));
-  report.valid = report.errors.length === 0;
-  report.compatibility.agent_skills = report.valid;
-  report.compatibility.independent = report.valid && !report.dependencies.some((dependency) => dependency.required);
-  if (report.errors.some((error) => error.code === "SECRET_DETECTED")) {
-    const redacted = freshReport();
-    redacted.errors.push(diagnostic("SECRET_DETECTED", "Potential credential or private key detected. Remove sensitive data from the selected Skill and rotate real credentials before retrying. Source-derived details are omitted."));
-    return { result: { report: redacted, snapshot: null }, originals };
-  }
-  if (report.dependencies.length)
-    report.warnings.push(diagnostic("DEPENDENCIES_REQUIRE_REVIEW", "Provision or replace reported dependencies before claiming independent operation."));
-  const snapshot = {
-    name: skillId,
-    files,
-    source: { skill_id: skillId, state: "PUBLISHED", revision: meta.revision }
-  };
-  return { result: { report, snapshot: report.valid ? snapshot : null }, originals };
-}
-async function validateSkillDirectory(dir, skillId) {
-  if (!portableName.test(skillId) || skillId.length > 64)
-    return failureResult(new ValidationFailure("INVALID_NAME", "Skill identifier must use 1–64 lowercase ASCII letters/numbers with single internal hyphens."));
-  for (let attempt = 0;attempt < 3; attempt++) {
-    try {
-      const { result, originals } = await collectOnce(path19.resolve(dir), skillId);
-      for (const original of originals) {
-        const current = await readSourceFile(original.absolute, original.relative);
-        if (!current.data.equals(original.data) || current.mode !== original.mode)
-          throw new ValidationFailure("SNAPSHOT_CHANGED", "Skill changed while reading; retry validation.", original.relative);
-      }
-      return result;
-    } catch (error) {
-      if (error instanceof ValidationFailure && error.code === "SNAPSHOT_CHANGED" && attempt < 2)
-        continue;
-      return failureResult(error);
-    }
-  }
-  return failureResult(new ValidationFailure("SNAPSHOT_CHANGED", "Skill changed repeatedly; retry when lifecycle writes finish."));
-}
-async function validateSkillSnapshot(skillId) {
-  if (typeof skillId !== "string" || !skillId)
-    return failureResult(new ValidationFailure("INVALID_ARGUMENT", "skill_id is required and must be a string."));
-  if (!portableName.test(skillId) || skillId.length > 64)
-    return failureResult(new ValidationFailure("INVALID_NAME", "Skill identifier must use 1–64 lowercase ASCII letters/numbers with single internal hyphens."));
-  try {
-    let configFile;
-    try {
-      configFile = await readSourceFile(path19.join(anchorHome, "config.json"), "config.json");
-    } catch (error) {
-      if (error instanceof ValidationFailure && error.code === "RESOURCE_NOT_FOUND" || isRecord11(error) && error.code === "ENOENT")
-        throw new ValidationFailure("HUB_NOT_FOUND", "Initialize the Hub explicitly with hub_init before validating a Skill.");
-      throw error;
-    }
-    let config;
-    try {
-      config = JSON.parse(decodeText(configFile.data, "config.json"));
-    } catch {
-      throw new ValidationFailure("INVALID_METADATA", "Hub config.json is malformed; inspect hub_doctor before exporting.", "config.json");
-    }
-    if (!isRecord11(config))
-      throw new ValidationFailure("INVALID_METADATA", "Hub config.json must contain an object.", "config.json");
-    const schema = config.hub_schema_version ?? config.version ?? 1;
-    if (typeof schema !== "number" || schema < HUB_SCHEMA_VERSION)
-      throw new ValidationFailure("MIGRATION_REQUIRED", "Hub schema v1 requires an explicit hub_migrate dry_run and confirmed migration before portability tools.");
-    if (schema > HUB_SCHEMA_VERSION)
-      throw new ValidationFailure("UNSUPPORTED_HUB_SCHEMA", "Hub schema is newer than this runtime; upgrade the plugin before exporting.");
-    const dir = path19.join(await knowledgeDirPath("skills"), skillId);
-    try {
-      await requireRealDirectory(dir);
-    } catch (error) {
-      if (isRecord11(error) && error.code === "ENOENT")
-        throw new ValidationFailure("SKILL_NOT_FOUND", "Selected Skill does not exist; use skill_query with a targeted filter.");
-      throw error;
-    }
-    const writerLock = path19.join(await knowledgeDirPath("indexes"), "locks", "skills.lock");
-    async function requireNoWriter() {
-      const lock = await fs15.lstat(writerLock).catch((error) => {
-        if (isRecord11(error) && error.code === "ENOENT")
-          return null;
-        throw error;
-      });
-      if (lock)
-        throw new ValidationFailure("SOURCE_BUSY", "A Skill lifecycle writer holds the skills lock; retry after it completes. No lock is removed by validation.");
-    }
-    await requireNoWriter();
-    const result = await validateSkillDirectory(dir, skillId);
-    await requireNoWriter();
-    const currentConfig = await readSourceFile(configFile.absolute, configFile.relative);
-    if (!currentConfig.data.equals(configFile.data))
-      throw new ValidationFailure("SNAPSHOT_CHANGED", "Hub configuration changed during validation; retry the read.");
-    return result;
-  } catch (error) {
-    return failureResult(error);
-  }
-}
-
-// plugins/foundry/src/core/skill-portability.ts
-function validateArgs(args, exporting) {
-  const allowed = new Set(exporting ? ["skill_id", "format", "output_path", "conflict", "dry_run"] : ["skill_id"]);
-  for (const key of Object.keys(args)) {
-    if (!allowed.has(key))
-      throw Error(`INVALID_ARGUMENT: Unknown portability argument: ${key}`);
-  }
-  if (typeof args.skill_id !== "string" || !args.skill_id.trim()) {
-    throw Error("INVALID_ARGUMENT: skill_id must be a nonempty existing Skill name");
-  }
-  if (!exporting)
-    return;
-  if (args.format !== undefined && args.format !== "directory" && args.format !== "zip") {
-    throw Error("INVALID_ARGUMENT: format must be directory or zip");
-  }
-  if (args.conflict !== undefined && args.conflict !== "error" && args.conflict !== "overwrite") {
-    throw Error("INVALID_ARGUMENT: conflict must be error or overwrite");
-  }
-  if (args.dry_run !== undefined && typeof args.dry_run !== "boolean") {
-    throw Error("INVALID_ARGUMENT: dry_run must be a boolean");
-  }
-  if (typeof args.output_path !== "string" || !args.output_path.trim()) {
-    throw Error("INVALID_ARGUMENT: output_path must be an existing absolute export parent directory");
-  }
-}
-async function handleSkillValidate(args = {}) {
-  validateArgs(args, false);
-  const { report } = await validateSkillSnapshot(args.skill_id);
-  return report;
-}
-async function handleSkillExport(args = {}) {
-  validateArgs(args, true);
-  const { report, snapshot } = await validateSkillSnapshot(args.skill_id);
-  if (!report.valid || !snapshot) {
-    return {
-      ...report,
-      exported: false,
-      dry_run: args.dry_run ?? false,
-      format: args.format ?? "directory",
-      target: null
-    };
-  }
-  return exportSkillSnapshot(snapshot, report, args);
-}
-
-// plugins/foundry/src/core/skills.ts
-import fs16 from "node:fs/promises";
-import path20 from "node:path";
-function isRecord12(value) {
-  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
-}
-function asArray2(value) {
-  return Array.isArray(value) ? value : [];
-}
-function asRecords(value) {
-  return asArray2(value).filter(isRecord12);
-}
-function stringValue(value) {
-  return typeof value === "string" ? value : undefined;
-}
-function numberValue2(value) {
-  return typeof value === "number" ? value : 0;
-}
-async function readCandidate(id) {
-  return readJson(path20.join(await knowledgeDirPath("candidates"), `${safeName(id, "candidate_id")}.json`));
-}
-async function requirePassingCandidate(candidateId) {
-  if (!candidateId)
-    throw Error("candidate_id is required");
-  const candidate = await readCandidate(candidateId);
-  if (!isRecord12(candidate))
-    throw Error("Candidate not found");
-  if (candidate.state !== "EVALUATED" || candidate.evaluation?.result !== "pass") {
-    throw Error("Skill requires a passing Candidate evaluation");
-  }
-  return candidate;
-}
-async function readSkillMeta(name) {
-  const skillName2 = safeName(name, "name");
-  const file = path20.join(await knowledgeDirPath("skills"), skillName2, "skill.json");
-  const meta = await readJson(file);
-  if (!isRecord12(meta))
-    throw Error("Skill not found");
-  return { skillName: skillName2, file, meta, dir: path20.dirname(file) };
-}
-function generatedSkillName(candidate, fallback = "generated-skill") {
-  const slug = String(candidate.title || fallback).toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 64);
-  return slug || fallback;
-}
-function generatedSkillContent(candidate, similarSkills) {
-  const evidence = asRecords(candidate.evidence).slice(0, 3).map((item) => `- ${item.activity_id || item.id || "evidence"}${item.reason ? `: ${item.reason}` : ""}`).join(`
-`);
-  const similar = similarSkills.slice(0, 3).map((skill) => `- ${skill.name}: ${skill.description || skill.state || "metadata only"}`).join(`
-`);
-  return [
-    `# ${candidate.title}`,
-    "",
-    "## When To Use",
-    candidate.summary,
-    "",
-    "## Evidence",
-    evidence || "- No evidence refs provided.",
-    "",
-    "## Similar Skills Checked",
-    similar || "- No similar Skill metadata found.",
-    ""
-  ].join(`
-`);
-}
-async function handleSkillCreate(args) {
-  return withKnowledgeLock("skills", () => createSkill(args));
-}
-async function createSkill(args) {
-  if (!args.name || !args.content) {
-    throw Error("name and content are required");
-  }
-  if (args.candidate_id)
-    await requirePassingCandidate(args.candidate_id);
-  const skillName2 = safeName(args.name, "name");
-  const dir = path20.join(await knowledgeDirPath("skills"), skillName2);
-  await fs16.mkdir(dir, { recursive: true });
-  const meta = {
-    schema_version: SKILL_METADATA_SCHEMA_VERSION,
-    name: skillName2,
-    description: args.description || "",
-    content: args.content,
-    source_candidate: args.candidate_id || null,
-    generation: args.generation || null,
-    state: "DRAFT",
-    revision: 0,
-    created_at: now(),
-    updated_at: now()
-  };
-  await writeJson(path20.join(dir, "skill.json"), meta);
-  const content = args.content.endsWith(`
-`) ? args.content : `${args.content}
-`;
-  await fs16.writeFile(path20.join(dir, "SKILL.md"), content, "utf8");
-  await rebuildSkillIndex();
-  await writeEvent("SkillDraftCreated", meta);
-  return meta;
-}
-async function handleSkillGenerate(args = {}) {
-  return withKnowledgeLock("skills", () => generateSkill(args));
-}
-async function generateSkill(args = {}) {
-  const started = Date.now();
-  const candidate = await requirePassingCandidate(args.candidate_id);
-  const similar = await querySkillIndex({
-    q: [candidate.title, candidate.summary, ...asArray2(candidate.technologies)].join(" "),
-    limit: 3
-  });
-  const similarSkills = similar.skills;
-  const content = generatedSkillContent(candidate, similarSkills);
-  const generation = {
-    source: "candidate_spec",
-    evidence_loaded: Math.min(asArray2(candidate.evidence).length, 3),
-    skills_loaded: similarSkills.length,
-    full_activity_load: false,
-    full_skill_load: false
-  };
-  const budget = await checkContextBudget("skill_compiler", {
-    required: { candidate: { ...candidate, evidence: asArray2(candidate.evidence).slice(0, 3) } },
-    recommended: { similar_skills: similarSkills.slice(0, 3) },
-    optional: {}
-  });
-  const skillArgs = {
-    name: args.name || generatedSkillName(candidate),
-    description: args.description || stringValue(candidate.summary),
-    content,
-    candidate_id: candidate.id,
-    generation
-  };
-  const skill = await handleSkillCreate(skillArgs);
-  await recordIntelligenceRun({
-    stage: "skill_compiler",
-    input: {
-      candidate: { ...candidate, evidence: asArray2(candidate.evidence).slice(0, 3) },
-      similar_skills: similarSkills
-    },
-    output: skill,
-    evidence_loaded: generation.evidence_loaded,
-    skills_loaded: generation.skills_loaded,
-    full_activity_load: false,
-    full_skill_load: false,
-    cache_hit: false,
-    duration_ms: Date.now() - started,
-    budget
-  });
-  return skill;
-}
-function skillDelta(args, candidate, action) {
-  return {
-    schema_version: 1,
-    action,
-    reason: args.reason || "",
-    evidence: asArray2(args.evidence || candidate?.evidence).slice(0, 3),
-    source_candidate: candidate?.id || args.candidate_id || null,
-    source_pattern: args.pattern_fingerprint || candidate?.fingerprint || null,
-    changes: isRecord12(args.changes) ? args.changes : {},
-    target_skill: args.target_skill || null,
-    created_at: now()
-  };
-}
-async function patchSkill(name, delta) {
-  const { file, meta, dir } = await readSkillMeta(name);
-  const current = await fs16.readFile(path20.join(dir, "SKILL.md"), "utf8").catch(() => meta.content || "");
-  const append = typeof delta.changes.content_append === "string" ? delta.changes.content_append : "";
-  const nextContent = typeof delta.changes.content === "string" ? delta.changes.content : append ? `${current.trimEnd()}
-
-${append.trim()}
-` : current;
-  meta.content = nextContent;
-  meta.description = stringValue(delta.changes.description) || meta.description;
-  meta.source_candidate = delta.source_candidate || meta.source_candidate || null;
-  meta.source_patterns = [...new Set([...asArray2(meta.source_patterns), delta.source_pattern].filter(Boolean))];
-  meta.revision = numberValue2(meta.revision) + 1;
-  meta.updated_at = now();
-  meta.evolution = [...meta.evolution || [], delta].slice(-20);
-  await writeJson(file, meta);
-  await fs16.writeFile(path20.join(dir, "SKILL.md"), nextContent.endsWith(`
-`) ? nextContent : `${nextContent}
-`, "utf8");
-  await rebuildSkillIndex();
-  await writeEvent("SkillEvolved", { name: meta.name, revision: meta.revision, delta });
-  return meta;
-}
-async function handleSkillEvolve(args = {}) {
-  return withKnowledgeLock("skills", () => evolveSkill(args));
-}
-async function evolveSkill(args = {}) {
-  if (args.action && !["CREATE", "PATCH", "NOOP", "SPLIT", "MERGE"].includes(args.action)) {
-    throw Error("action must be CREATE, PATCH, NOOP, SPLIT, or MERGE");
-  }
-  const candidate = args.candidate_id ? await requirePassingCandidate(args.candidate_id) : null;
-  const action = args.action || null;
-  if ((action === "CREATE" || !action && !args.name) && !candidate) {
-    throw Error("candidate_id is required to create a Skill evolution");
-  }
-  if (action === "CREATE")
-    return handleSkillGenerate(args);
-  const similar = candidate ? await querySkillIndex({
-    q: [candidate.title, candidate.summary, ...asArray2(candidate.technologies)].join(" "),
-    limit: 3
-  }) : { skills: [] };
-  const target = args.name || similar.skills[0]?.name;
-  const resolvedAction = action || (target && (similar.skills[0]?.score || 0) >= (Number(args.threshold) || 0.2) ? "PATCH" : "CREATE");
-  if (resolvedAction === "CREATE")
-    return handleSkillGenerate({ ...args, candidate_id: candidate?.id || args.candidate_id });
-  const delta = skillDelta(args, candidate, resolvedAction);
-  if (resolvedAction === "PATCH") {
-    if (!target)
-      throw Error("name is required for PATCH");
-    const patch = delta.changes.content_append ? delta : {
-      ...delta,
-      changes: {
-        ...delta.changes,
-        content_append: `## Evolution
-${candidate?.summary || args.reason || "Updated behavior."}`
-      }
-    };
-    return patchSkill(target, patch);
-  }
-  const result = { action: resolvedAction, target_skill: target || null, delta, similar_skills: similar.skills };
-  await writeEvent("SkillEvolutionRecommended", result);
-  return result;
-}
-async function handleSkillEvaluate(args) {
-  return withKnowledgeLock("skills", () => evaluateSkill(args));
-}
-async function evaluateSkill(args) {
-  const skillName2 = safeName(args.name, "name");
-  const file = path20.join(await knowledgeDirPath("skills"), skillName2, "skill.json");
-  const item = await readJson(file);
-  if (!isRecord12(item))
-    throw Error("Skill not found");
-  const result = args.result;
-  if (result !== "pass" && result !== "fail") {
-    throw Error("result must be pass or fail");
-  }
-  item.evaluation = {
-    result,
-    reviewer: args.reviewer || "codex",
-    evaluated_at: now(),
-    notes: args.notes || ""
-  };
-  item.state = result === "pass" ? "EVALUATED" : "REJECTED";
-  item.updated_at = now();
-  await writeJson(file, item);
-  await rebuildSkillIndex();
-  await writeEvent("SkillEvaluationCompleted", item);
-  return item;
-}
-async function handleSkillPublish(args) {
-  return withKnowledgeLock("skills", () => publishSkill(args));
-}
-async function publishSkill(args) {
-  const config = await loadConfig();
-  if (config.maintainer !== (args.actor || "codex")) {
-    throw Error("Only the configured Maintainer can publish");
-  }
-  const skillName2 = safeName(args.name, "name");
-  const file = path20.join(await knowledgeDirPath("skills"), skillName2, "skill.json");
-  const meta = await readJson(file);
-  if (!isRecord12(meta))
-    throw Error("Skill not found");
-  const evaluation = isRecord12(meta.evaluation) ? meta.evaluation : {};
-  if (meta.state !== "EVALUATED" || evaluation.result !== "pass") {
-    throw Error("Skill requires a passing evaluation");
-  }
-  meta.revision = numberValue2(meta.revision) + 1;
-  meta.state = "PUBLISHED";
-  meta.published_at = now();
-  meta.updated_at = meta.published_at;
-  await writeJson(file, meta);
-  await rebuildSkillIndex();
-  await writeEvent("SkillPublished", meta);
-  return meta;
-}
-async function handleSkillRead(args) {
-  const skillName2 = safeName(args.name, "name");
-  const dir = path20.join(await knowledgeDirPath("skills"), skillName2);
-  const meta = await readJson(path20.join(dir, "skill.json"));
-  if (!isRecord12(meta))
-    throw Error("Skill not found");
-  const content = await fs16.readFile(path20.join(dir, "SKILL.md"), "utf8").catch(() => meta.content || "");
-  const { content: _storedContent, ...metadata } = meta;
-  return { metadata, content };
-}
-async function handleSkillList(args = {}) {
-  const limit = listLimit(args.limit);
-  const skillsDir = await knowledgeDirPath("skills");
-  const items = [];
-  for (const dir of await fs16.readdir(skillsDir).catch(() => [])) {
-    const meta = await readJson(path20.join(skillsDir, dir, "skill.json"));
-    if (!isRecord12(meta))
-      continue;
-    items.push(skillSummary(meta));
-  }
-  items.sort((a, b) => (b.updated_at || b.created_at || "").localeCompare(a.updated_at || a.created_at || ""));
-  return { count: items.length, skills: items.slice(0, limit) };
-}
-async function handleSkillQuery(args = {}) {
-  const queryArgs = { limit: args.limit, fields: args.fields };
-  const state = stringValue(args.state);
-  const candidateId = stringValue(args.candidate_id);
-  const q = stringValue(args.q);
-  if (state)
-    queryArgs.state = state;
-  if (candidateId)
-    queryArgs.candidate_id = candidateId;
-  if (q)
-    queryArgs.q = q;
-  return querySkillIndex(queryArgs);
-}
-async function handleSkillGet(args = {}) {
-  return handleSkillRead(args);
-}
-
-// plugins/foundry/src/core/usage.ts
-import path21 from "node:path";
-var OUTCOMES = ["success", "partial", "failure", "unknown"];
-function isRecord13(value) {
-  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
-}
-function bump(meta, outcome) {
-  meta.usage_count = (meta.usage_count || 0) + 1;
-  meta.success_count = (meta.success_count || 0) + (outcome === "success" ? 1 : 0);
-  meta.partial_count = (meta.partial_count || 0) + (outcome === "partial" ? 1 : 0);
-  meta.failure_count = (meta.failure_count || 0) + (outcome === "failure" ? 1 : 0);
-}
-async function handleUsageCapture(args = {}) {
-  return withKnowledgeLock("skills", () => captureUsage(args));
-}
-async function captureUsage(args = {}) {
-  const skill = safeName(args.skill, "skill");
-  const outcome = args.outcome || "unknown";
-  if (!OUTCOMES.includes(outcome))
-    throw Error("outcome must be success, partial, failure, or unknown");
-  const skillFile = path21.join(await knowledgeDirPath("skills"), skill, "skill.json");
-  const meta = await readJson(skillFile);
-  if (!isRecord13(meta))
-    throw Error("Skill not found");
-  const usedAt = args.used_at || now();
-  const usage = {
-    schema_version: 1,
-    id: newId("usage"),
-    session_id: args.session_id || null,
-    skill,
-    activity_id: args.activity_id || null,
-    outcome,
-    validation_evidence: args.validation_evidence || [],
-    project: args.project || null,
-    used_at: usedAt
-  };
-  await writeJson(path21.join(await knowledgeDirPath("usage"), `${usage.id}.json`), usage);
-  bump(meta, outcome);
-  meta.last_used_at = usedAt;
-  meta.projects_used = [
-    ...new Set([...meta.projects_used || [], args.project].filter((project) => typeof project === "string"))
-  ];
-  await writeJson(skillFile, meta);
-  await rebuildSkillIndex();
-  await writeEvent("UsageCaptured", usage);
-  return { usage, skill: meta };
 }
 
 // plugins/foundry/src/mcp/handlers.ts
@@ -11183,10 +11529,10 @@ async function call(name, args = {}) {
 }
 
 // plugins/foundry/src/mcp/server.ts
-var pluginRoot = path22.resolve(path22.dirname(fileURLToPath4(import.meta.url)), "..", "..");
+var pluginRoot = path23.resolve(path23.dirname(fileURLToPath4(import.meta.url)), "..", "..");
 function readServerVersion() {
   try {
-    const plugin = JSON.parse(readFileSync(path22.join(pluginRoot, "plugin.json"), "utf8"));
+    const plugin = JSON.parse(readFileSync(path23.join(pluginRoot, "plugin.json"), "utf8"));
     return typeof plugin.version === "string" ? plugin.version : "2.0.0";
   } catch {
     return "2.0.0";

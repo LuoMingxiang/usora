@@ -13,6 +13,8 @@ Use `skill_query` to find a published Skill and `skill_get` to inspect only that
 
 Both new tools require `skill_id`, the existing directory/name used by `skill_get`. The export parent must already exist and be outside Usora data and plugin/source trees. `format` defaults to `directory`; `dry_run` defaults to false; `conflict` defaults to `error`. To replace only the exact Skill directory or ZIP, explicitly pass `"conflict":"overwrite"`. Dry run validates and previews without writing. No empty resource directories are emitted.
 
+If the artifact was committed but temporary cleanup failed, the result still reports `exported: true`, with `EXPORT_CLEANUP_FAILED` in warnings and a `recovery` object listing remaining paths. Check the reported artifact before retrying. A retained lock is never stolen automatically; remove it only after confirming the prior export process has stopped. Default ZIP conflict protection requires hard-link support in the export filesystem; unsupported filesystems fail safely instead of overwriting another file.
+
 ```text
 exports/
   portable-release-notes/
@@ -27,6 +29,8 @@ Validation returns `valid`, `errors`, `warnings`, `files` (path, bytes, SHA256),
 If the source has no frontmatter, export renders `name` and `description` from its metadata. Existing frontmatter is validated, not silently repaired. The original Markdown, metadata, revision, state, indexes, events and usage remain unchanged. Names must fit Usora's ASCII storage subset of the Agent Skills specification. Resources support UTF-8 filenames, including Chinese and spaces. Text must be valid UTF-8; generated Markdown uses LF.
 
 Static resource collection is restricted to `scripts/`, `references/` and `assets/`. Referenced files must exist, stay within the Skill, and have no symlink ancestors. Path traversal, drive/UNC paths, credentials and unsafe configuration files are rejected. Limits are 100 files, 1 MiB per file and 16 MiB total. Only collected resources are packaged; private `skill.json`, Hub records and unreferenced files are excluded. See the [contract](../plans/skill-portability-v1-design.md) for the precise scope and filesystem threat model.
+
+Static analysis also caps unique references, dependencies and diagnostics at 100 entries, including external and failed references. `ANALYSIS_LIMIT` rejects an incomplete analysis; it never silently truncates the report and claims independence. Repeated references are deduplicated. Meaningful Markdown indentation and trailing spaces survive rendering; only boundary newlines are normalized.
 
 `compatibility.independent` is static eligibility, not proof that a host executed the Skill. Required Usora/MCP tools, runtimes, OS commands, credentials, dynamic resources or external services are reported as dependencies. A structurally valid package can still require provisioning. Review warnings and run a concrete task in the target host before sharing. `allowed-tools` is experimental and does not grant permission across hosts.
 
@@ -61,3 +65,5 @@ Troubleshooting:
 源 Skill 没有 frontmatter 时，导出使用元数据生成；已有 YAML 无效时直接报告。仅收集白名单目录内的静态引用资源，拒绝越界路径、符号链接、敏感配置和疑似明文凭据。支持中文与空格资源名和 UTF-8 ZIP。当前 Linux 验收不能视为 Windows 原生执行或 CodeBuddy 实际加载验证。
 
 开发者可运行上述演示命令复现完整链路；`--host` 会额外在没有 Usora Hub/MCP 的临时项目中执行真实 Codex 任务。实际结果及限制见[验收记录](../examples/skill-portability/acceptance.md)。本期不提供市场上传、云同步、自动安装或赛事适配。
+
+补充健壮性说明：静态引用、依赖和诊断各限制100项，包含外链与失败引用；超限返回 ANALYSIS_LIMIT 并拒绝导出。导出保留正文中有意义的缩进和行尾空格。若产物已提交而临时清理失败，仍返回 exported:true，并通过 EXPORT_CLEANUP_FAILED 与 recovery 提供剩余路径；先检查产物，再决定重试。仅在确认旧导出进程已停止后清理残留锁，工具不会自动抢锁。默认 ZIP 防覆盖需要输出文件系统支持硬链接；不支持时安全失败，可选择支持的本地文件系统或目录格式。
