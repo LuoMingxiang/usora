@@ -127,3 +127,20 @@ The next chronological commit records each stage commit's full SHA; final delive
 - Final actual plugin archive+unzip passed, SHA256 `1b12b5a51c18493c5fc56d0a2ffdbb37e26bd025cd98523750051c430f9c0d37`; local checksum override moved out again.
 - Replaced local acceptance JSON with final demo evidence; source hashes still equal; both fixture files and committed real Skill ZIP compared byte-for-byte with final exports. Skill ZIP SHA remains `e00e8e5fa4317be3f5df0afe8c03a8c0d57d82863bbe2182d1b1f89e21d02653`. Host task remains blocked by same external policy; its actual attempt evidence is preserved.
 - CI/Commitlint for sample commit `1a628c89b6f05468b8063451454c86610b083fd9` both succeeded (runs40870008697/40870008596). Final correction will be pushed and checked; no master change/merge/release.
+
+## Follow-up audit and reopened robustness work — 2026-10-30
+
+- Baseline: clean `7a34bd4fced8e3b580c4a19a3455b89992a57f84` on requested branch, remote fetch identical; PR14 remains open/draft/unmerged.
+- Pending original requirement: stage6 real independent model task. Fresh environment observations current, running, restricted/enforced; chatgpt.com still absent. User replied they will allow it and notify; dependent host rerun waits for confirmation, without bypassing proxy. Runtime/networking skill re-read as required.
+- Independent audits reproduced new ordinary defects: ps1/cmd/bat/ts scripts reported independent with no runtime; Python token=word.lower() rejected as a credential;1500 missing references bypass100-file processing bound; export cleanup exceptions overwrite a successful commit or recovery failure; SIGTERM-ignoring child can hang acceptance indefinitely. These are reopened fixes, not accepted as completed from the prior135-test baseline.
+- Architectural decision: pure content analysis and adapter-neutral tool-name catalog; core must not initialize MCP schemas. Keep existing Hub/lifecycle/manifest intact.
+- Work in progress owned by modules; actual red/green command results and resulting commits will be recorded after execution. No unexecuted tests or pending network task marked passed.
+- AGENTS session aggregation remains unavailable: no exposed activity_capture connector or stable current conversation session ID; no synthetic activity capture is created.
+
+### Follow-up checkpoint A — bounded acceptance processes
+
+- Completed: ordinary commands and interactive Codex loader now share acceptance-only scripts/lib/skill-portability-process.ts. Positive timeout/output limits, TERM→KILL escalation, owned POSIX process-group cleanup, bounded inherited-pipe draining,4MiB combined stdout/stderr and explicit timeout/output-limit metadata. No production runtime coupling.
+- Red evidence: old runner remained pending650ms after200ms timeout when Node child ignoredSIGTERM; external watchdog reaped it.
+- Green commands: `node_modules/.bin/vitest run test/unit/skill-portability-process.test.ts` **7/7 passed**,2.01s; owned Prettier/Oxlint passed. Tests use real children and verify no live descendants, including ignoredTERM, inherited pipes, overflow, interactive stop, callback failure, ENOENT and normal IO.
+- Real no-host demo exit0: artifacts/skill-portability/run-Zc1rhx/evidence.json, source hashes equal, ZIP unchanged. This used the existing built runtime; final build+demo will be repeated after other concrete fixes. No network attempt while user is preparing policy.
+- Files: dedicated helper, demo orchestration,7-case unit file, plan/progress. Remaining core/export changes are still in progress and not falsely covered by this checkpoint. Commit SHA is recorded at subsequent checkpoint.

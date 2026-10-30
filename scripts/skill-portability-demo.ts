@@ -1,13 +1,12 @@
 import assert from "node:assert/strict";
-import { spawn } from "node:child_process";
 import { createHash } from "node:crypto";
 import { cp, mkdir, mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { runPortabilityProcess, type PortabilityProcessResult } from "./lib/skill-portability-process.ts";
 
 type JsonRecord = Record<string, unknown>;
-type ProcessResult = { code: number; stdout: string; stderr: string };
 type RpcResponse = {
   id?: number;
   result?: { content: { text: string }[] };
@@ -44,31 +43,8 @@ function run(
   env: NodeJS.ProcessEnv,
   input = "",
   timeout = 30_000,
-): Promise<ProcessResult> {
-  return new Promise((resolve, reject) => {
-    const child = spawn(command, commandArgs, { cwd, env, stdio: ["pipe", "pipe", "pipe"] });
-    let stdout = "";
-    let stderr = "";
-    const timer = setTimeout(() => child.kill("SIGTERM"), timeout);
-    child.stdout.on("data", (chunk: Buffer) => {
-      stdout += chunk.toString();
-    });
-    child.stderr.on("data", (chunk: Buffer) => {
-      stderr += chunk.toString();
-    });
-    child.once("error", (error) => {
-      clearTimeout(timer);
-      reject(error);
-    });
-    child.once("close", (code) => {
-      clearTimeout(timer);
-      resolve({ code: code ?? -1, stdout, stderr });
-    });
-    child.stdin.on("error", () => {
-      /* Process errors are handled above. */
-    });
-    child.stdin.end(input);
-  });
+): Promise<PortabilityProcessResult> {
+  return runPortabilityProcess(command, commandArgs, { cwd, env, input, timeoutMs: timeout });
 }
 
 async function treeDigest(root: string): Promise<string> {
@@ -97,87 +73,70 @@ function safeDiagnostic(value: string): string {
 }
 
 async function inspectCodexSkill(project: string, env: NodeJS.ProcessEnv): Promise<JsonRecord> {
-  return new Promise((resolve, reject) => {
-    // app-server does not expose exec's --ignore-user-config flag. No thread,
-    // model request, or MCP tool call is created: only local skills/list metadata.
-    const child = spawn("codex", ["app-server", "--stdio"], { cwd: project, env, stdio: ["pipe", "pipe", "pipe"] });
-    let pending = "";
-    let settled = false;
-    const finish = (error: Error | null, value?: JsonRecord) => {
-      if (settled) return;
-      settled = true;
-      clearTimeout(timer);
-      child.stdin.end();
-      child.kill("SIGTERM");
-      if (error) reject(error);
-      else resolve(value!);
-    };
-    const timer = setTimeout(() => finish(Error("Codex local skills/list timed out after 15 seconds")), 15_000);
-    child.stderr.on("data", () => {
-      /* Do not persist app-server startup diagnostics or account context. */
-    });
-    child.once("error", (error) => finish(error));
-    child.once("close", () => {
-      if (!settled) finish(Error("Codex app-server closed before skills/list completed"));
-    });
-    child.stdin.on("error", () => {
-      /* Process errors are handled above. */
-    });
-    child.stdout.on("data", (chunk: Buffer) => {
-      pending += chunk.toString();
+  let pending = "";
+  let report: JsonRecord | undefined;
+  // app-server does not expose exec's --ignore-user-config flag. No thread,
+  // model request, or MCP tool call is created: only local skills/list metadata.
+  const result = await runPortabilityProcess("codex", ["app-server", "--stdio"], {
+    cwd: project,
+    env,
+    timeoutMs: 15_000,
+    keepStdinOpen: true,
+    input: `${JSON.stringify({ id: 1, method: "initialize", params: { clientInfo: { name: "usora-portability-acceptance", version: "1" }, capabilities: { experimentalApi: false, requestAttestation: false } } })}\n`,
+    onStdout(chunk, { write, stop }) {
+      pending += chunk;
       let newline = pending.indexOf("\n");
       while (newline >= 0) {
         const line = pending.slice(0, newline);
         pending = pending.slice(newline + 1);
         newline = pending.indexOf("\n");
         if (!line.trim()) continue;
-        try {
-          const response = JSON.parse(line) as { id?: number; error?: { message: string }; result?: JsonRecord };
-          if (response.error) throw Error(`Codex app-server: ${response.error.message}`);
-          if (response.id === 1) {
-            child.stdin.write(`${JSON.stringify({ method: "initialized", params: {} })}\n`);
-            child.stdin.write(
-              `${JSON.stringify({ id: 2, method: "skills/list", params: { cwds: [project], forceReload: true } })}\n`,
-            );
-          } else if (response.id === 2) {
-            const entries = response.result?.data;
-            assert.ok(Array.isArray(entries), "Codex skills/list returned no data");
-            const entry = entries.find((item: JsonRecord) => item.cwd === project) as JsonRecord | undefined;
-            assert.ok(entry && Array.isArray(entry.skills), "Codex did not inspect the isolated project");
-            const selected = entry.skills.find((item: JsonRecord) => item.name === skillId) as JsonRecord | undefined;
-            assert.ok(selected, "Codex did not discover the exported Skill");
-            assert.equal(selected.enabled, true, "Exported Skill is disabled in Codex");
-            assert.equal(selected.pluginId, null, "Exported Skill unexpectedly requires a plugin");
-            assert.equal(
-              path.resolve(String(selected.path)),
-              path.join(project, ".agents", "skills", skillId, "SKILL.md"),
-            );
-            const errors = Array.isArray(entry.errors) ? entry.errors : [];
-            assert.equal(errors.length, 0, "Codex reported Skill parsing errors");
-            finish(null, {
-              status: "passed",
-              method: "Codex app-server skills/list",
-              name: selected.name,
-              description: selected.description,
-              path: `.agents/skills/${skillId}/SKILL.md`,
-              scope: selected.scope,
-              enabled: selected.enabled,
-              plugin_id: selected.pluginId,
-              errors: [],
-              model_requests: 0,
-              mcp_tool_calls: 0,
-              note: "Actual local Codex loader recognition; this does not prove model task execution. App-server uses installed configuration; it has no --ignore-user-config flag.",
-            });
-          }
-        } catch (error) {
-          finish(error instanceof Error ? error : Error(String(error)));
+        const response = JSON.parse(line) as { id?: number; error?: { message: string }; result?: JsonRecord };
+        if (response.error) throw Error(`Codex app-server: ${response.error.message}`);
+        if (response.id === 1) {
+          write(`${JSON.stringify({ method: "initialized", params: {} })}\n`);
+          write(
+            `${JSON.stringify({ id: 2, method: "skills/list", params: { cwds: [project], forceReload: true } })}\n`,
+          );
+        } else if (response.id === 2) {
+          const entries = response.result?.data;
+          assert.ok(Array.isArray(entries), "Codex skills/list returned no data");
+          const entry = entries.find((item: JsonRecord) => item.cwd === project) as JsonRecord | undefined;
+          assert.ok(entry && Array.isArray(entry.skills), "Codex did not inspect the isolated project");
+          const selected = entry.skills.find((item: JsonRecord) => item.name === skillId) as JsonRecord | undefined;
+          assert.ok(selected, "Codex did not discover the exported Skill");
+          assert.equal(selected.enabled, true, "Exported Skill is disabled in Codex");
+          assert.equal(selected.pluginId, null, "Exported Skill unexpectedly requires a plugin");
+          assert.equal(
+            path.resolve(String(selected.path)),
+            path.join(project, ".agents", "skills", skillId, "SKILL.md"),
+          );
+          const errors = Array.isArray(entry.errors) ? entry.errors : [];
+          assert.equal(errors.length, 0, "Codex reported Skill parsing errors");
+          report = {
+            status: "passed",
+            method: "Codex app-server skills/list",
+            name: selected.name,
+            description: selected.description,
+            path: `.agents/skills/${skillId}/SKILL.md`,
+            scope: selected.scope,
+            enabled: selected.enabled,
+            plugin_id: selected.pluginId,
+            errors: [],
+            model_requests: 0,
+            mcp_tool_calls: 0,
+            note: "Actual local Codex loader recognition; this does not prove model task execution. App-server uses installed configuration; it has no --ignore-user-config flag.",
+          };
+          stop();
+          return;
         }
       }
-    });
-    child.stdin.write(
-      `${JSON.stringify({ id: 1, method: "initialize", params: { clientInfo: { name: "usora-portability-acceptance", version: "1" }, capabilities: { experimentalApi: false, requestAttestation: false } } })}\n`,
-    );
+    },
   });
+  assert.equal(result.outputLimitExceeded, false, "Codex local skills/list exceeded the acceptance output limit");
+  assert.equal(result.timedOut, false, "Codex local skills/list timed out after 15 seconds");
+  assert.ok(report, "Codex app-server closed before skills/list completed");
+  return report;
 }
 
 const input = {
@@ -452,6 +411,8 @@ try {
       skill_read_observed: skillRead,
       diagnostic,
       timeout_ms: hostTimeout,
+      timed_out: host.timedOut,
+      output_limit_exceeded: host.outputLimitExceeded,
       isolation: "Temporary project; exported ZIP Skill only; no Hub; user config ignored; no MCP calls permitted",
     };
     assert.equal(host.code, 0, `Codex task failed: ${safeDiagnostic(host.stderr)}`);
