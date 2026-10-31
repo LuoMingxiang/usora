@@ -1,0 +1,2 @@
+$ bun tooling/build-plugin.ts foundry
+built foundry

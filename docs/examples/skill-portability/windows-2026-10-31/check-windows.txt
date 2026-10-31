@@ -1,0 +1,119 @@
+$ bun run format:check && bun run lint && bun run typecheck && bun run build && bun run package:check && bun run runtime:check && bun run marketplace:check && bun run test && bun run validate
+$ prettier --check .
+Checking formatting...
+All matched files use Prettier code style!
+$ oxlint --deny-warnings .
+$ tsc --noEmit
+$ bun tooling/build-plugin.ts
+built foundry
+$ bun tooling/package-plugin.ts --check
+$ bun tooling/clean-runtime-test.ts
+clean runtime ok: foundry
+$ bun tooling/sync-marketplace.ts --check && bun tooling/build-marketplace.ts --check
+marketplace metadata fresh
+marketplace distribution clean
+$ vitest run
+
+ RUN  v4.1.12 F:/.codex/worktrees/skill-portability-acceptance/Usora
+
+ ❯ test/unit/skill-portability-export.test.ts (29 tests | 5 failed) 2282ms
+   × directory export writes snapshot bytes and executable mode without empty directories 88ms
+   × ZIP export has one root and independent Python verifies names, bytes, CRC, UTF-8 and modes 185ms
+   × output parent symlink and symlink ancestor are rejected without writes 6ms
+   × canonical output cannot overlap a symlink-aliased host or Knowledge Hub 8ms
+   × existing target symlink is rejected even with explicit overwrite 6ms
+ ❯ test/unit/skill-portability-validation.test.ts (69 tests | 1 failed) 5550ms
+   × rejects symlink resources, symlinked resource parents and symlinked source directories 13ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 6 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  test/unit/skill-portability-export.test.ts > directory export writes snapshot bytes and executable mode without empty directories
+AssertionError: Expected values to be strictly equal:
+
+438 !== 493
+
+
+- Expected
++ Received
+
+- 493
++ 438
+
+ ❯ test/unit/skill-portability-export.test.ts:60:10
+     58|     assert.deepEqual(await fs.readFile(path.join(result.target, file.p…
+     59|   }
+     60|   assert.equal((await fs.stat(path.join(result.target, "scripts/report…
+       |          ^
+     61|   assert.deepEqual((await fs.readdir(result.target)).sort(), ["SKILL.m…
+     62|   assert.deepEqual(await fs.readdir(root), [skill.name]);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/6]⎯
+
+ FAIL  test/unit/skill-portability-export.test.ts > ZIP export has one root and independent Python verifies names, bytes, CRC, UTF-8 and modes
+Error: spawnSync python3 ENOENT
+ ❯ test/unit/skill-portability-export.test.ts:73:5
+     71|   assert.equal(result.sha256, createHash("sha256").update(zip).digest(…
+     72|   const decoded = JSON.parse(
+     73|     execFileSync(
+       |     ^
+     74|       "python3",
+     75|       [
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/6]⎯
+
+ FAIL  test/unit/skill-portability-export.test.ts > output parent symlink and symlink ancestor are rejected without writes
+Error: EPERM: operation not permitted, symlink 'C:\Users\Ming\AppData\Local\Temp\usora-export-unit-M3y19H\real' -> 'C:\Users\Ming\AppData\Local\Temp\usora-export-unit-M3y19H\linked'
+ ❯ test/unit/skill-portability-export.test.ts:518:3
+    516|   const linked = path.join(root, "linked");
+    517|   await fs.mkdir(path.join(real, "nested"), { recursive: true });
+    518|   await fs.symlink(real, linked, "dir");
+       |   ^
+    519|   for (const output_path of [linked, path.join(linked, "nested")]) {
+    520|     await assert.rejects(exportSkillSnapshot(snapshot(), report(), { o…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/6]⎯
+
+ FAIL  test/unit/skill-portability-export.test.ts > canonical output cannot overlap a symlink-aliased host or Knowledge Hub
+Error: EPERM: operation not permitted, symlink 'C:\Users\Ming\AppData\Local\Temp\usora-export-unit-DBXD9e\host\real-hub' -> 'C:\Users\Ming\AppData\Local\Temp\usora-export-unit-DBXD9e\host\hub-alias'
+ ❯ test/unit/skill-portability-export.test.ts:536:5
+    534|     await fs.mkdir(path.join(host, ".usora"), { recursive: true });
+    535|     await fs.mkdir(realHub);
+    536|     await fs.symlink(realHub, alias, "dir");
+       |     ^
+    537|     const hubPath = kind === "future-host" ? path.join(alias, "portabl…
+    538|     await fs.writeFile(path.join(host, ".usora", "config.json"), JSON.…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/6]⎯
+
+ FAIL  test/unit/skill-portability-export.test.ts > existing target symlink is rejected even with explicit overwrite
+Error: EPERM: operation not permitted, symlink 'C:\Users\Ming\AppData\Local\Temp\usora-export-unit-q8kkbf\preserve' -> 'C:\Users\Ming\AppData\Local\Temp\usora-export-unit-q8kkbf\portable-demo'
+ ❯ test/unit/skill-portability-export.test.ts:574:3
+    572|   await fs.mkdir(real);
+    573|   await fs.writeFile(path.join(real, "keep"), "important");
+    574|   await fs.symlink(real, path.join(root, "portable-demo"), "dir");
+       |   ^
+    575|   await assert.rejects(
+    576|     exportSkillSnapshot(snapshot(), report(), { output_path: root, con…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/6]⎯
+
+ FAIL  test/unit/skill-portability-validation.test.ts > rejects symlink resources, symlinked resource parents and symlinked source directories
+Error: EPERM: operation not permitted, symlink 'C:\Users\Ming\AppData\Local\Temp\usora-portability-validation-XB5TuZ\external' -> 'C:\Users\Ming\AppData\Local\Temp\usora-portability-validation-XB5TuZ\portable-demo\references'
+ ❯ test/unit/skill-portability-validation.test.ts:497:3
+
+    495|   await mkdir(external);
+    496|   await writeFile(path.join(external, "guide.md"), "Outside source.\n"…
+    497|   await symlink(external, path.join(f.dir, "references"), "dir");
+       |   ^
+    498|   assertRejected(await validateSkillDirectory(f.dir, f.name));
+    499|   await rm(path.join(f.dir, "references"));
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/6]⎯
+
+ Test Files  2 failed | 17 passed (19)
+      Tests  6 failed | 167 passed | 2 skipped (175)
+   Start at  13:53:50
+   Duration  8.40s (transform 2.60s, setup 0ms, import 5.00s, tests 43.73s, environment 4ms)
+
+error: script "test" exited with code 1
+error: script "check" exited with code 1

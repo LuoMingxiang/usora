@@ -1,0 +1,14 @@
+{
+  "skill_id": "portable-release-notes",
+  "fixture": "docs/examples/skill-portability/fixture",
+  "output": "F:\\.codex\\worktrees\\skill-portability-acceptance\\Usora\\artifacts\\skill-portability\\run-Sw5HTn",
+  "node": "v22.20.0",
+  "lifecycle": "Activity → Candidate → Draft → Evaluate → Publish completed through built MCP",
+  "exports": "pending",
+  "independent_host": {
+    "status": "not_run",
+    "reason": "Pass --host to execute the real installed Codex host."
+  },
+  "status": "failed",
+  "error": "spawn python3 ENOENT"
+}
