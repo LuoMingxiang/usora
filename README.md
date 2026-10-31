@@ -70,7 +70,7 @@ For plugin-specific usage, storage layout, and cleanup details, see the [plugin 
 
 ## Breaking Upgrade Notes
 
-Usora Foundry `2.0.0` uses Hub schema v2. Existing v1 Hubs are not silently upgraded. If `hub_status` reports `migration_required: true`, run `hub_migrate` as a dry run first, then run it with `confirm: true` to create a backup and migrate records. Legacy `activity_list`, `candidate_list`, and `skill_list` remain available but are deprecated in favor of compact `activity_query`, `candidate_query`, and `skill_query`.
+Usora Foundry uses Hub schema v2 (a storage schema version, separate from the plugin version). Existing v1 Hubs are not silently upgraded. If `hub_status` reports `migration_required: true`, run `hub_migrate` as a dry run first, then run it with `confirm: true` to create a backup and migrate records. Legacy `activity_list`, `candidate_list`, and `skill_list` remain available but are deprecated in favor of compact `activity_query`, `candidate_query`, and `skill_query`.
 
 ## Repository Layout
 
@@ -80,7 +80,8 @@ Usora is a marketplace-style monorepo. The marketplace stays `usora`; the first 
 plugins/foundry/plugin.json            # canonical plugin entry
 plugins/foundry/skills/                # Skill instructions
 plugins/foundry/src/                   # MCP runtime modules
-plugins/foundry/scripts/usora-mcp.mjs  # thin MCP entrypoint
+plugins/foundry/src/cli/mcp.ts         # TypeScript MCP entrypoint
+plugins/foundry/dist/mcp.js            # generated Node.js runtime
 plugins/foundry/.mcp.json              # shared MCP server entry
 plugins/foundry/.codex-plugin/         # Codex adapter
 plugins/foundry/.codebuddy-plugin/     # CodeBuddy adapter

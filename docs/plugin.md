@@ -197,7 +197,7 @@ During distillation, Foundry discovers registered Activity Sources, reads availa
 
 Migration keeps Sessions and Activities in their host directories. It merges legacy Patterns by fingerprint, copies non-conflicting Candidates and Skills into Knowledge Home, deduplicates identical Skills, and writes a migration report for conflicts instead of overwriting.
 
-Usora Foundry 2.0 uses Hub schema v2. v1 Hubs are never silently migrated: `hub_init`, `hub_status`, and `hub_doctor` report `migration_required` when a v1 Hub is detected, and write tools reject new v2 records until migration completes. Run `hub_migrate` without `confirm` for a dry run, then run `hub_migrate` with `confirm: true` to create a backup under `<hub>/backups/`, update host-local Activity schema in place, and merge old Patterns, Candidates, and Skills into the shared Knowledge Home. Sessions and Activities are not moved into shared knowledge.
+Usora Foundry uses Hub schema v2, independently of the plugin version. v1 Hubs are never silently migrated: `hub_init`, `hub_status`, and `hub_doctor` report `migration_required` when a v1 Hub is detected, and write tools reject new v2 records until migration completes. Run `hub_migrate` without `confirm` for a dry run, then run `hub_migrate` with `confirm: true` to create a backup under `<hub>/backups/`, update host-local Activity schema in place, and merge old Patterns, Candidates, and Skills into the shared Knowledge Home. Sessions and Activities are not moved into shared knowledge.
 
 Legacy `activity_list`, `candidate_list`, and `skill_list` are deprecated. Prefer `activity_query`, `candidate_query`, and `skill_query`; these default to compact digest/metadata results. Use `activity_get` or `skill_get` only when full records or Markdown content are required.
 
@@ -233,14 +233,22 @@ Next useful action: <next_action label>
 ```
 
 ```text
-<hub>/
+<hub>/                    # host-local Practice
+├── sessions/
 ├── activities/
+├── runtime/
+└── archive/
+
+<knowledge_path>/         # shared Knowledge
+├── indexes/
 ├── candidates/
 ├── skills/
+├── usage/
+├── events/
 ├── archive/
-└── events/
+└── backups/
 
-<anchor>/config.json       # config file
+<anchor>/config.json       # fixed config location; hub_config relocates Practice only
 ```
 
 If the host does not provide a stable `session_id`, Usora generates a process-scoped ID with a time-ordered prefix and 128-bit random salt so repeated captures in one MCP process update one Activity.

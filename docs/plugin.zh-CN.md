@@ -197,7 +197,7 @@ Shared Knowledge
 
 迁移会让 Session 和 Activity 留在原 Host 目录。它按 fingerprint 合并旧 Pattern，把无冲突的 Candidate 和 Skill 复制到 Knowledge Home，去重内容相同的 Skill，并把冲突写入 migration report，不会静默覆盖。
 
-Usora Foundry 2.0 使用 Hub schema v2。v1 Hub 不会被静默迁移：`hub_init`、`hub_status` 和 `hub_doctor` 会在检测到 v1 Hub 时返回 `migration_required`，写入工具会拒绝创建新的 v2 记录，直到迁移完成。先运行不带 `confirm` 的 `hub_migrate` 做 dry run；确认后再运行 `hub_migrate` 并传入 `confirm: true`，它会在 `<hub>/backups/` 下创建备份，原地更新 Host-local Activity schema，并把旧 Pattern、Candidate、Skill 合并到共享 Knowledge Home。Session 和 Activity 不会被移动到共享知识层。
+Usora Foundry 使用 Hub schema v2，与插件版本独立。v1 Hub 不会被静默迁移：`hub_init`、`hub_status` 和 `hub_doctor` 会在检测到 v1 Hub 时返回 `migration_required`，写入工具会拒绝创建新的 v2 记录，直到迁移完成。先运行不带 `confirm` 的 `hub_migrate` 做 dry run；确认后再运行 `hub_migrate` 并传入 `confirm: true`，它会在 `<hub>/backups/` 下创建备份，原地更新 Host-local Activity schema，并把旧 Pattern、Candidate、Skill 合并到共享 Knowledge Home。Session 和 Activity 不会被移动到共享知识层。
 
 旧的 `activity_list`、`candidate_list` 和 `skill_list` 已 deprecated。优先使用 `activity_query`、`candidate_query` 和 `skill_query`；它们默认返回紧凑 digest/metadata。只有需要完整记录或 Markdown 内容时才使用 `activity_get` 或 `skill_get`。
 
@@ -232,14 +232,22 @@ Next useful action: <next_action label>
 ```
 
 ```text
-<hub>/
+<hub>/                    # host-local Practice
+├── sessions/
 ├── activities/
+├── runtime/
+└── archive/
+
+<knowledge_path>/         # shared Knowledge
+├── indexes/
 ├── candidates/
 ├── skills/
+├── usage/
+├── events/
 ├── archive/
-└── events/
+└── backups/
 
-<anchor>/config.json       # config file
+<anchor>/config.json       # fixed config location; hub_config relocates Practice only
 ```
 
 如果宿主没有提供稳定的 `session_id`，Usora 会生成一个进程级 ID，包含时间有序前缀和 128-bit 随机盐。这样同一个 MCP 进程里的重复 capture 会更新同一条 Activity。

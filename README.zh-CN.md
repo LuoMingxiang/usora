@@ -70,7 +70,7 @@ AI 助手常常会反复解决同一类本地工作流问题，但真正有价�
 
 ## Breaking Upgrade Notes
 
-Usora Foundry `2.0.0` 使用 Hub schema v2。已有 v1 Hub 不会被静默升级。如果 `hub_status` 返回 `migration_required: true`，先运行 `hub_migrate` dry run，再用 `confirm: true` 创建备份并迁移记录。旧的 `activity_list`、`candidate_list` 和 `skill_list` 仍可用，但已 deprecated；优先使用更省上下文的 `activity_query`、`candidate_query` 和 `skill_query`。
+Usora Foundry 使用 Hub schema v2（存储 schema 版本，与插件版本独立）。已有 v1 Hub 不会被静默升级。如果 `hub_status` 返回 `migration_required: true`，先运行 `hub_migrate` dry run，再用 `confirm: true` 创建备份并迁移记录。旧的 `activity_list`、`candidate_list` 和 `skill_list` 仍可用，但已 deprecated；优先使用更省上下文的 `activity_query`、`candidate_query` 和 `skill_query`。
 
 ## 仓库组织
 
@@ -80,7 +80,8 @@ Usora 现在是 marketplace-style monorepo：插件市场仍叫 `usora`，当前
 plugins/foundry/plugin.json            # canonical plugin entry
 plugins/foundry/skills/                # Skill instructions
 plugins/foundry/src/                   # MCP runtime modules
-plugins/foundry/scripts/usora-mcp.mjs  # thin MCP entrypoint
+plugins/foundry/src/cli/mcp.ts         # TypeScript MCP entrypoint
+plugins/foundry/dist/mcp.js            # generated Node.js runtime
 plugins/foundry/.mcp.json              # shared MCP server entry
 plugins/foundry/.codex-plugin/         # Codex adapter
 plugins/foundry/.codebuddy-plugin/     # CodeBuddy adapter

@@ -6,11 +6,11 @@ Usora 是一个 TypeScript-first 的多插件 marketplace monorepo。每个插�
 
 Usora 有三层：
 
-| 层级                | 用途                 | 包含内容                                                               | 禁止包含                                                      |
-| :------------------ | :------------------- | :--------------------------------------------------------------------- | :------------------------------------------------------------ |
-| Source branch       | 贡献者开发           | `plugins/*/src/**/*.ts`、tests、packages、tooling                      | 已提交的 `dist/`                                              |
-| Distribution tree   | Git marketplace 载荷 | `marketplace.json`、`plugins/*/dist`、runtime metadata、skills、assets | `src/`、tests、`packages/`、`tooling/`、`.ts`、`.mjs`、`.map` |
-| Per-plugin artifact | 单插件下载/发布载荷  | 单个插件的运行时包                                                     | 任意 workspace 专属文件                                       |
+| 层级                | 用途                 | 包含内容                                                                | 禁止包含                                                      |
+| :------------------ | :------------------- | :---------------------------------------------------------------------- | :------------------------------------------------------------ |
+| Source branch       | 贡献者开发           | `plugins/*/src/**/*.ts`、tests、packages、tooling、已跟踪的生成 `dist/` | `dist/` 中手工维护的运行时逻辑                                |
+| Distribution tree   | Git marketplace 载荷 | `marketplace.json`、`plugins/*/dist`、runtime metadata、skills、assets  | `src/`、tests、`packages/`、`tooling/`、`.ts`、`.mjs`、`.map` |
+| Per-plugin artifact | 单插件下载/发布载荷  | 单个插件的运行时包                                                      | 任意 workspace 专属文件                                       |
 
 对外发布的 marketplace 安装必须指向生成后的 `marketplace` 分支，或等价的 distribution 导出，而不是 source branch。
 

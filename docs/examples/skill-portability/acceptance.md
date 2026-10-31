@@ -1,5 +1,7 @@
 # Skill Portability v1 — executed acceptance
 
+These are dated execution records, not the current checkout's test status. The 2026-10-31 Windows result supersedes the earlier blocked Codex task. The historical sections below retain the environment and limitations observed at the time. Current behavior and reproduction commands are maintained in the [portability guide](../../usage/skill-portability.md).
+
 ## 2026-10-31 — real isolated Codex task passed on Windows
 
 Fetched branch HEAD: `5076c1ac4393e4b14350a9216b4a91c4b07d6d02`. Actual committed acceptance SHA: `6d427ca8069c21ad910e1e5cb51f8cb75076c64a`. Foundry runtime source is unchanged from the fetched SHA; only the acceptance script needed Windows compatibility fixes.
@@ -113,6 +115,6 @@ Pure content analysis now depends on a neutral protocol-name catalog rather than
 
 Unique reference attempts, dependencies and diagnostics are capped; failed resources are visited once. Input reads use bounded buffers; Markdown scanning and boundary normalization avoid quadratic behavior and preserve meaningful spaces. Malformed-input tests execute real validators in independently killable processes, so synchronous CPU regressions cannot hang Vitest indefinitely.
 
-Export copies validated buffers/report/options before yielding and verifies path/size/hash evidence. Postcommit cleanup failures preserve exported=true with recovery warnings, and cannot erase a primary rollback recovery location. Default ZIP uses atomic no-clobber linking. Subprocess tests prove TERM/KILL escalation, inherited-pipe and output limits. Final local check175/175, actual demo, package/unzip and fixture/ZIP byte comparisons passed. Earlier failed/killed attempts are recorded in the progress log rather than counted as green.
+Export copies validated buffers/report/options before yielding and verifies path/size/hash evidence. Postcommit cleanup failures preserve exported=true with recovery warnings, and cannot erase a primary rollback recovery location. Default ZIP uses atomic no-clobber linking. Subprocess tests prove TERM/KILL escalation, inherited-pipe and output limits. Final local check175/175, actual demo, package/unzip and fixture/ZIP byte comparisons passed. Earlier failed/killed attempts were not counted as green; this section records the historical successful local run.
 
 The user is preparing chatgpt.com allowance. Fresh policy remains restricted/enforced at revision2 without that host. No new model task was run while allowance is pending; the preserved host JSON is the prior real blocked attempt, not a successful current task. Stage6 stays unchecked until actual execution and output verification succeed.

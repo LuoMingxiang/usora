@@ -6,11 +6,11 @@ Usora is a TypeScript-first multi-plugin marketplace monorepo. Each plugin owns 
 
 Usora has three layers:
 
-| Layer               | Purpose                                | Contains                                                               | Must not contain                                              |
-| :------------------ | :------------------------------------- | :--------------------------------------------------------------------- | :------------------------------------------------------------ |
-| Source branch       | Contributor workflow                   | `plugins/*/src/**/*.ts`, tests, packages, tooling                      | committed `dist/`                                             |
-| Distribution tree   | Git marketplace payload                | `marketplace.json`, `plugins/*/dist`, runtime metadata, skills, assets | `src/`, tests, `packages/`, `tooling/`, `.ts`, `.mjs`, `.map` |
-| Per-plugin artifact | Single-plugin download/release payload | one packaged plugin runtime                                            | any workspace-only files                                      |
+| Layer               | Purpose                                | Contains                                                                     | Must not contain                                              |
+| :------------------ | :------------------------------------- | :--------------------------------------------------------------------------- | :------------------------------------------------------------ |
+| Source branch       | Contributor workflow                   | `plugins/*/src/**/*.ts`, tests, packages, tooling, tracked generated `dist/` | hand-maintained runtime logic in `dist/`                      |
+| Distribution tree   | Git marketplace payload                | `marketplace.json`, `plugins/*/dist`, runtime metadata, skills, assets       | `src/`, tests, `packages/`, `tooling/`, `.ts`, `.mjs`, `.map` |
+| Per-plugin artifact | Single-plugin download/release payload | one packaged plugin runtime                                                  | any workspace-only files                                      |
 
 Published marketplace installs should resolve the generated `marketplace` branch or an equivalent distribution export, never the source branch.
 
