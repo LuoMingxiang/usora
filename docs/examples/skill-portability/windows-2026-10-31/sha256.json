@@ -12,5 +12,6 @@
   "host-output/release-notes.json.txt": "c069f91515a0ce9d9b7fc0e6cb829cc135b143e12b04945660b3665d7b928a5a",
   "mcp-calls.json": "8eb1d314a71cf0a9cf36ba996c80e47a1d61a7d7df1dae4a0bb9296880b439de",
   "process-regression.txt": "f6669ef1f13c42d415169cd1034bf75141bcacfd466a23c75d3bf18ce15b6b34",
-  "session.json": "dee61613d12cb865eb60e57f31cd3b16e44911e5047823d29e558b6732948aa9"
+  "session.json": "dee61613d12cb865eb60e57f31cd3b16e44911e5047823d29e558b6732948aa9",
+  ".gitattributes": "11ccec18b8314d68eb3f52c4b4950e1725914610267e3b2942201b4a96fda7de"
 }

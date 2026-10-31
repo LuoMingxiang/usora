@@ -194,3 +194,8 @@ The next chronological commit records each stage commit's full SHA; final delive
 - Commit hook: Windows Bun emits .exe shims but npx commit-msg tried to download missing unscoped commitlint and failed. Existing staged Prettier/Oxlint hooks passed; ran installed `node node_modules/@commitlint/cli/cli.js` on the exact commit message successfully, then disabled hook execution for that commit only. No dependency or hook changes.
 - Repository discrepancy: PR14 already closed/merged at2026-10-31 13:45:07, head5076c1a, before work started. Do not reopen/merge/create a replacement PR. Push only original development branch and record follow-up evidence in PR discussion; ready conversion cannot apply. Native create_worktree unexpectedly pulled master fast-forward d2a9b75→5076c1a; explicitly reported, no reset or further master mutation. All task edits confined to independent development worktree.
 - Data: no user Hub or credential mutation; real MCP lifecycle operated only on temporary acceptance Hub. No automatic Activity written to user Hub during isolated verification. No production release, CodeBuddy execution, or new merge performed.
+
+### Evidence delivery verification
+
+- Evidence commit `15bed4864be930f146234ebd50ed4221aa3df236` pushed to the original development branch. Independent read-only review found no actionable issues in the acceptance-script diff or actual run evidence.
+- Git initially normalized CRLF in six raw text evidence files. Added evidence-local `.gitattributes` with `*.txt -text`, restaged original bytes and verified all15 evidence Git blobs against the SHA256 manifest (including the exact model output). Final format check and diff whitespace check passed. No test, runtime, or host assertion changed in this evidence correction.
