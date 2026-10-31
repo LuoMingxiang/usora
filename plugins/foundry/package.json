@@ -1,0 +1,6 @@
+{
+  "name": "@usora/foundry",
+  "version": "1.6.0",
+  "type": "module",
+  "private": true
+}
