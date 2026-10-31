@@ -1,0 +1,24 @@
+{
+  "changes": [
+    {
+      "id": "C-03",
+      "type": "fix",
+      "summary": "Preserve resource bytes in exported archives."
+    },
+    {
+      "id": "C-02",
+      "type": "feat",
+      "summary": "Export a published Skill as a directory."
+    },
+    {
+      "id": "C-04",
+      "type": "docs",
+      "summary": "Document the independent acceptance flow."
+    },
+    {
+      "id": "C-01",
+      "type": "feat",
+      "summary": "Validate Skill metadata before export."
+    }
+  ]
+}

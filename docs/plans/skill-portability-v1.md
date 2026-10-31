@@ -1,7 +1,7 @@
 # Usora Skill Portability v1 — Codex 自主实施计划
 
-> 状态：2026-10-30 二次复查加固完成，全量175项测试通过；阶段 6 真实模型任务仍等待用户放行网络后执行。PR #14 为草稿，未合并、未发布。
-> PR：https://github.com/LuoMingxiang/usora/pull/14 （草稿，等待外部网络放行后的真实模型任务验收）。
+> 状态：2026-10-31 Windows 隔离 Codex 真实任务已通过（验证 SHA `6d427ca8069c21ad910e1e5cb51f8cb75076c64a`）；本次 Windows 全量回归167通过、6失败、2跳过，不能沿用历史175通过结论。
+> PR：https://github.com/LuoMingxiang/usora/pull/14 （本次查询发现已于2026-10-31 13:45:07合并；本次不执行合并或发布，无法再转换为可审查）。
 > 基线：`master`；工作分支：`feat/skill-portability-v1`。
 > 目标：在不破坏 Foundry 现有生命周期的前提下，交付可校验、可独立安装、可移植的 Agent Skills 导出能力。
 > 原则：仅实现通用 Agent Skills 规范下的校验、目录导出和 ZIP 分发；不开发赛事、特定厂商或市场上传适配。
@@ -80,7 +80,7 @@
 - [x] 单元测试：frontmatter、名称、依赖、引用、资源收集、路径、ZIP、冲突策略、敏感信息。
 - [x] 集成测试：模拟真实 Hub 已发布 Skill，调用 MCP 导出，验证内容与元数据一致。
 - [x] 回归测试：Candidate → Draft → Evaluate → Publish → Export 不破坏现有生命周期。
-- [ ] 隔离测试：将导出包复制到不含 Usora Hub/MCP 的干净环境，使用兼容 Agent Skills 的宿主加载并完成真实任务；记录宿主版本和输出。
+- [x] 隔离测试：将导出包复制到不含 Usora Hub/MCP 的干净环境，使用兼容 Agent Skills 的宿主加载并完成真实任务；记录宿主版本和输出。2026-10-31 Codex CLI 0.163.0-alpha.11.2在Windows实际读取Skill/reference并生成严格匹配输出，详见新版验收证据。
 - [x] 如果 Skill 本质依赖 Foundry MCP，测试应明确失败或声明依赖，不得宣称可脱离运行。
 - [x] 执行仓库现有 `check`、lint、typecheck、test、build、doctor、打包等适用命令；修复新增回归。
 - [x] 验证 Windows 路径、空格、中文文件名和跨平台压缩包。
@@ -140,7 +140,7 @@
 
 ## 11. 二次复查与健壮性闭环（2026-10-30）
 
-- [ ] 完成真实独立宿主任务：待用户确认 chatgpt.com 网络放行生效后，复查环境策略并用最终构建执行 --host，验证实际输出，不用加载成功或脚本构造输出替代。
+- [x] 完成真实独立宿主任务：2026-10-31在本地已认证Codex中使用最终构建执行 --host，实际输出及严格断言通过；保留原403失败证据。新增Windows全量回归失败独立记录，不宣称全部门禁满足。
 - [x] 修复脚本扩展名依赖漏报（PowerShell、Windows cmd/bat、TypeScript），与普通代码 token 变量误报；保留秘密检测与脱敏回归。
 - [x] 将内容分析提取为纯模块，通过中立协议名称目录消除 core 对 MCP registry 的反向依赖；注册层校验目录与真实定义一致。
 - [x] 限制缺失资源尝试和诊断数量，记录失败引用已访问；源文件读取使用有界缓冲，防止 stat 后文件增长越过内存预算。

@@ -1,5 +1,38 @@
 # Skill Portability v1 — executed acceptance
 
+## 2026-10-31 — real isolated Codex task passed on Windows
+
+Fetched branch HEAD: `5076c1ac4393e4b14350a9216b4a91c4b07d6d02`. Actual committed acceptance SHA: `6d427ca8069c21ad910e1e5cb51f8cb75076c64a`. Foundry runtime source is unchanged from the fetched SHA; only the acceptance script needed Windows compatibility fixes.
+
+Windows 10 build 19045; Node v22.20.0; Bun 1.3.14; Python 3.11.9; Codex CLI 0.163.0-alpha.11.2, already authenticated with ChatGPT. No credentials were read or copied. Existing system proxy was applied only to these processes.
+
+```powershell
+$env:HTTPS_PROXY = 'http://127.0.0.1:7890'
+$env:HTTP_PROXY = 'http://127.0.0.1:7890'
+bun install --no-save
+bun run build:foundry
+node scripts/skill-portability-demo.ts --host --host-timeout-ms 120000
+```
+
+Install, build and final host command exited **0**. A real temporary MCP Hub completed Activity → Candidate → Draft → Evaluate → Publish → Validate → directory/ZIP export. Repeated ZIPs were identical; Python independently checked CRC, UTF-8 names, safe paths and resource bytes. Source tree digests before/after were identical. The exported Skill ZIP SHA256 remains `e00e8e5fa4317be3f5df0afe8c03a8c0d57d82863bbe2182d1b1f89e21d02653`.
+
+In a clean temporary project outside this repository, Codex loaded the ZIP-extracted `.agents/skills/portable-release-notes`, executed successful local reads of **both** `SKILL.md` and `references/style-guide.md`, read `changes.json`, wrote `release-notes.json`, and verified the output. The harness independently passed its unchanged exact JSON equality assertion: added 2, fixed 1, documentation 1; exact keys, IDs, classification, sort order and summaries. The model received no expected answer. Model execution used `--ignore-user-config`, `--sandbox workspace-write`, and an explicit Windows `unelevated` sandbox. **Zero model MCP calls**, no Hub dependency, no timeout/output overflow. The output file was copied from the model project without reserialization.
+
+Reviewable evidence:
+
+- [Host result](windows-2026-10-31/evidence.json), [actual model command events](windows-2026-10-31/host-events.jsonl), [original model output bytes](windows-2026-10-31/host-output/release-notes.json.txt), [formatted JSON view](windows-2026-10-31/host-output/release-notes.json), [input](windows-2026-10-31/host-output/changes.json).
+- [Temporary MCP lifecycle calls](windows-2026-10-31/mcp-calls.json), [commands, versions, exit codes and repository observations](windows-2026-10-31/session.json), [SHA256 manifest](windows-2026-10-31/sha256.json).
+- [Current Windows full check log](windows-2026-10-31/check-windows.txt), [focused process regression](windows-2026-10-31/process-regression.txt), [doctor](windows-2026-10-31/doctor.txt).
+- [Initial missing python3 failure](windows-2026-10-31/evidence-python-command-failure.json), [real model sandbox failure before correction](windows-2026-10-31/evidence-windows-sandbox-failure.json). The historical cloud HTTP403 evidence below is retained unchanged.
+
+**Current regression limit:** `bun run check` exited **1**, with **167 passed / 6 failed / 2 existing POSIX-only skips**. Format, lint, types, build, package, runtime and marketplace gates passed before tests. Failures are the unchanged POSIX executable-mode assertion (0666 vs 0755), the unchanged ZIP unit test calling missing `python3`, and four symlink fixtures denied by Windows with EPERM. No test was removed or weakened to produce a green result. Focused process regression: 5 passed / 2 existing skips; doctor passed. The real host acceptance is green; the current native Windows full suite is not. CodeBuddy was not tested.
+
+**Repository state differs from the request:** GitHub reports PR #14 was already merged at 2026-10-31 13:45:07 Asia/Shanghai, before this session. It cannot be converted from draft to ready. This session only pushes the requested development branch and updates the PR discussion, with no new merge or release. The native managed-worktree tool unexpectedly fast-forwarded the original clean local master from d2a9b75 to 5076c1a (`pull --tags origin master` in reflog); acceptance edits were confined to the development worktree. No reset or reverse mutation was performed.
+
+The Windows command fix selects installed `python`; the sandbox fix explicitly selects `windows.sandbox="unelevated"` after user config is ignored. This retains the workspace boundary. See [official Windows sandbox documentation](https://learn.chatgpt.com/docs/windows/windows-sandbox) and [official non-interactive configuration documentation](https://learn.chatgpt.com/docs/non-interactive-mode).
+
+## Historical 2026-10-30 acceptance (retained; model task was blocked)
+
 Date: 2026-10-30 (Asia/Shanghai). Tested code commit: `d3f0f8b7d661a38c5bcf05bf16f9e9722667fd5d`. Node v24.19.0, Bun 1.3.14, Vitest 4.1.12, Linux. This is local validation plus actual host loading; the independent model task remains **blocked**, not passed.
 
 ## Reproduce

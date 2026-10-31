@@ -1,0 +1,2 @@
+$ bun scripts/validate-plugin.ts
+Usora doctor OK: canonical manifest + Codex + CodeBuddy + marketplaces

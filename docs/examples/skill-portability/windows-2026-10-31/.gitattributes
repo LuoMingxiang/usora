@@ -1,0 +1,2 @@
+# Preserve raw Windows evidence bytes and their recorded checksums.
+*.txt -text

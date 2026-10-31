@@ -1,0 +1,17 @@
+{
+  "build-foundry.txt": "e4cd869173c34319ec1f39e51455a764d98d0a7e864429ed8fa598a1ea7833da",
+  "check-windows.txt": "07216cd6059cc4cc1eea6ab522d1e10df614e93bde8855fb8cc6999c66f3cac4",
+  "doctor.txt": "d01212c60db8d9ce07b15f1de0dc3743a3e2c39ec145bbed37c267c778c84f0e",
+  "evidence-python-command-failure.json": "9c15fd6b87a50f126e108376534f5ab5f531b9ebb2e56b4a7b78b38af82117af",
+  "evidence-windows-sandbox-failure.json": "f06cabe70c258c3c5a7773023a62cfc81f3a540d7ad58a80fbdfd1e121c11542",
+  "evidence.json": "b9175a08997cb18ed92b407fcd9fc8e01c2eb020985e7f9b485694923d31705b",
+  "host-command.txt": "e4cc030490a65dd3091e15e34fe521708d7acec04ca553535c48545d199f2ac4",
+  "host-events.jsonl": "682eb459792884e52e6c8569f951b5a9aab4f1bf85435f01f8d4b782b4864a63",
+  "host-output/changes.json": "0f632551b2e23e5f0819612fe134e85d950a9c90d61e232214aa3448d9b54ae3",
+  "host-output/release-notes.json": "874ecfb8f7e5490396742c7862f357db127f43c3e213abad6554859a666b674b",
+  "host-output/release-notes.json.txt": "c069f91515a0ce9d9b7fc0e6cb829cc135b143e12b04945660b3665d7b928a5a",
+  "mcp-calls.json": "8eb1d314a71cf0a9cf36ba996c80e47a1d61a7d7df1dae4a0bb9296880b439de",
+  "process-regression.txt": "f6669ef1f13c42d415169cd1034bf75141bcacfd466a23c75d3bf18ce15b6b34",
+  "session.json": "dee61613d12cb865eb60e57f31cd3b16e44911e5047823d29e558b6732948aa9",
+  ".gitattributes": "11ccec18b8314d68eb3f52c4b4950e1725914610267e3b2942201b4a96fda7de"
+}

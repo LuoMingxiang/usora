@@ -1,0 +1,9 @@
+
+ RUN  v4.1.12 F:/.codex/worktrees/skill-portability-acceptance/Usora
+
+
+ Test Files  1 passed (1)
+      Tests  5 passed | 2 skipped (7)
+   Start at  13:49:05
+   Duration  678ms (transform 47ms, setup 0ms, import 118ms, tests 296ms, environment 0ms)
+

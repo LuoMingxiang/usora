@@ -1,0 +1,25 @@
+{
+  "format": "portable-release-notes-v1",
+  "added": [
+    {
+      "id": "C-01",
+      "summary": "Validate Skill metadata before export."
+    },
+    {
+      "id": "C-02",
+      "summary": "Export a published Skill as a directory."
+    }
+  ],
+  "fixed": [
+    {
+      "id": "C-03",
+      "summary": "Preserve resource bytes in exported archives."
+    }
+  ],
+  "documentation": [
+    {
+      "id": "C-04",
+      "summary": "Document the independent acceptance flow."
+    }
+  ]
+}
