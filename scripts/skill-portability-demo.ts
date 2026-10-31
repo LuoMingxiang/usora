@@ -230,6 +230,9 @@ const summary: JsonRecord = {
   fixture: "docs/examples/skill-portability/fixture",
   output,
   node: (await run("node", ["--version"], scratch, process.env)).stdout.trim(),
+  python: (
+    await run(process.platform === "win32" ? "python" : "python3", ["--version"], scratch, process.env)
+  ).stdout.trim(),
   lifecycle: "pending",
   exports: "pending",
   independent_host: { status: "not_run", reason: "Pass --host to execute the real installed Codex host." },
@@ -320,7 +323,7 @@ try {
   const after = await sourceDigest();
   assert.equal(after, before, "Validation/export changed source Hub or host data");
   const unzip = await run(
-    "python3",
+    process.platform === "win32" ? "python" : "python3",
     ["-c", unzipVerifier, archive, directoryRoot, extractedRoot, skillId],
     output,
     process.env,
@@ -368,6 +371,7 @@ try {
         "never",
         "exec",
         "--ignore-user-config",
+        ...(process.platform === "win32" ? ["-c", 'windows.sandbox="unelevated"'] : []),
         "--ephemeral",
         "--skip-git-repo-check",
         "--json",
@@ -392,9 +396,18 @@ try {
           return { type: "unparsed" };
         }
       });
+    await writeFile(path.join(output, "host-events.jsonl"), host.stdout);
     const mcpEvents = events.filter((event) => JSON.stringify(event).includes('"mcp_tool_call"'));
-    const skillRead = events.some(
-      (event) => JSON.stringify(event).includes("SKILL.md") || JSON.stringify(event).includes("style-guide.md"),
+    const skillRead = ["SKILL.md", "style-guide.md"].every((file) =>
+      events.some((event) => {
+        const item = event.item as JsonRecord | undefined;
+        return (
+          event.type === "item.completed" &&
+          item?.type === "command_execution" &&
+          item.exit_code === 0 &&
+          String(item.command).includes(file)
+        );
+      }),
     );
     const diagnostic = safeDiagnostic(
       `${host.stderr}\n${events
@@ -417,19 +430,24 @@ try {
     };
     assert.equal(host.code, 0, `Codex task failed: ${safeDiagnostic(host.stderr)}`);
     assert.equal(mcpEvents.length, 0, "Independent host invoked MCP");
-    assert.equal(skillRead, true, "Host did not show loading Skill instructions or reference");
+    assert.equal(skillRead, true, "Host did not successfully read both Skill instructions and reference");
     const actual = JSON.parse(await readFile(path.join(project, "release-notes.json"), "utf8")) as unknown;
     assert.deepEqual(actual, expected, "Independent host task output did not match the Skill contract");
     const hostOutput = path.join(output, "host-output");
     await mkdir(hostOutput);
     await writeFile(path.join(hostOutput, "changes.json"), `${JSON.stringify(input, null, 2)}\n`);
-    await writeFile(path.join(hostOutput, "release-notes.json"), `${JSON.stringify(actual, null, 2)}\n`);
+    await cp(path.join(project, "release-notes.json"), path.join(hostOutput, "release-notes.json"));
     summary.independent_host = {
       status: "passed",
       host: version.stdout.trim(),
       exit_code: host.code,
       mcp_calls: 0,
       skill_read_observed: true,
+      events: "host-events.jsonl",
+      timeout_ms: hostTimeout,
+      timed_out: host.timedOut,
+      output_limit_exceeded: host.outputLimitExceeded,
+      windows_sandbox: process.platform === "win32" ? "unelevated" : null,
       task_output: "host-output/release-notes.json",
       verified: "Exact four-key output, classification, ordering and summaries match expected data",
       isolation: "Temporary project; exported ZIP Skill only; no Hub; user config ignored; no MCP calls",
