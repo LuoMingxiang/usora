@@ -302,6 +302,12 @@ When those are true, the install succeeded and the failed step was likely Codex 
 
 Uninstalling the plugin does **not** remove local Usora data.
 
+### Clean archived Activities
+
+Call `hub_cleanup({ "mode": "archive" })` to preview unreferenced archived Activities for the current host. The response includes `eligible`, `deleted`, `protected`, `skipped`, and `dry_run`.
+
+Call `hub_cleanup({ "mode": "archive", "confirm": true })` to permanently delete eligible records. Each invocation rechecks Candidate and Skill references, including Skill evolution history. Invalid archive files, directories, and symlinks are skipped. Unreadable or invalid reference data aborts cleanup. Active Activities and other hosts are unaffected. A symlinked archive directory is rejected.
+
 To clean data:
 
 1. Run `hub_status` to locate `hub` and `config_path`.
