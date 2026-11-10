@@ -1,0 +1,122 @@
+---
+name: usora-skill-hub
+description: "Operate Usora: initialize storage, record Activities, discover Candidates, configure the Maintainer, evaluate/publish Skills, inspect status, and clean up processed data."
+---
+
+# Usora
+
+Use the Usora MCP tools for all Hub mutations. In a workspace containing the Usora `AGENTS.md`, behave as always-on: do not wait for an explicit Skill invocation. Do not ask the user to install Python or run a CLI.
+
+Maintain one Activity per AI session. After substantive progress, call `activity_capture`; pass `session_id` when the host provides a stable one, otherwise the MCP server uses a process-scoped ID formatted as `session-{timestamp_hex}-{128_bit_random_salt}`. Repeated calls must update the same record with key points, decisions, approach, and result. Never capture a full transcript and never invent an Activity.
+
+## Natural-language mapping
+
+- “Initialize my Skill Hub” → MCP tool `hub_init` (creates the Hub under the stable host data directory, local fallback `<cwd>/.usora`, or the previously relocated directory)
+- “Migrate my Usora Hub” → MCP tool `hub_migrate` (dry run first; pass `confirm: true` only when the user wants to migrate)
+- “Configure my Maintainer or automation policy” → MCP tool `hub_config`
+- “Move/relocate my Usora data to `<path>`” → MCP tool `hub_config` with `path` (moves existing data and clears the old directory)
+- “Show my Skill Hub status” → MCP tool `hub_status`, then present the canonical status summary below
+- “Where is my Usora data stored?” → MCP tool `hub_status`, then tell the user the `data_path`, `hub`, and `config_path` fields
+- “Check my Skill Hub health” → MCP tool `hub_doctor`
+- “Clean up generated Activities” → MCP tool `hub_cleanup` with `mode: generated`
+- “Clean everything” → MCP tool `hub_cleanup` with `mode: all, confirm: true` (deletes all Hub data but keeps the data directory and config)
+- “Clean old Usora plugin cache” → MCP tool `plugin_cache_cleanup` (dry run by default; pass `confirm: true` to delete old installed plugin versions)
+- “Capture this task” → MCP tool `activity_capture`
+- “Show recent Activities” → MCP tool `activity_query` (defaults to compact digests) or legacy `activity_list`
+- “Show one full Activity” → MCP tool `activity_get`
+- “Create a Candidate” → MCP tool `candidate_create`
+- “Resolve a Candidate proposal” → MCP tool `candidate_resolve`
+- “Show recent Candidates” → MCP tool `candidate_query` or legacy `candidate_list`
+- “Show one Candidate” → MCP tool `candidate_get`
+- “Evaluate this Candidate” → MCP tool `candidate_evaluate`
+- “Query Patterns” → MCP tool `pattern_query`
+- “Show one Pattern” → MCP tool `pattern_get`
+- “Publish this Skill” → MCP tool `skill_publish`
+- “Create a Skill draft” → MCP tool `skill_create`
+- “Generate a Skill from an approved Candidate” → MCP tool `skill_generate`
+- “Evolve this Skill” → MCP tool `skill_evolve`
+- “Evaluate this Skill” → MCP tool `skill_evaluate`
+- “Show recent Skills” → MCP tool `skill_query` (metadata only) or legacy `skill_list`
+- “Show this Skill” → MCP tool `skill_get` or legacy `skill_read`
+- “Validate this Skill for portability” → MCP tool `skill_validate` with `skill_id`
+- “Export this Skill as an Agent Skills directory or ZIP” → MCP tool `skill_export` with `skill_id`, `format`, and an existing absolute `output_path`
+- “Record Skill usage” → MCP tool `usage_capture`
+- “Scan Skill governance” → MCP tool `governance_scan`
+- “Resolve Skill governance” → MCP tool `governance_resolve`
+- “Validate Skill graph” → MCP tool `skill_graph_validate`
+- “Show recent Usora events” → MCP tool `event_list`
+- “Show Usora telemetry metrics” → MCP tool `telemetry_metrics`
+- “Capture this task” → Usora MCP tool `activity_capture`
+
+## Initialization
+
+Initialization is simple: call `hub_init` (no `path`). It creates the Hub under the stable host data directory (`~/.codex/plugins/data/usora/.usora` or `~/.codebuddy/plugins/data/usora/.usora`), under local fallback `<cwd>/.usora`, or under the directory the user previously relocated to. Never create sample data. Optionally pass `maintainer`/`automation_policy` to set them at the same time.
+
+## Status summary
+
+When reporting `hub_status`, use this stable human-readable order:
+
+```text
+Usora Hub
+Status: initialized
+Data: <hub>
+Data path: <data_path>
+Config: <config_path>
+Maintainer: <config.maintainer>
+Policy: <config.automation_policy>
+
+Records
+Activities: <activities>
+Candidates: <candidates>
+Skills: <skills>
+
+Next useful action: <next_action label>
+```
+
+Map `next_action` to labels as follows:
+
+- `capture_activity` -> `Capture this session`
+- `create_candidate` -> `Create a Candidate`
+- `create_skill` -> `Create a Skill draft`
+- `review_or_cleanup` -> `Review Skills or clean processed Activities`
+
+If the installed MCP server does not return `next_action` yet, infer it from counts without loading records:
+
+- `activities === 0` -> `capture_activity`
+- `candidates === 0` -> `create_candidate`
+- `skills === 0` -> `create_skill`
+- otherwise -> `review_or_cleanup`
+
+## Relocating data
+
+When the user asks where Usora data lives, call `hub_status` and use its resolved paths. Do not infer paths from defaults. Report host-local Practice data separately from shared Knowledge data.
+
+When the user wants to move host-local Practice data to a different directory, call `hub_config` with `path` set to the new directory (absolute or relative to the workspace). This moves host-owned records and persists the new location in `config.hub_path`. Confirm back the `data_path`, `hub`, `moved_from`, and `config_path` from the result. Shared Knowledge uses `knowledge_path`; set `USORA_HOME` before startup to move shared Patterns, Candidates, Skills, indexes, events, and usage data.
+
+## Uninstalling / cleanup behavior
+
+The plugin host (e.g. Codex) removes the plugin itself; Usora does not delete data on uninstall. To help the user fully clean up:
+
+1. Call `hub_status` and tell the user where their data lives (`data_path`/`hub`) and where the config file is (`config_path`).
+2. On request, clear the data with `hub_cleanup` `mode: all, confirm: true` — this empties all records/Skills/events but keeps the data directory and config, so the path remains discoverable.
+3. Inform the user that the (now empty) data directory itself can be removed manually if they no longer want it.
+
+Always preserve the boundary: Workers and Reviewers may contribute Activities and Candidates; only the configured Maintainer publishes Skills. Do not load the entire Activity history into context. Use `status`, recent records, and targeted IDs.
+
+## Normalized Activity
+
+Record task, context, key_points, approach, result, technologies, outcome, source, and session/project metadata. One session must map to one Activity file; use updates/key_points to preserve evolution across the session.
+
+## Sync behavior
+
+Use MCP tools for initialization, Activity capture, Candidate review, and publication. Initialization uses the stable host data directory (or the directory the user relocated to) for Sessions and Activities; local/manual MCP runs fall back to `<cwd>/.usora`. Shared knowledge defaults to `~/.usora` and can be overridden with `USORA_HOME`. Initialization never creates sample data.
+
+Candidates can be explicitly evaluated before publication. Publishing updates the single current Skill in place and records its `revision`, Maintainer, and publication time; do not create version directories.
+
+For Hub schema v2 upgrades, never silently migrate a v1 Hub. If status reports `migration_required`, run `hub_migrate` as a dry run first and only pass `confirm: true` after the user asks to proceed. Prefer compact query tools over deprecated `*_list` tools.
+
+## Portable Skill export
+
+Use `skill_query` with `state: PUBLISHED` and a narrow query, then `skill_get` for the selected name. Call `skill_validate` with `skill_id` equal to that existing name. Read errors, warnings, dependencies and compatibility before `skill_export`. Export only snapshots PUBLISHED Skills and never grants publication rights or modifies the Hub. A structurally valid package with MCP/runtime/service dependencies is not proof of independent execution.
+
+For `skill_export`, choose `format: directory` or `zip`, and `output_path` as an existing absolute parent outside Usora data and plugin/source trees. Preview with `dry_run: true`; conflicts fail by default. Only use `conflict: overwrite` when replacing the exact target is requested. Inspect output paths, file hashes and dependencies. No market upload, cloud synchronization or automatic installation occurs. A v1 Hub requires the normal explicit migration workflow; export does not migrate or initialize it.
