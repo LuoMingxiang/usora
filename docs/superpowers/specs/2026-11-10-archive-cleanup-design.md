@@ -1,0 +1,3 @@
+# Archive cleanup
+
+Extend `hub_cleanup` with `mode: archive` rather than adding a separate tool. The user approved deleting unreferenced archived Activities. Default invocation previews; `confirm: true` permanently removes eligible files. Only the current host's archive is eligible. Candidate and Skill evidence (including evolution history) protects referenced Activity IDs across the shared knowledge store. Keep malformed archive files and report skips; abort if reference files cannot be read or parsed, since absence of references cannot then be established. Do not traverse symlinks or delete directories. Return eligible, deleted, protected, skipped counts and dry_run. Existing cleanup modes remain unchanged.

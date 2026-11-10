@@ -75,17 +75,17 @@ var require_visit = __commonJS((exports) => {
   visit.BREAK = BREAK;
   visit.SKIP = SKIP;
   visit.REMOVE = REMOVE;
-  function visit_(key, node, visitor, path19) {
-    const ctrl = callVisitor(key, node, visitor, path19);
+  function visit_(key, node, visitor, path20) {
+    const ctrl = callVisitor(key, node, visitor, path20);
     if (identity.isNode(ctrl) || identity.isPair(ctrl)) {
-      replaceNode(key, path19, ctrl);
-      return visit_(key, ctrl, visitor, path19);
+      replaceNode(key, path20, ctrl);
+      return visit_(key, ctrl, visitor, path20);
     }
     if (typeof ctrl !== "symbol") {
       if (identity.isCollection(node)) {
-        path19 = Object.freeze(path19.concat(node));
+        path20 = Object.freeze(path20.concat(node));
         for (let i = 0;i < node.items.length; ++i) {
-          const ci = visit_(i, node.items[i], visitor, path19);
+          const ci = visit_(i, node.items[i], visitor, path20);
           if (typeof ci === "number")
             i = ci - 1;
           else if (ci === BREAK)
@@ -96,13 +96,13 @@ var require_visit = __commonJS((exports) => {
           }
         }
       } else if (identity.isPair(node)) {
-        path19 = Object.freeze(path19.concat(node));
-        const ck = visit_("key", node.key, visitor, path19);
+        path20 = Object.freeze(path20.concat(node));
+        const ck = visit_("key", node.key, visitor, path20);
         if (ck === BREAK)
           return BREAK;
         else if (ck === REMOVE)
           node.key = null;
-        const cv = visit_("value", node.value, visitor, path19);
+        const cv = visit_("value", node.value, visitor, path20);
         if (cv === BREAK)
           return BREAK;
         else if (cv === REMOVE)
@@ -123,17 +123,17 @@ var require_visit = __commonJS((exports) => {
   visitAsync.BREAK = BREAK;
   visitAsync.SKIP = SKIP;
   visitAsync.REMOVE = REMOVE;
-  async function visitAsync_(key, node, visitor, path19) {
-    const ctrl = await callVisitor(key, node, visitor, path19);
+  async function visitAsync_(key, node, visitor, path20) {
+    const ctrl = await callVisitor(key, node, visitor, path20);
     if (identity.isNode(ctrl) || identity.isPair(ctrl)) {
-      replaceNode(key, path19, ctrl);
-      return visitAsync_(key, ctrl, visitor, path19);
+      replaceNode(key, path20, ctrl);
+      return visitAsync_(key, ctrl, visitor, path20);
     }
     if (typeof ctrl !== "symbol") {
       if (identity.isCollection(node)) {
-        path19 = Object.freeze(path19.concat(node));
+        path20 = Object.freeze(path20.concat(node));
         for (let i = 0;i < node.items.length; ++i) {
-          const ci = await visitAsync_(i, node.items[i], visitor, path19);
+          const ci = await visitAsync_(i, node.items[i], visitor, path20);
           if (typeof ci === "number")
             i = ci - 1;
           else if (ci === BREAK)
@@ -144,13 +144,13 @@ var require_visit = __commonJS((exports) => {
           }
         }
       } else if (identity.isPair(node)) {
-        path19 = Object.freeze(path19.concat(node));
-        const ck = await visitAsync_("key", node.key, visitor, path19);
+        path20 = Object.freeze(path20.concat(node));
+        const ck = await visitAsync_("key", node.key, visitor, path20);
         if (ck === BREAK)
           return BREAK;
         else if (ck === REMOVE)
           node.key = null;
-        const cv = await visitAsync_("value", node.value, visitor, path19);
+        const cv = await visitAsync_("value", node.value, visitor, path20);
         if (cv === BREAK)
           return BREAK;
         else if (cv === REMOVE)
@@ -177,23 +177,23 @@ var require_visit = __commonJS((exports) => {
     }
     return visitor;
   }
-  function callVisitor(key, node, visitor, path19) {
+  function callVisitor(key, node, visitor, path20) {
     if (typeof visitor === "function")
-      return visitor(key, node, path19);
+      return visitor(key, node, path20);
     if (identity.isMap(node))
-      return visitor.Map?.(key, node, path19);
+      return visitor.Map?.(key, node, path20);
     if (identity.isSeq(node))
-      return visitor.Seq?.(key, node, path19);
+      return visitor.Seq?.(key, node, path20);
     if (identity.isPair(node))
-      return visitor.Pair?.(key, node, path19);
+      return visitor.Pair?.(key, node, path20);
     if (identity.isScalar(node))
-      return visitor.Scalar?.(key, node, path19);
+      return visitor.Scalar?.(key, node, path20);
     if (identity.isAlias(node))
-      return visitor.Alias?.(key, node, path19);
+      return visitor.Alias?.(key, node, path20);
     return;
   }
-  function replaceNode(key, path19, node) {
-    const parent = path19[path19.length - 1];
+  function replaceNode(key, path20, node) {
+    const parent = path20[path20.length - 1];
     if (identity.isCollection(parent)) {
       parent.items[key] = node;
     } else if (identity.isPair(parent)) {
@@ -754,10 +754,10 @@ var require_Collection = __commonJS((exports) => {
   var createNode = require_createNode();
   var identity = require_identity();
   var Node = require_Node();
-  function collectionFromPath(schema, path19, value) {
+  function collectionFromPath(schema, path20, value) {
     let v = value;
-    for (let i = path19.length - 1;i >= 0; --i) {
-      const k = path19[i];
+    for (let i = path20.length - 1;i >= 0; --i) {
+      const k = path20[i];
       if (typeof k === "number" && Number.isInteger(k) && k >= 0) {
         const a = [];
         a[k] = v;
@@ -776,7 +776,7 @@ var require_Collection = __commonJS((exports) => {
       sourceObjects: new Map
     });
   }
-  var isEmptyPath = (path19) => path19 == null || typeof path19 === "object" && !!path19[Symbol.iterator]().next().done;
+  var isEmptyPath = (path20) => path20 == null || typeof path20 === "object" && !!path20[Symbol.iterator]().next().done;
 
   class Collection extends Node.NodeBase {
     constructor(type, schema) {
@@ -797,11 +797,11 @@ var require_Collection = __commonJS((exports) => {
         copy.range = this.range.slice();
       return copy;
     }
-    addIn(path19, value) {
-      if (isEmptyPath(path19))
+    addIn(path20, value) {
+      if (isEmptyPath(path20))
         this.add(value);
       else {
-        const [key, ...rest] = path19;
+        const [key, ...rest] = path20;
         const node = this.get(key, true);
         if (identity.isCollection(node))
           node.addIn(rest, value);
@@ -811,8 +811,8 @@ var require_Collection = __commonJS((exports) => {
           throw new Error(`Expected YAML collection at ${key}. Remaining path: ${rest}`);
       }
     }
-    deleteIn(path19) {
-      const [key, ...rest] = path19;
+    deleteIn(path20) {
+      const [key, ...rest] = path20;
       if (rest.length === 0)
         return this.delete(key);
       const node = this.get(key, true);
@@ -821,8 +821,8 @@ var require_Collection = __commonJS((exports) => {
       else
         throw new Error(`Expected YAML collection at ${key}. Remaining path: ${rest}`);
     }
-    getIn(path19, keepScalar) {
-      const [key, ...rest] = path19;
+    getIn(path20, keepScalar) {
+      const [key, ...rest] = path20;
       const node = this.get(key, true);
       if (rest.length === 0)
         return !keepScalar && identity.isScalar(node) ? node.value : node;
@@ -837,15 +837,15 @@ var require_Collection = __commonJS((exports) => {
         return n == null || allowScalar && identity.isScalar(n) && n.value == null && !n.commentBefore && !n.comment && !n.tag;
       });
     }
-    hasIn(path19) {
-      const [key, ...rest] = path19;
+    hasIn(path20) {
+      const [key, ...rest] = path20;
       if (rest.length === 0)
         return this.has(key);
       const node = this.get(key, true);
       return identity.isCollection(node) ? node.hasIn(rest) : false;
     }
-    setIn(path19, value) {
-      const [key, ...rest] = path19;
+    setIn(path20, value) {
+      const [key, ...rest] = path20;
       if (rest.length === 0) {
         this.set(key, value);
       } else {
@@ -3238,9 +3238,9 @@ var require_Document = __commonJS((exports) => {
       if (assertCollection(this.contents))
         this.contents.add(value);
     }
-    addIn(path19, value) {
+    addIn(path20, value) {
       if (assertCollection(this.contents))
-        this.contents.addIn(path19, value);
+        this.contents.addIn(path20, value);
     }
     createAlias(node, name) {
       if (!node.anchor) {
@@ -3289,30 +3289,30 @@ var require_Document = __commonJS((exports) => {
     delete(key) {
       return assertCollection(this.contents) ? this.contents.delete(key) : false;
     }
-    deleteIn(path19) {
-      if (Collection.isEmptyPath(path19)) {
+    deleteIn(path20) {
+      if (Collection.isEmptyPath(path20)) {
         if (this.contents == null)
           return false;
         this.contents = null;
         return true;
       }
-      return assertCollection(this.contents) ? this.contents.deleteIn(path19) : false;
+      return assertCollection(this.contents) ? this.contents.deleteIn(path20) : false;
     }
     get(key, keepScalar) {
       return identity.isCollection(this.contents) ? this.contents.get(key, keepScalar) : undefined;
     }
-    getIn(path19, keepScalar) {
-      if (Collection.isEmptyPath(path19))
+    getIn(path20, keepScalar) {
+      if (Collection.isEmptyPath(path20))
         return !keepScalar && identity.isScalar(this.contents) ? this.contents.value : this.contents;
-      return identity.isCollection(this.contents) ? this.contents.getIn(path19, keepScalar) : undefined;
+      return identity.isCollection(this.contents) ? this.contents.getIn(path20, keepScalar) : undefined;
     }
     has(key) {
       return identity.isCollection(this.contents) ? this.contents.has(key) : false;
     }
-    hasIn(path19) {
-      if (Collection.isEmptyPath(path19))
+    hasIn(path20) {
+      if (Collection.isEmptyPath(path20))
         return this.contents !== undefined;
-      return identity.isCollection(this.contents) ? this.contents.hasIn(path19) : false;
+      return identity.isCollection(this.contents) ? this.contents.hasIn(path20) : false;
     }
     set(key, value) {
       if (this.contents == null) {
@@ -3321,13 +3321,13 @@ var require_Document = __commonJS((exports) => {
         this.contents.set(key, value);
       }
     }
-    setIn(path19, value) {
-      if (Collection.isEmptyPath(path19)) {
+    setIn(path20, value) {
+      if (Collection.isEmptyPath(path20)) {
         this.contents = value;
       } else if (this.contents == null) {
-        this.contents = Collection.collectionFromPath(this.schema, Array.from(path19), value);
+        this.contents = Collection.collectionFromPath(this.schema, Array.from(path20), value);
       } else if (assertCollection(this.contents)) {
-        this.contents.setIn(path19, value);
+        this.contents.setIn(path20, value);
       }
     }
     setSchema(version, options = {}) {
@@ -5223,9 +5223,9 @@ var require_cst_visit = __commonJS((exports) => {
   visit.BREAK = BREAK;
   visit.SKIP = SKIP;
   visit.REMOVE = REMOVE;
-  visit.itemAtPath = (cst, path19) => {
+  visit.itemAtPath = (cst, path20) => {
     let item = cst;
-    for (const [field, index] of path19) {
+    for (const [field, index] of path20) {
       const tok = item?.[field];
       if (tok && "items" in tok) {
         item = tok.items[index];
@@ -5234,23 +5234,23 @@ var require_cst_visit = __commonJS((exports) => {
     }
     return item;
   };
-  visit.parentCollection = (cst, path19) => {
-    const parent = visit.itemAtPath(cst, path19.slice(0, -1));
-    const field = path19[path19.length - 1][0];
+  visit.parentCollection = (cst, path20) => {
+    const parent = visit.itemAtPath(cst, path20.slice(0, -1));
+    const field = path20[path20.length - 1][0];
     const coll = parent?.[field];
     if (coll && "items" in coll)
       return coll;
     throw new Error("Parent collection not found");
   };
-  function _visit(path19, item, visitor) {
-    let ctrl = visitor(item, path19);
+  function _visit(path20, item, visitor) {
+    let ctrl = visitor(item, path20);
     if (typeof ctrl === "symbol")
       return ctrl;
     for (const field of ["key", "value"]) {
       const token = item[field];
       if (token && "items" in token) {
         for (let i = 0;i < token.items.length; ++i) {
-          const ci = _visit(Object.freeze(path19.concat([[field, i]])), token.items[i], visitor);
+          const ci = _visit(Object.freeze(path20.concat([[field, i]])), token.items[i], visitor);
           if (typeof ci === "number")
             i = ci - 1;
           else if (ci === BREAK)
@@ -5261,10 +5261,10 @@ var require_cst_visit = __commonJS((exports) => {
           }
         }
         if (typeof ctrl === "function" && field === "key")
-          ctrl = ctrl(item, path19);
+          ctrl = ctrl(item, path20);
       }
     }
-    return typeof ctrl === "function" ? ctrl(item, path19) : ctrl;
+    return typeof ctrl === "function" ? ctrl(item, path20) : ctrl;
   }
   exports.visit = visit;
 });
@@ -6551,14 +6551,14 @@ var require_parser = __commonJS((exports) => {
           case "scalar":
           case "single-quoted-scalar":
           case "double-quoted-scalar": {
-            const fs15 = this.flowScalar(this.type);
+            const fs16 = this.flowScalar(this.type);
             if (atNextItem || it.value) {
-              map.items.push({ start, key: fs15, sep: [] });
+              map.items.push({ start, key: fs16, sep: [] });
               this.onKeyLine = true;
             } else if (it.sep) {
-              this.stack.push(fs15);
+              this.stack.push(fs16);
             } else {
-              Object.assign(it, { key: fs15, sep: [] });
+              Object.assign(it, { key: fs16, sep: [] });
               this.onKeyLine = true;
             }
             return;
@@ -6686,13 +6686,13 @@ var require_parser = __commonJS((exports) => {
           case "scalar":
           case "single-quoted-scalar":
           case "double-quoted-scalar": {
-            const fs15 = this.flowScalar(this.type);
+            const fs16 = this.flowScalar(this.type);
             if (!it || it.value)
-              fc.items.push({ start: [], key: fs15, sep: [] });
+              fc.items.push({ start: [], key: fs16, sep: [] });
             else if (it.sep)
-              this.stack.push(fs15);
+              this.stack.push(fs16);
             else
-              Object.assign(it, { key: fs15, sep: [] });
+              Object.assign(it, { key: fs16, sep: [] });
             return;
           }
           case "flow-map-end":
@@ -6949,7 +6949,7 @@ var require_public_api = __commonJS((exports) => {
 import readline from "node:readline";
 import { readFileSync } from "node:fs";
 import { fileURLToPath as fileURLToPath4 } from "node:url";
-import path23 from "node:path";
+import path24 from "node:path";
 
 // plugins/foundry/src/core/storage.ts
 import fs from "node:fs/promises";
@@ -8426,23 +8426,113 @@ async function handleSkillGraphValidate() {
   return { ok: issues.length === 0, issues };
 }
 
-// plugins/foundry/src/core/hub.ts
-import fs11 from "node:fs/promises";
-import path15 from "node:path";
-
-// plugins/foundry/src/core/migration.ts
+// plugins/foundry/src/core/archive-cleanup.ts
 import fs10 from "node:fs/promises";
 import path14 from "node:path";
 function isRecord8(value) {
+  return value !== null && typeof value === "object" && !Array.isArray(value);
+}
+function collectReferences(value, ids, evidence = false) {
+  if (typeof value === "string") {
+    if (evidence)
+      ids.add(value);
+  } else if (Array.isArray(value)) {
+    for (const item of value)
+      collectReferences(item, ids, evidence);
+  } else if (isRecord8(value)) {
+    if (typeof value.activity_id === "string")
+      ids.add(value.activity_id);
+    if (evidence && typeof value.id === "string")
+      ids.add(value.id);
+    for (const [key, item] of Object.entries(value))
+      collectReferences(item, ids, key === "evidence");
+  }
+}
+async function readReferences(dir, ids) {
+  let entries;
+  try {
+    if ((await fs10.lstat(dir)).isSymbolicLink())
+      throw Error(`Cannot verify archive references through symlink: ${dir}`);
+    entries = await fs10.readdir(dir, { withFileTypes: true });
+  } catch (error) {
+    if (error.code === "ENOENT")
+      return;
+    throw error;
+  }
+  for (const entry of entries) {
+    const file = path14.join(dir, entry.name);
+    if (entry.isSymbolicLink())
+      throw Error(`Cannot verify archive references through symlink: ${file}`);
+    if (entry.isDirectory())
+      await readReferences(file, ids);
+    else if (entry.isFile() && entry.name.endsWith(".json")) {
+      try {
+        const value = JSON.parse(await fs10.readFile(file, "utf8"));
+        if (!isRecord8(value))
+          throw Error("expected a JSON object");
+        collectReferences(value, ids);
+      } catch {
+        throw Error(`Cannot verify archive references: ${file}`);
+      }
+    }
+  }
+}
+async function cleanupArchive(confirm) {
+  const ids = new Set;
+  await readReferences(await knowledgeDirPath("candidates"), ids);
+  await readReferences(await knowledgeDirPath("skills"), ids);
+  const archive = await hostDirPath("archive");
+  if ((await fs10.lstat(archive)).isSymbolicLink())
+    throw Error("Cannot clean a symlinked archive directory");
+  const result = { mode: "archive", dry_run: !confirm, eligible: 0, deleted: 0, protected: 0, skipped: 0 };
+  const entries = await fs10.readdir(archive, { withFileTypes: true });
+  for (const entry of entries) {
+    if (!entry.isFile() || !entry.name.endsWith(".json")) {
+      result.skipped++;
+      continue;
+    }
+    const file = path14.join(archive, entry.name);
+    let record;
+    try {
+      record = JSON.parse(await fs10.readFile(file, "utf8"));
+    } catch {
+      result.skipped++;
+      continue;
+    }
+    if (!isRecord8(record) || typeof record.id !== "string" || !record.id.trim()) {
+      result.skipped++;
+      continue;
+    }
+    if (ids.has(record.id)) {
+      result.protected++;
+      continue;
+    }
+    result.eligible++;
+    if (confirm) {
+      await fs10.unlink(file);
+      result.deleted++;
+    }
+  }
+  return result;
+}
+
+// plugins/foundry/src/core/hub.ts
+import fs12 from "node:fs/promises";
+import path16 from "node:path";
+
+// plugins/foundry/src/core/migration.ts
+import fs11 from "node:fs/promises";
+import path15 from "node:path";
+function isRecord9(value) {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
 }
 function needsMigration(config) {
   return Number(config?.hub_schema_version || config?.version || 1) < HUB_SCHEMA_VERSION;
 }
 async function countJsonFiles(home, dir) {
-  const root = path14.join(home, dir);
+  const root = path15.join(home, dir);
   let count = 0;
-  for (const file of await fs10.readdir(root).catch(() => [])) {
+  for (const file of await fs11.readdir(root).catch(() => [])) {
     if (file.endsWith(".json"))
       count += 1;
   }
@@ -8450,36 +8540,36 @@ async function countJsonFiles(home, dir) {
 }
 async function backupHub(home) {
   const stamp = new Date().toISOString().replace(/[:.]/g, "-");
-  const backup = path14.join(home, "backups", `migration-v1-to-v2-${stamp}`);
-  await fs10.mkdir(backup, { recursive: true });
+  const backup = path15.join(home, "backups", `migration-v1-to-v2-${stamp}`);
+  await fs11.mkdir(backup, { recursive: true });
   for (const dir of DIRS) {
     if (dir === "backups")
       continue;
-    await fs10.cp(path14.join(home, dir), path14.join(backup, dir), { recursive: true, force: true }).catch(() => {});
+    await fs11.cp(path15.join(home, dir), path15.join(backup, dir), { recursive: true, force: true }).catch(() => {});
   }
-  await fs10.cp(path14.join(anchorHome, "config.json"), path14.join(backup, "config.json"), { force: true });
+  await fs11.cp(path15.join(anchorHome, "config.json"), path15.join(backup, "config.json"), { force: true });
   return backup;
 }
 async function ensureKnowledgeDirs(home) {
-  await Promise.all(KNOWLEDGE_DIRS.map((dir) => fs10.mkdir(path14.join(home, dir), { recursive: true })));
+  await Promise.all(KNOWLEDGE_DIRS.map((dir) => fs11.mkdir(path15.join(home, dir), { recursive: true })));
 }
 async function restoreHub(home, backup) {
   for (const dir of DIRS) {
     if (dir === "backups")
       continue;
-    await fs10.rm(path14.join(home, dir), { recursive: true, force: true });
-    await fs10.cp(path14.join(backup, dir), path14.join(home, dir), { recursive: true, force: true }).catch(() => {});
+    await fs11.rm(path15.join(home, dir), { recursive: true, force: true });
+    await fs11.cp(path15.join(backup, dir), path15.join(home, dir), { recursive: true, force: true }).catch(() => {});
   }
-  await fs10.cp(path14.join(backup, "config.json"), path14.join(anchorHome, "config.json"), { force: true });
+  await fs11.cp(path15.join(backup, "config.json"), path15.join(anchorHome, "config.json"), { force: true });
 }
 async function migrateActivities(home) {
-  const root = path14.join(home, "activities");
+  const root = path15.join(home, "activities");
   let count = 0;
-  for (const file of await fs10.readdir(root).catch(() => [])) {
+  for (const file of await fs11.readdir(root).catch(() => [])) {
     if (!file.endsWith(".json"))
       continue;
-    const item = await readJson(path14.join(root, file));
-    if (!isRecord8(item))
+    const item = await readJson(path15.join(root, file));
+    if (!isRecord9(item))
       continue;
     item.schema_version = ACTIVITY_SCHEMA_VERSION;
     item.state ||= "NEW";
@@ -8492,19 +8582,19 @@ async function migrateActivities(home) {
       key_points: item.key_points || [],
       segments: []
     };
-    await writeJson(path14.join(root, file), item);
+    await writeJson(path15.join(root, file), item);
     count += 1;
   }
   return count;
 }
 async function migrateCandidates(home) {
-  const root = path14.join(home, "candidates");
+  const root = path15.join(home, "candidates");
   let count = 0;
-  for (const file of await fs10.readdir(root).catch(() => [])) {
+  for (const file of await fs11.readdir(root).catch(() => [])) {
     if (!file.endsWith(".json"))
       continue;
-    const item = await readJson(path14.join(root, file));
-    if (!isRecord8(item))
+    const item = await readJson(path15.join(root, file));
+    if (!isRecord9(item))
       continue;
     item.schema_version = CANDIDATE_SCHEMA_VERSION;
     item.domain ||= null;
@@ -8521,18 +8611,18 @@ async function migrateCandidates(home) {
     item.merge_target ||= null;
     item.state ||= "OPEN";
     item.updated_at ||= item.created_at || new Date().toISOString();
-    await writeJson(path14.join(root, file), item);
+    await writeJson(path15.join(root, file), item);
     count += 1;
   }
   return count;
 }
 async function migrateSkills(home) {
-  const root = path14.join(home, "skills");
+  const root = path15.join(home, "skills");
   let count = 0;
-  for (const dir of await fs10.readdir(root).catch(() => [])) {
-    const file = path14.join(root, dir, "skill.json");
+  for (const dir of await fs11.readdir(root).catch(() => [])) {
+    const file = path15.join(root, dir, "skill.json");
     const item = await readJson(file);
-    if (!isRecord8(item))
+    if (!isRecord9(item))
       continue;
     item.schema_version = SKILL_METADATA_SCHEMA_VERSION;
     item.source_candidate ??= null;
@@ -8557,16 +8647,16 @@ async function sourceHomes(hostHome) {
   ];
 }
 async function migratePatternsFromSource(source, target) {
-  const sourceFile = path14.join(source, "indexes", "patterns.json");
+  const sourceFile = path15.join(source, "indexes", "patterns.json");
   const sourceIndex = await readJson(sourceFile);
   if (!Array.isArray(sourceIndex?.patterns))
     return 0;
-  const targetFile = path14.join(target, "indexes", "patterns.json");
+  const targetFile = path15.join(target, "indexes", "patterns.json");
   const targetIndex = await readJson(targetFile) || { schema_version: 1, patterns: [] };
   targetIndex.patterns = Array.isArray(targetIndex.patterns) ? targetIndex.patterns : [];
   let migrated = 0;
   for (const sourcePattern of sourceIndex.patterns) {
-    if (!isRecord8(sourcePattern) || typeof sourcePattern.fingerprint !== "string")
+    if (!isRecord9(sourcePattern) || typeof sourcePattern.fingerprint !== "string")
       continue;
     let targetPattern = targetIndex.patterns.find((item) => item.fingerprint === sourcePattern.fingerprint);
     if (!targetPattern) {
@@ -8576,11 +8666,11 @@ async function migratePatternsFromSource(source, target) {
     }
     const refs = [...Array.isArray(targetPattern.activity_refs) ? targetPattern.activity_refs : []];
     for (const id of Array.isArray(sourcePattern.activity_ids) ? sourcePattern.activity_ids : []) {
-      refs.push({ source: path14.basename(path14.dirname(source)), id });
+      refs.push({ source: path15.basename(path15.dirname(source)), id });
     }
     targetPattern.activity_refs = unique2([
-      ...refs.map((ref) => isRecord8(ref) ? `${ref.source}:${ref.id}` : null),
-      ...Array.isArray(sourcePattern.activity_refs) ? sourcePattern.activity_refs.map((ref) => isRecord8(ref) ? `${ref.source}:${ref.id}` : null) : []
+      ...refs.map((ref) => isRecord9(ref) ? `${ref.source}:${ref.id}` : null),
+      ...Array.isArray(sourcePattern.activity_refs) ? sourcePattern.activity_refs.map((ref) => isRecord9(ref) ? `${ref.source}:${ref.id}` : null) : []
     ]).map((ref) => {
       const [sourceId, id] = String(ref).split(":");
       return { source: sourceId, id };
@@ -8608,16 +8698,16 @@ async function migratePatternsFromSource(source, target) {
   return migrated;
 }
 async function migrateCandidatesFromSource(source, target, conflicts) {
-  const sourceDir = path14.join(source, "candidates");
-  const targetDir = path14.join(target, "candidates");
+  const sourceDir = path15.join(source, "candidates");
+  const targetDir = path15.join(target, "candidates");
   let migrated = 0;
-  for (const file of await fs10.readdir(sourceDir).catch(() => [])) {
+  for (const file of await fs11.readdir(sourceDir).catch(() => [])) {
     if (!file.endsWith(".json"))
       continue;
-    const candidate = await readJson(path14.join(sourceDir, file));
-    if (!isRecord8(candidate))
+    const candidate = await readJson(path15.join(sourceDir, file));
+    if (!isRecord9(candidate))
       continue;
-    const targetFile = path14.join(targetDir, file);
+    const targetFile = path15.join(targetDir, file);
     const existing = await readJson(targetFile);
     if (!existing) {
       await writeJson(targetFile, candidate);
@@ -8636,23 +8726,23 @@ async function migrateCandidatesFromSource(source, target, conflicts) {
   return migrated;
 }
 async function migrateSkillsFromSource(source, target, conflicts) {
-  const sourceDir = path14.join(source, "skills");
-  const targetDir = path14.join(target, "skills");
+  const sourceDir = path15.join(source, "skills");
+  const targetDir = path15.join(target, "skills");
   let migrated = 0;
-  for (const dir of await fs10.readdir(sourceDir).catch(() => [])) {
-    const sourceSkill = path14.join(sourceDir, dir);
-    const targetSkill = path14.join(targetDir, dir);
-    const sourceMeta = await readJson(path14.join(sourceSkill, "skill.json"));
-    if (!isRecord8(sourceMeta))
+  for (const dir of await fs11.readdir(sourceDir).catch(() => [])) {
+    const sourceSkill = path15.join(sourceDir, dir);
+    const targetSkill = path15.join(targetDir, dir);
+    const sourceMeta = await readJson(path15.join(sourceSkill, "skill.json"));
+    if (!isRecord9(sourceMeta))
       continue;
-    const targetMeta = await readJson(path14.join(targetSkill, "skill.json"));
+    const targetMeta = await readJson(path15.join(targetSkill, "skill.json"));
     if (!targetMeta) {
-      await fs10.cp(sourceSkill, targetSkill, { recursive: true, force: false });
+      await fs11.cp(sourceSkill, targetSkill, { recursive: true, force: false });
       migrated += 1;
       continue;
     }
-    const sourceContent = await fs10.readFile(path14.join(sourceSkill, "SKILL.md"), "utf8").catch(() => "");
-    const targetContent = await fs10.readFile(path14.join(targetSkill, "SKILL.md"), "utf8").catch(() => "");
+    const sourceContent = await fs11.readFile(path15.join(sourceSkill, "SKILL.md"), "utf8").catch(() => "");
+    const targetContent = await fs11.readFile(path15.join(targetSkill, "SKILL.md"), "utf8").catch(() => "");
     if (sameJson(targetMeta, sourceMeta) || sourceContent === targetContent)
       continue;
     conflicts.push({
@@ -8669,7 +8759,7 @@ async function migrateSharedKnowledge(hostHome) {
   await ensureKnowledgeDirs(knowledgeHome2);
   const conflicts = [];
   const migrated = { patterns: 0, candidates: 0, skills: 0 };
-  const sources = (await sourceHomes(hostHome)).filter((source) => path14.resolve(source) !== path14.resolve(knowledgeHome2));
+  const sources = (await sourceHomes(hostHome)).filter((source) => path15.resolve(source) !== path15.resolve(knowledgeHome2));
   for (const source of sources) {
     migrated.patterns += await migratePatternsFromSource(source, knowledgeHome2);
     migrated.candidates += await migrateCandidatesFromSource(source, knowledgeHome2, conflicts);
@@ -8682,7 +8772,7 @@ async function migrateSharedKnowledge(hostHome) {
     migrated,
     conflicts
   };
-  await writeJson(path14.join(await knowledgeDirPath("indexes"), "migration-report.json"), report);
+  await writeJson(path15.join(await knowledgeDirPath("indexes"), "migration-report.json"), report);
   return report;
 }
 async function migrationStatus() {
@@ -8696,7 +8786,7 @@ async function migrationStatus() {
     hub: home,
     data_path: home,
     knowledge_path: knowledge,
-    config_path: path14.join(anchorHome, "config.json")
+    config_path: path15.join(anchorHome, "config.json")
   };
 }
 async function handleHubMigrate(args = {}) {
@@ -8704,7 +8794,7 @@ async function handleHubMigrate(args = {}) {
   const counts = {
     activities: await countJsonFiles(status.hub, "activities"),
     candidates: await countJsonFiles(status.knowledge_path, "candidates"),
-    skills: (await fs10.readdir(path14.join(status.knowledge_path, "skills")).catch(() => [])).length
+    skills: (await fs11.readdir(path15.join(status.knowledge_path, "skills")).catch(() => [])).length
   };
   if (!status.migration_required)
     return { ...status, dry_run: Boolean(args.dry_run), migrated: false, counts };
@@ -8736,7 +8826,7 @@ async function handleHubMigrate(args = {}) {
 }
 
 // plugins/foundry/src/core/hub.ts
-function isRecord9(value) {
+function isRecord10(value) {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
 }
 async function handleHubInit(args = {}) {
@@ -8756,18 +8846,18 @@ async function handleHubInit(args = {}) {
   const saved = await saveConfig(config);
   const home = await resolveHostHome(saved);
   const knowledge = await resolveKnowledgeHome();
-  await fs11.mkdir(home, { recursive: true });
-  await fs11.mkdir(knowledge, { recursive: true });
+  await fs12.mkdir(home, { recursive: true });
+  await fs12.mkdir(knowledge, { recursive: true });
   await Promise.all([
-    ...HOST_DIRS.map((dir) => fs11.mkdir(path15.join(home, dir), { recursive: true })),
-    ...KNOWLEDGE_DIRS.map((dir) => fs11.mkdir(path15.join(knowledge, dir), { recursive: true }))
+    ...HOST_DIRS.map((dir) => fs12.mkdir(path16.join(home, dir), { recursive: true })),
+    ...KNOWLEDGE_DIRS.map((dir) => fs12.mkdir(path16.join(knowledge, dir), { recursive: true }))
   ]);
   return {
     initialized: true,
     hub: home,
     data_path: home,
     knowledge_path: knowledge,
-    config_path: path15.join(anchorHome, "config.json"),
+    config_path: path16.join(anchorHome, "config.json"),
     hub_schema_version: saved.hub_schema_version || HUB_SCHEMA_VERSION,
     maintainer: saved.maintainer,
     automation_policy: saved.automation_policy
@@ -8776,7 +8866,7 @@ async function handleHubInit(args = {}) {
 async function handleHubConfig(args = {}) {
   const config = await loadConfig();
   const oldHome = await resolveHome(config);
-  const newHome = args.path !== undefined ? path15.resolve(args.path) : oldHome;
+  const newHome = args.path !== undefined ? path16.resolve(args.path) : oldHome;
   if (args.maintainer !== undefined) {
     config.maintainer = args.maintainer;
   }
@@ -8789,15 +8879,15 @@ async function handleHubConfig(args = {}) {
   let movedFrom = null;
   if (args.path !== undefined && newHome !== oldHome) {
     movedFrom = oldHome;
-    await fs11.mkdir(newHome, { recursive: true });
+    await fs12.mkdir(newHome, { recursive: true });
     for (const dir of DIRS) {
-      const src = path15.join(oldHome, dir);
-      const dst = path15.join(newHome, dir);
-      await fs11.mkdir(dst, { recursive: true });
-      for (const entry of await fs11.readdir(src).catch(() => [])) {
-        await fs11.rename(path15.join(src, entry), path15.join(dst, entry));
+      const src = path16.join(oldHome, dir);
+      const dst = path16.join(newHome, dir);
+      await fs12.mkdir(dst, { recursive: true });
+      for (const entry of await fs12.readdir(src).catch(() => [])) {
+        await fs12.rename(path16.join(src, entry), path16.join(dst, entry));
       }
-      await fs11.rm(src, { recursive: true, force: true });
+      await fs12.rm(src, { recursive: true, force: true });
     }
     config.hub_path = newHome;
   }
@@ -8808,7 +8898,7 @@ async function handleHubConfig(args = {}) {
       hub: newHome,
       data_path: newHome,
       moved_from: movedFrom,
-      config_path: path15.join(anchorHome, "config.json"),
+      config_path: path16.join(anchorHome, "config.json"),
       hub_schema_version: saved.hub_schema_version || HUB_SCHEMA_VERSION
     };
   }
@@ -8816,7 +8906,7 @@ async function handleHubConfig(args = {}) {
     ...saved,
     hub: await resolveHome(saved),
     data_path: await resolveHome(saved),
-    config_path: path15.join(anchorHome, "config.json"),
+    config_path: path16.join(anchorHome, "config.json"),
     hub_schema_version: saved.hub_schema_version || HUB_SCHEMA_VERSION
   };
 }
@@ -8824,8 +8914,8 @@ async function handleHubStatus() {
   const config = await loadConfig();
   const home = await resolveHostHome(config);
   const knowledge = await resolveKnowledgeHome();
-  const hostCount = async (dir) => (await fs11.readdir(await hostDirPath(dir)).catch(() => [])).length;
-  const knowledgeCount = async (dir) => (await fs11.readdir(await knowledgeDirPath(dir)).catch(() => [])).length;
+  const hostCount = async (dir) => (await fs12.readdir(await hostDirPath(dir)).catch(() => [])).length;
+  const knowledgeCount = async (dir) => (await fs12.readdir(await knowledgeDirPath(dir)).catch(() => [])).length;
   const locations = await dataLocations();
   const activities = await hostCount("activities");
   const candidates = await knowledgeCount("candidates");
@@ -8835,7 +8925,7 @@ async function handleHubStatus() {
     hub: home,
     data_path: home,
     knowledge_path: knowledge,
-    config_path: path15.join(anchorHome, "config.json"),
+    config_path: path16.join(anchorHome, "config.json"),
     config,
     hub_schema_version: config.hub_schema_version || HUB_SCHEMA_VERSION,
     migration_required: (config.hub_schema_version || config.version || HUB_SCHEMA_VERSION) < HUB_SCHEMA_VERSION,
@@ -8859,7 +8949,7 @@ async function dataLocations() {
     },
     knowledge: {
       root: knowledgeRoot,
-      patterns: path15.join(await knowledgeDirPath("indexes"), "patterns.json"),
+      patterns: path16.join(await knowledgeDirPath("indexes"), "patterns.json"),
       candidates: await knowledgeDirPath("candidates"),
       skills: await knowledgeDirPath("skills"),
       indexes: await knowledgeDirPath("indexes"),
@@ -8877,9 +8967,11 @@ async function dataLocations() {
 }
 async function handleHubCleanup(args = {}) {
   const mode = args.mode || "generated";
-  if (!["generated", "blank", "all"].includes(mode)) {
-    throw Error("mode must be generated, blank or all");
+  if (!["generated", "blank", "archive", "all"].includes(mode)) {
+    throw Error("mode must be generated, blank, archive or all");
   }
+  if (mode === "archive")
+    return cleanupArchive(args.confirm === true);
   if (mode === "all") {
     if (args.confirm !== true) {
       throw Error("all cleanup requires confirm=true");
@@ -8896,16 +8988,16 @@ async function archiveBlankActivities() {
   const candidatesDir = await knowledgeDirPath("candidates");
   const protectedIds = new Set;
   async function readCandidateEvidence(dir) {
-    for (const entry of await fs11.readdir(dir, { withFileTypes: true }).catch(() => [])) {
-      const file = path15.join(dir, entry.name);
+    for (const entry of await fs12.readdir(dir, { withFileTypes: true }).catch(() => [])) {
+      const file = path16.join(dir, entry.name);
       if (entry.isDirectory()) {
         await readCandidateEvidence(file);
       } else if (entry.isFile() && entry.name.endsWith(".json")) {
         const item = await readJson(file);
-        if (!isRecord9(item) || !Array.isArray(item.evidence))
+        if (!isRecord10(item) || !Array.isArray(item.evidence))
           continue;
         for (const evidence of item.evidence) {
-          const id = typeof evidence === "string" ? evidence : isRecord9(evidence) ? evidence.activity_id : null;
+          const id = typeof evidence === "string" ? evidence : isRecord10(evidence) ? evidence.activity_id : null;
           if (typeof id === "string")
             protectedIds.add(id);
         }
@@ -8915,21 +9007,21 @@ async function archiveBlankActivities() {
   await readCandidateEvidence(candidatesDir);
   let archived = 0;
   let protectedCount = 0;
-  for (const file of await fs11.readdir(activitiesDir).catch(() => [])) {
+  for (const file of await fs12.readdir(activitiesDir).catch(() => [])) {
     if (!file.endsWith(".json"))
       continue;
-    const source = path15.join(activitiesDir, file);
+    const source = path16.join(activitiesDir, file);
     const activity = await readJson(source);
-    if (!isRecord9(activity) || hasActivityContent(activity))
+    if (!isRecord10(activity) || hasActivityContent(activity))
       continue;
     if (typeof activity.id === "string" && protectedIds.has(activity.id)) {
       protectedCount++;
       continue;
     }
-    const destination = path15.join(archiveDir, file);
-    if (await fs11.stat(destination).then(() => true, () => false))
+    const destination = path16.join(archiveDir, file);
+    if (await fs12.stat(destination).then(() => true, () => false))
       continue;
-    await fs11.rename(source, destination);
+    await fs12.rename(source, destination);
     archived++;
   }
   if (archived)
@@ -8940,18 +9032,18 @@ async function cleanAll() {
   const home = await resolveHome();
   const counts = {};
   for (const dir of DIRS) {
-    const target = path15.join(home, dir);
-    const files = await fs11.readdir(target).catch(() => []);
+    const target = path16.join(home, dir);
+    const files = await fs12.readdir(target).catch(() => []);
     counts[dir] = files.length;
-    await fs11.rm(target, { recursive: true, force: true });
-    await fs11.mkdir(target, { recursive: true });
+    await fs12.rm(target, { recursive: true, force: true });
+    await fs12.mkdir(target, { recursive: true });
   }
   return {
     mode: "all",
     counts,
     hub: home,
     data_path: home,
-    config_path: path15.join(anchorHome, "config.json"),
+    config_path: path16.join(anchorHome, "config.json"),
     action: "deleted_all_hub_data"
   };
 }
@@ -8959,13 +9051,13 @@ async function archiveGenerated() {
   let archived = 0;
   const activitiesDir = await hostDirPath("activities");
   const archiveDir = await hostDirPath("archive");
-  for (const file of await fs11.readdir(activitiesDir)) {
+  for (const file of await fs12.readdir(activitiesDir)) {
     if (!file.endsWith(".json"))
       continue;
-    const source = path15.join(activitiesDir, file);
+    const source = path16.join(activitiesDir, file);
     const item = await readJson(source);
-    if (isRecord9(item) && (ARCHIVABLE_STATES.includes(String(item.state)) || item.skill_id)) {
-      await fs11.rename(source, path15.join(archiveDir, file));
+    if (isRecord10(item) && (ARCHIVABLE_STATES.includes(String(item.state)) || item.skill_id)) {
+      await fs12.rename(source, path16.join(archiveDir, file));
       archived++;
     }
   }
@@ -8977,9 +9069,9 @@ async function handleHubDoctor() {
   const counts = {};
   const checks = [];
   for (const dir of DIRS) {
-    const target = path15.join(home, dir);
+    const target = path16.join(home, dir);
     try {
-      counts[dir] = (await fs11.readdir(target)).length;
+      counts[dir] = (await fs12.readdir(target)).length;
       checks.push({ name: `${dir}_dir`, ok: true, path: target });
     } catch (err) {
       counts[dir] = 0;
@@ -8991,10 +9083,10 @@ async function handleHubDoctor() {
       });
     }
   }
-  const skillDirs = await fs11.readdir(path15.join(home, "skills")).catch(() => []);
+  const skillDirs = await fs12.readdir(path16.join(home, "skills")).catch(() => []);
   const orphanSkills = [];
   for (const dir of skillDirs) {
-    const meta = await readJson(path15.join(home, "skills", dir, "skill.json"));
+    const meta = await readJson(path16.join(home, "skills", dir, "skill.json"));
     if (!meta)
       orphanSkills.push(dir);
   }
@@ -9003,7 +9095,7 @@ async function handleHubDoctor() {
     ok: checks.every((check) => check.ok),
     hub: home,
     data_path: home,
-    config_path: path15.join(anchorHome, "config.json"),
+    config_path: path16.join(anchorHome, "config.json"),
     hub_schema_version: config.hub_schema_version || HUB_SCHEMA_VERSION,
     migration_required: (config.hub_schema_version || config.version || HUB_SCHEMA_VERSION) < HUB_SCHEMA_VERSION,
     config,
@@ -9013,10 +9105,10 @@ async function handleHubDoctor() {
 }
 
 // plugins/foundry/src/core/hub-query.ts
-import fs12 from "node:fs/promises";
-import path16 from "node:path";
+import fs13 from "node:fs/promises";
+import path17 from "node:path";
 var COLLECTIONS = ["activities", "sessions", "events", "candidates", "skills", "indexes"];
-function isRecord10(value) {
+function isRecord11(value) {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
 }
 function collection(value) {
@@ -9036,7 +9128,7 @@ async function hostRoots(host) {
   for (const source of await describeActivitySources()) {
     if (source.host !== host || !source.root)
       continue;
-    const key = path16.resolve(source.root).toLowerCase();
+    const key = path17.resolve(source.root).toLowerCase();
     if (seen.has(key))
       continue;
     seen.add(key);
@@ -9046,26 +9138,26 @@ async function hostRoots(host) {
 }
 async function readJsonDir(dir, fields) {
   const items = [];
-  for (const file of await fs12.readdir(dir).catch(() => [])) {
+  for (const file of await fs13.readdir(dir).catch(() => [])) {
     if (!file.endsWith(".json"))
       continue;
-    const item = await readJson(path16.join(dir, file));
-    if (isRecord10(item))
+    const item = await readJson(path17.join(dir, file));
+    if (isRecord11(item))
       items.push(pickFields5({ ...item, file }, fields));
   }
   return items;
 }
 async function readSkills2(dir, fields) {
   const items = [];
-  for (const entry of await fs12.readdir(dir).catch(() => [])) {
-    const item = await readJson(path16.join(dir, entry, "skill.json"));
-    if (isRecord10(item))
+  for (const entry of await fs13.readdir(dir).catch(() => [])) {
+    const item = await readJson(path17.join(dir, entry, "skill.json"));
+    if (isRecord11(item))
       items.push(pickFields5({ ...item, dir: entry }, fields));
   }
   return items;
 }
 async function readCollection(root, name, fields) {
-  const dir = path16.join(root, name);
+  const dir = path17.join(root, name);
   return name === "skills" ? readSkills2(dir, fields) : readJsonDir(dir, fields);
 }
 async function handleHubQuery(args = {}) {
@@ -9086,17 +9178,17 @@ async function handleHubQuery(args = {}) {
 }
 
 // plugins/foundry/src/core/cache.ts
-import fs13 from "node:fs/promises";
-import path17 from "node:path";
+import fs14 from "node:fs/promises";
+import path18 from "node:path";
 import os3 from "node:os";
 import { fileURLToPath as fileURLToPath2 } from "node:url";
 async function handlePluginCacheCleanup(args = {}) {
-  const pluginRoot = path17.resolve(path17.dirname(fileURLToPath2(import.meta.url)), "../..");
-  const cacheRoot = path17.dirname(pluginRoot);
-  const currentVersion = path17.basename(pluginRoot);
-  const home = path17.resolve(os3.homedir()).toLowerCase();
-  const normalizedPluginRoot = path17.resolve(pluginRoot).toLowerCase();
-  const isKnownHostCache = normalizedPluginRoot.startsWith(home) && (normalizedPluginRoot.includes(`${path17.sep}.codex${path17.sep}`) || normalizedPluginRoot.includes(`${path17.sep}.codebuddy${path17.sep}`)) && /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/.test(currentVersion);
+  const pluginRoot = path18.resolve(path18.dirname(fileURLToPath2(import.meta.url)), "../..");
+  const cacheRoot = path18.dirname(pluginRoot);
+  const currentVersion = path18.basename(pluginRoot);
+  const home = path18.resolve(os3.homedir()).toLowerCase();
+  const normalizedPluginRoot = path18.resolve(pluginRoot).toLowerCase();
+  const isKnownHostCache = normalizedPluginRoot.startsWith(home) && (normalizedPluginRoot.includes(`${path18.sep}.codex${path18.sep}`) || normalizedPluginRoot.includes(`${path18.sep}.codebuddy${path18.sep}`)) && /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/.test(currentVersion);
   if (!isKnownHostCache) {
     return {
       ok: false,
@@ -9106,10 +9198,10 @@ async function handlePluginCacheCleanup(args = {}) {
     };
   }
   const oldCaches = [];
-  for (const entry of await fs13.readdir(cacheRoot, { withFileTypes: true }).catch(() => [])) {
+  for (const entry of await fs14.readdir(cacheRoot, { withFileTypes: true }).catch(() => [])) {
     if (!entry.isDirectory() || entry.name === currentVersion)
       continue;
-    const fullPath = path17.join(cacheRoot, entry.name);
+    const fullPath = path18.join(cacheRoot, entry.name);
     if (!isInside2(cacheRoot, fullPath)) {
       throw Error(`Refusing to inspect path outside Usora plugin cache: ${fullPath}`);
     }
@@ -9130,7 +9222,7 @@ async function handlePluginCacheCleanup(args = {}) {
     if (!isInside2(cacheRoot, cache.path)) {
       throw Error(`Refusing to delete path outside Usora plugin cache: ${cache.path}`);
     }
-    await fs13.rm(cache.path, { recursive: true, force: true });
+    await fs14.rm(cache.path, { recursive: true, force: true });
   }
   return {
     ok: true,
@@ -9144,8 +9236,8 @@ async function handlePluginCacheCleanup(args = {}) {
 }
 
 // plugins/foundry/src/core/portability/export.ts
-import fs14 from "node:fs/promises";
-import path18 from "node:path";
+import fs15 from "node:fs/promises";
+import path19 from "node:path";
 import { createHash } from "node:crypto";
 import { fileURLToPath as fileURLToPath3 } from "node:url";
 
@@ -9245,12 +9337,12 @@ function codeOf(error) {
   return error && typeof error === "object" && "code" in error ? String(error.code) : undefined;
 }
 function contains(parent, child) {
-  const relative = path18.relative(parent, child);
-  return relative === "" || !relative.startsWith(`..${path18.sep}`) && relative !== ".." && !path18.isAbsolute(relative);
+  const relative = path19.relative(parent, child);
+  return relative === "" || !relative.startsWith(`..${path19.sep}`) && relative !== ".." && !path19.isAbsolute(relative);
 }
 async function lstatOrNull(file) {
   try {
-    return await fs14.lstat(file);
+    return await fs15.lstat(file);
   } catch (error) {
     if (codeOf(error) === "ENOENT")
       return null;
@@ -9258,10 +9350,10 @@ async function lstatOrNull(file) {
   }
 }
 async function assertRealDirectoryAncestors(directory) {
-  const root = path18.parse(directory).root;
+  const root = path19.parse(directory).root;
   let current = root;
-  for (const component of directory.slice(root.length).split(path18.sep).filter(Boolean)) {
-    current = path18.join(current, component);
+  for (const component of directory.slice(root.length).split(path19.sep).filter(Boolean)) {
+    current = path19.join(current, component);
     const stat = await lstatOrNull(current);
     if (!stat?.isDirectory() || stat.isSymbolicLink()) {
       throw Error("PORTABILITY_OUTPUT_PATH: output parent and ancestors must be existing directories without symlinks");
@@ -9273,43 +9365,43 @@ async function assertRealDirectoryAncestors(directory) {
   }
 }
 async function protectedRoots() {
-  const moduleDir = path18.dirname(fileURLToPath3(import.meta.url));
-  const pluginRoot = path18.basename(moduleDir) === "dist" ? path18.resolve(moduleDir, "..") : path18.resolve(moduleDir, "..", "..", "..");
+  const moduleDir = path19.dirname(fileURLToPath3(import.meta.url));
+  const pluginRoot = path19.basename(moduleDir) === "dist" ? path19.resolve(moduleDir, "..") : path19.resolve(moduleDir, "..", "..", "..");
   const roots = [anchorHome, knowledgeHome, pluginRoot];
   try {
-    const config = JSON.parse(await fs14.readFile(path18.join(anchorHome, "config.json"), "utf8"));
+    const config = JSON.parse(await fs15.readFile(path19.join(anchorHome, "config.json"), "utf8"));
     if (typeof config.hub_path === "string" && config.hub_path)
-      roots.push(path18.resolve(config.hub_path));
+      roots.push(path19.resolve(config.hub_path));
   } catch (error) {
     if (codeOf(error) !== "ENOENT") {
       throw Error("PORTABILITY_OUTPUT_PATH: existing Hub configuration is unreadable; fix it before export");
     }
   }
-  const possibleRepository = path18.resolve(pluginRoot, "..", "..");
+  const possibleRepository = path19.resolve(pluginRoot, "..", "..");
   try {
-    const metadata = JSON.parse(await fs14.readFile(path18.join(possibleRepository, "package.json"), "utf8"));
+    const metadata = JSON.parse(await fs15.readFile(path19.join(possibleRepository, "package.json"), "utf8"));
     if (metadata.name === "usora")
       roots.push(possibleRepository);
   } catch {}
   const protectedPaths = new Set;
   for (const configuredRoot of roots) {
-    const root = path18.resolve(configuredRoot);
+    const root = path19.resolve(configuredRoot);
     protectedPaths.add(root);
     let existing = root;
     const suffix = [];
     for (;; ) {
       try {
-        const canonical = await fs14.realpath(existing);
-        protectedPaths.add(path18.join(canonical, ...suffix));
+        const canonical = await fs15.realpath(existing);
+        protectedPaths.add(path19.join(canonical, ...suffix));
         break;
       } catch (error) {
         if (codeOf(error) !== "ENOENT") {
           throw Error("PORTABILITY_OUTPUT_PATH: cannot resolve protected Hub/plugin paths safely");
         }
-        const parent = path18.dirname(existing);
+        const parent = path19.dirname(existing);
         if (parent === existing)
           throw Error("PORTABILITY_OUTPUT_PATH: protected path has no accessible root");
-        suffix.unshift(path18.basename(existing));
+        suffix.unshift(path19.basename(existing));
         existing = parent;
       }
     }
@@ -9317,12 +9409,12 @@ async function protectedRoots() {
   return [...protectedPaths];
 }
 async function outputTarget(outputPath, name, format) {
-  if (typeof outputPath !== "string" || !path18.isAbsolute(outputPath) || path18.sep !== "\\" && outputPath.includes("\\") || [...outputPath].some((character) => character.charCodeAt(0) < 32 || character.charCodeAt(0) === 127) || /^[\\/]{2}/.test(outputPath) || outputPath.split(/[\\/]/).some((part) => part === "..")) {
+  if (typeof outputPath !== "string" || !path19.isAbsolute(outputPath) || path19.sep !== "\\" && outputPath.includes("\\") || [...outputPath].some((character) => character.charCodeAt(0) < 32 || character.charCodeAt(0) === 127) || /^[\\/]{2}/.test(outputPath) || outputPath.split(/[\\/]/).some((part) => part === "..")) {
     throw Error("PORTABILITY_OUTPUT_PATH: output_path must be an existing absolute directory without traversal or Windows/UNC syntax");
   }
-  const parent = path18.resolve(outputPath);
+  const parent = path19.resolve(outputPath);
   await assertRealDirectoryAncestors(parent);
-  const target = path18.join(parent, format === "zip" ? `${name}.zip` : name);
+  const target = path19.join(parent, format === "zip" ? `${name}.zip` : name);
   for (const root of await protectedRoots()) {
     if (contains(root, parent) || contains(root, target) || contains(target, root)) {
       throw Error("PORTABILITY_OUTPUT_PATH: output must not overlap Hub data, plugin files, or the Usora source repository");
@@ -9339,14 +9431,14 @@ async function assertTargetType(target, format) {
   }
   return true;
 }
-function isRecord11(value) {
+function isRecord12(value) {
   return value !== null && typeof value === "object" && !Array.isArray(value);
 }
 function diagnostic(value) {
-  return isRecord11(value) && typeof value.code === "string" && typeof value.message === "string" && (value.file === undefined || typeof value.file === "string");
+  return isRecord12(value) && typeof value.code === "string" && typeof value.message === "string" && (value.file === undefined || typeof value.file === "string");
 }
 function copyReport(value) {
-  if (!isRecord11(value) || typeof value.valid !== "boolean" || !Array.isArray(value.errors) || !value.errors.every(diagnostic) || !Array.isArray(value.warnings) || !value.warnings.every(diagnostic) || !Array.isArray(value.files) || !value.files.every((file) => isRecord11(file) && typeof file.path === "string" && Number.isSafeInteger(file.bytes) && typeof file.bytes === "number" && file.bytes >= 0 && typeof file.sha256 === "string" && /^[a-f0-9]{64}$/.test(file.sha256)) || !Array.isArray(value.dependencies) || !value.dependencies.every((dependency) => isRecord11(dependency) && typeof dependency.kind === "string" && ["usora_mcp", "mcp", "runtime", "platform", "external_service", "credential", "dynamic_resource"].includes(dependency.kind) && typeof dependency.name === "string" && typeof dependency.required === "boolean" && typeof dependency.reason === "string") || !isRecord11(value.compatibility) || typeof value.compatibility.agent_skills !== "boolean" || typeof value.compatibility.independent !== "boolean" || !Array.isArray(value.compatibility.notes) || !value.compatibility.notes.every((note) => typeof note === "string"))
+  if (!isRecord12(value) || typeof value.valid !== "boolean" || !Array.isArray(value.errors) || !value.errors.every(diagnostic) || !Array.isArray(value.warnings) || !value.warnings.every(diagnostic) || !Array.isArray(value.files) || !value.files.every((file) => isRecord12(file) && typeof file.path === "string" && Number.isSafeInteger(file.bytes) && typeof file.bytes === "number" && file.bytes >= 0 && typeof file.sha256 === "string" && /^[a-f0-9]{64}$/.test(file.sha256)) || !Array.isArray(value.dependencies) || !value.dependencies.every((dependency) => isRecord12(dependency) && typeof dependency.kind === "string" && ["usora_mcp", "mcp", "runtime", "platform", "external_service", "credential", "dynamic_resource"].includes(dependency.kind) && typeof dependency.name === "string" && typeof dependency.required === "boolean" && typeof dependency.reason === "string") || !isRecord12(value.compatibility) || typeof value.compatibility.agent_skills !== "boolean" || typeof value.compatibility.independent !== "boolean" || !Array.isArray(value.compatibility.notes) || !value.compatibility.notes.every((note) => typeof note === "string"))
     throw Error("PORTABILITY_SNAPSHOT: a complete validation report is required");
   return {
     valid: value.valid,
@@ -9366,11 +9458,11 @@ function copyReport(value) {
   };
 }
 function copySnapshot(value, report) {
-  if (!isRecord11(value) || typeof value.name !== "string" || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(value.name) || value.name.length > 64 || !isRecord11(value.source) || value.source.skill_id !== value.name || value.source.state !== "PUBLISHED" || typeof value.source.revision !== "number" || !Number.isSafeInteger(value.source.revision) || value.source.revision < 1 || !Array.isArray(value.files) || !value.files.length || value.files.length > 100 || !report.compatibility.agent_skills)
+  if (!isRecord12(value) || typeof value.name !== "string" || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(value.name) || value.name.length > 64 || !isRecord12(value.source) || value.source.skill_id !== value.name || value.source.state !== "PUBLISHED" || typeof value.source.revision !== "number" || !Number.isSafeInteger(value.source.revision) || value.source.revision < 1 || !Array.isArray(value.files) || !value.files.length || value.files.length > 100 || !report.compatibility.agent_skills)
     throw Error("PORTABILITY_SNAPSHOT: a validated published Skill snapshot is required");
   let bytes = 0;
   const files = value.files.map((file) => {
-    if (!isRecord11(file) || typeof file.path !== "string" || !Buffer.isBuffer(file.data) || file.data.length > 1024 * 1024 || file.mode !== undefined && (typeof file.mode !== "number" || !Number.isSafeInteger(file.mode) || file.mode < 0 || file.mode > 65535))
+    if (!isRecord12(file) || typeof file.path !== "string" || !Buffer.isBuffer(file.data) || file.data.length > 1024 * 1024 || file.mode !== undefined && (typeof file.mode !== "number" || !Number.isSafeInteger(file.mode) || file.mode < 0 || file.mode > 65535))
       throw Error("PORTABILITY_SNAPSHOT: invalid file path, buffer, size, or mode");
     bytes += file.data.length;
     if (bytes > 16 * 1024 * 1024)
@@ -9423,10 +9515,10 @@ async function exportSkillSnapshot(snapshot, report, args) {
     return preview;
   if (exists3 && conflictPolicy === "error")
     throw Error("PORTABILITY_CONFLICT: export target exists; choose another parent or explicit conflict=overwrite");
-  const parent = path18.dirname(target);
-  const lock = path18.join(parent, `.usora-export-${path18.basename(target)}.lock`);
+  const parent = path19.dirname(target);
+  const lock = path19.join(parent, `.usora-export-${path19.basename(target)}.lock`);
   try {
-    await fs14.mkdir(lock, { mode: 448 });
+    await fs15.mkdir(lock, { mode: 448 });
   } catch (error) {
     if (codeOf(error) === "EEXIST")
       throw Error(`PORTABILITY_EXPORT_BUSY: export lock exists at ${lock}; retry after the export finishes. If a prior export stopped unexpectedly, remove this lock only after confirming that process is no longer running.`);
@@ -9444,45 +9536,45 @@ async function exportSkillSnapshot(snapshot, report, args) {
     if (await assertTargetType(target, format) && conflictPolicy === "error") {
       throw Error("PORTABILITY_CONFLICT: target appeared during export");
     }
-    stage = await fs14.mkdtemp(path18.join(parent, `.usora-export-${snapshot.name}-`));
-    const payload = path18.join(stage, "payload");
+    stage = await fs15.mkdtemp(path19.join(parent, `.usora-export-${snapshot.name}-`));
+    const payload = path19.join(stage, "payload");
     if (format === "zip") {
       const archive = deterministicZip(snapshot.files.map((file) => ({ ...file, path: `${snapshot.name}/${file.path}` })));
       sha256 = createHash("sha256").update(archive).digest("hex");
-      await fs14.writeFile(payload, archive, { flag: "wx", mode: 420 });
+      await fs15.writeFile(payload, archive, { flag: "wx", mode: 420 });
     } else {
-      await fs14.mkdir(payload);
+      await fs15.mkdir(payload);
       for (const file of snapshot.files) {
-        const full = path18.join(payload, ...file.path.split("/"));
-        await fs14.mkdir(path18.dirname(full), { recursive: true });
-        await fs14.writeFile(full, file.data, { flag: "wx", mode: (file.mode ?? 420) & 511 });
-        await fs14.chmod(full, (file.mode ?? 420) & 511);
+        const full = path19.join(payload, ...file.path.split("/"));
+        await fs15.mkdir(path19.dirname(full), { recursive: true });
+        await fs15.writeFile(full, file.data, { flag: "wx", mode: (file.mode ?? 420) & 511 });
+        await fs15.chmod(full, (file.mode ?? 420) & 511);
       }
     }
     await outputTarget(outputPath, snapshot.name, format);
     if (await assertTargetType(target, format)) {
       if (conflictPolicy === "error")
         throw Error("PORTABILITY_CONFLICT: target appeared during staging");
-      backup = path18.join(stage, "previous");
-      await fs14.rename(target, backup);
+      backup = path19.join(stage, "previous");
+      await fs15.rename(target, backup);
     }
     try {
       if (format === "zip" && conflictPolicy === "error") {
         try {
-          await fs14.link(payload, target);
+          await fs15.link(payload, target);
         } catch (error) {
           if (codeOf(error) === "EEXIST")
             throw Error("PORTABILITY_CONFLICT: target appeared during commit");
           throw error;
         }
       } else {
-        await fs14.rename(payload, target);
+        await fs15.rename(payload, target);
       }
       committed = true;
     } catch (error) {
       if (backup) {
         try {
-          await fs14.rename(backup, target);
+          await fs15.rename(backup, target);
           backup = null;
         } catch {
           preserveBackup = true;
@@ -9498,7 +9590,7 @@ async function exportSkillSnapshot(snapshot, report, args) {
   } finally {
     for (const leftover of [...stage && !preserveBackup ? [stage] : [], lock]) {
       try {
-        await fs14.rm(leftover, { recursive: true, force: true });
+        await fs15.rm(leftover, { recursive: true, force: true });
       } catch (error) {
         cleanupIssues.push({ path: leftover, code: codeOf(error) || "I/O error" });
       }
@@ -9530,9 +9622,9 @@ async function exportSkillSnapshot(snapshot, report, args) {
 }
 
 // plugins/foundry/src/core/portability/validate.ts
-import fs15 from "node:fs/promises";
+import fs16 from "node:fs/promises";
 import { constants } from "node:fs";
-import path20 from "node:path";
+import path21 from "node:path";
 import { createHash as createHash2 } from "node:crypto";
 import { TextDecoder } from "node:util";
 
@@ -9583,7 +9675,7 @@ var $visit = visit.visit;
 var $visitAsync = visit.visitAsync;
 
 // plugins/foundry/src/core/portability/content-analysis.ts
-import path19 from "node:path";
+import path20 from "node:path";
 
 // plugins/foundry/src/core/tool-catalog.ts
 var USORA_TOOL_NAMES = [
@@ -9671,7 +9763,7 @@ var extensionRuntimes = {
   ".bat": "Windows command processor"
 };
 function expressionContext(file, content) {
-  if (expressionLanguages.has(path19.posix.extname(file).toLowerCase()))
+  if (expressionLanguages.has(path20.posix.extname(file).toLowerCase()))
     return () => true;
   if (!/\.mdx?$/i.test(file))
     return () => false;
@@ -9776,7 +9868,7 @@ function analyzeSkillContent(content, file) {
         reason: `${name} command or interpreter in ${file}; availability is not verified by static validation.`
       });
   }
-  const extension = path19.posix.extname(file).toLowerCase();
+  const extension = path20.posix.extname(file).toLowerCase();
   const runtime = extensionRuntimes[extension];
   if (file.startsWith("scripts/"))
     add({
@@ -9891,7 +9983,7 @@ class ValidationFailure extends Error {
     this.file = file;
   }
 }
-function isRecord12(value) {
+function isRecord13(value) {
   return value !== null && typeof value === "object" && !Array.isArray(value);
 }
 function freshReport() {
@@ -9948,17 +10040,17 @@ function failureResult(error) {
     const trustedFile = ["SKILL.md", "skill.json", "config.json"].includes(error.file || "") ? error.file : undefined;
     report.errors.push(diagnostic2(error.code, error.message, trustedFile));
   } else {
-    const code = isRecord12(error) && typeof error.code === "string" ? error.code : "";
+    const code = isRecord13(error) && typeof error.code === "string" ? error.code : "";
     report.errors.push(diagnostic2(code === "EACCES" || code === "EPERM" ? "PERMISSION_DENIED" : "SOURCE_READ_FAILED", "Cannot read the selected Skill. Check file permissions and Hub integrity."));
   }
   return { report, snapshot: null };
 }
 async function requireRealDirectory(dir) {
-  const full = path20.resolve(dir);
-  let current = path20.parse(full).root;
-  for (const segment of full.slice(current.length).split(path20.sep).filter(Boolean)) {
-    current = path20.join(current, segment);
-    const stat = await fs15.lstat(current);
+  const full = path21.resolve(dir);
+  let current = path21.parse(full).root;
+  for (const segment of full.slice(current.length).split(path21.sep).filter(Boolean)) {
+    current = path21.join(current, segment);
+    const stat = await fs16.lstat(current);
     if (stat.isSymbolicLink())
       throw new ValidationFailure("SYMLINK_NOT_ALLOWED", "Replace symlink ancestors with real directories before validating.");
     if (!stat.isDirectory())
@@ -9967,17 +10059,17 @@ async function requireRealDirectory(dir) {
 }
 async function readSourceFile(absolute, relative) {
   try {
-    await requireRealDirectory(path20.dirname(absolute));
+    await requireRealDirectory(path21.dirname(absolute));
   } catch (error) {
-    if (isRecord12(error) && error.code === "ENOENT")
+    if (isRecord13(error) && error.code === "ENOENT")
       throw new ValidationFailure(relative === "skill.json" ? "SKILL_NOT_FOUND" : "RESOURCE_NOT_FOUND", "A required Skill or resource file is missing. Repair the selected source reference before retrying.", relative);
     throw error;
   }
   let stat;
   try {
-    stat = await fs15.lstat(absolute);
+    stat = await fs16.lstat(absolute);
   } catch (error) {
-    if (isRecord12(error) && error.code === "ENOENT") {
+    if (isRecord13(error) && error.code === "ENOENT") {
       throw new ValidationFailure(relative === "skill.json" ? "SKILL_NOT_FOUND" : "RESOURCE_NOT_FOUND", "A required Skill or resource file is missing. Repair the selected source reference before retrying.", relative);
     }
     throw error;
@@ -9988,7 +10080,7 @@ async function readSourceFile(absolute, relative) {
     throw new ValidationFailure("UNSAFE_FILE_TYPE", "Only regular files can be included in a Skill.", relative);
   if (stat.size > PORTABILITY_LIMITS.file_bytes)
     throw new ValidationFailure("FILE_TOO_LARGE", "A file exceeds the 1 MiB portability limit.", relative);
-  const handle = await fs15.open(absolute, constants.O_RDONLY | (constants.O_NOFOLLOW || 0));
+  const handle = await fs16.open(absolute, constants.O_RDONLY | (constants.O_NOFOLLOW || 0));
   try {
     const opened = await handle.stat();
     if (opened.ino !== stat.ino || opened.dev !== stat.dev)
@@ -10028,7 +10120,7 @@ function decodeText(data, file) {
 function parseMetadata(data) {
   try {
     const value = JSON.parse(decodeText(data, "skill.json"));
-    if (!isRecord12(value))
+    if (!isRecord13(value))
       throw Error("object");
     return value;
   } catch (error) {
@@ -10056,7 +10148,7 @@ function validateFrontmatter(value, skillId, report) {
   if ("compatibility" in value && (typeof value.compatibility !== "string" || !value.compatibility.trim() || value.compatibility.length > 500)) {
     addError(report, "INVALID_COMPATIBILITY", "compatibility must be a nonempty string of at most 500 characters.", "SKILL.md");
   }
-  if ("metadata" in value && (!isRecord12(value.metadata) || Object.values(value.metadata).some((entry) => typeof entry !== "string"))) {
+  if ("metadata" in value && (!isRecord13(value.metadata) || Object.values(value.metadata).some((entry) => typeof entry !== "string"))) {
     addError(report, "INVALID_FRONTMATTER_METADATA", "metadata must map string keys to string values.", "SKILL.md");
   }
   if ("allowed-tools" in value)
@@ -10086,7 +10178,7 @@ function renderSkill(content, meta, skillId, report) {
     if (nonstringKey)
       throw new ValidationFailure("INVALID_FRONTMATTER_METADATA", "YAML mappings must use string keys; quote numeric keys and replace complex keys with strings.", "SKILL.md");
     const parsed = document.toJS({ maxAliasCount: 0 });
-    if (!isRecord12(parsed))
+    if (!isRecord13(parsed))
       throw new ValidationFailure("INVALID_YAML", "YAML frontmatter must be a mapping.", "SKILL.md");
     fields = parsed;
     body = match[2];
@@ -10215,18 +10307,18 @@ async function collectOnce(dir, skillId) {
   const report = freshReport();
   const originals = [];
   await requireRealDirectory(dir);
-  const metadata = await readSourceFile(path20.join(dir, "skill.json"), "skill.json");
+  const metadata = await readSourceFile(path21.join(dir, "skill.json"), "skill.json");
   originals.push(metadata);
   const meta = parseMetadata(metadata.data);
   if (meta.name !== skillId)
     throw new ValidationFailure("INVALID_METADATA", "Skill metadata name must match the selected directory.", "skill.json");
   if (meta.schema_version !== undefined && meta.schema_version !== 1 && meta.schema_version !== 2)
     throw new ValidationFailure("INVALID_METADATA", "Unsupported Skill metadata schema; inspect Hub version before exporting.", "skill.json");
-  if (meta.state !== "PUBLISHED" || !isRecord12(meta.evaluation) || meta.evaluation.result !== "pass")
+  if (meta.state !== "PUBLISHED" || !isRecord13(meta.evaluation) || meta.evaluation.result !== "pass")
     throw new ValidationFailure("SKILL_NOT_PUBLISHED", "Export requires a PUBLISHED Skill with a passing evaluation. Use the normal review and Maintainer publication workflow.", "skill.json");
   if (typeof meta.revision !== "number" || !Number.isSafeInteger(meta.revision) || meta.revision < 1)
     throw new ValidationFailure("INVALID_METADATA", "Published Skill must have a positive integer revision.", "skill.json");
-  const markdown = await readSourceFile(path20.join(dir, "SKILL.md"), "SKILL.md");
+  const markdown = await readSourceFile(path21.join(dir, "SKILL.md"), "SKILL.md");
   originals.push(markdown);
   const rendered = renderSkill(decodeText(markdown.data, "SKILL.md"), meta, skillId, report);
   const renderedData = Buffer.from(rendered, "utf8");
@@ -10303,7 +10395,7 @@ async function collectOnce(dir, skillId) {
         continue;
       }
       try {
-        const source = await readSourceFile(path20.join(dir, ...resource.split("/")), resource);
+        const source = await readSourceFile(path21.join(dir, ...resource.split("/")), resource);
         originals.push(source);
         totalBytes += source.data.length;
         if (totalBytes > PORTABILITY_LIMITS.total_bytes) {
@@ -10311,7 +10403,7 @@ async function collectOnce(dir, skillId) {
           break;
         }
         files.push({ path: resource, data: source.data, mode: source.mode & 73 ? 493 : 420 });
-        if (textExtensions.has(path20.posix.extname(resource).toLowerCase()) || resource.startsWith("scripts/")) {
+        if (textExtensions.has(path21.posix.extname(resource).toLowerCase()) || resource.startsWith("scripts/")) {
           await follow(resource, decodeText(source.data, resource));
         } else {
           scanContent(source.data.toString("utf8").replaceAll("\x00", ""), resource);
@@ -10359,7 +10451,7 @@ async function validateSkillDirectory(dir, skillId) {
     return failureResult(new ValidationFailure("INVALID_NAME", "Skill identifier must use 1–64 lowercase ASCII letters/numbers with single internal hyphens."));
   for (let attempt = 0;attempt < 3; attempt++) {
     try {
-      const { result, originals } = await collectOnce(path20.resolve(dir), skillId);
+      const { result, originals } = await collectOnce(path21.resolve(dir), skillId);
       for (const original of originals) {
         const current = await readSourceFile(original.absolute, original.relative);
         if (!current.data.equals(original.data) || current.mode !== original.mode)
@@ -10382,9 +10474,9 @@ async function validateSkillSnapshot(skillId) {
   try {
     let configFile;
     try {
-      configFile = await readSourceFile(path20.join(anchorHome, "config.json"), "config.json");
+      configFile = await readSourceFile(path21.join(anchorHome, "config.json"), "config.json");
     } catch (error) {
-      if (error instanceof ValidationFailure && error.code === "RESOURCE_NOT_FOUND" || isRecord12(error) && error.code === "ENOENT")
+      if (error instanceof ValidationFailure && error.code === "RESOURCE_NOT_FOUND" || isRecord13(error) && error.code === "ENOENT")
         throw new ValidationFailure("HUB_NOT_FOUND", "Initialize the Hub explicitly with hub_init before validating a Skill.");
       throw error;
     }
@@ -10394,25 +10486,25 @@ async function validateSkillSnapshot(skillId) {
     } catch {
       throw new ValidationFailure("INVALID_METADATA", "Hub config.json is malformed; inspect hub_doctor before exporting.", "config.json");
     }
-    if (!isRecord12(config))
+    if (!isRecord13(config))
       throw new ValidationFailure("INVALID_METADATA", "Hub config.json must contain an object.", "config.json");
     const schema = config.hub_schema_version ?? config.version ?? 1;
     if (typeof schema !== "number" || schema < HUB_SCHEMA_VERSION)
       throw new ValidationFailure("MIGRATION_REQUIRED", "Hub schema v1 requires an explicit hub_migrate dry_run and confirmed migration before portability tools.");
     if (schema > HUB_SCHEMA_VERSION)
       throw new ValidationFailure("UNSUPPORTED_HUB_SCHEMA", "Hub schema is newer than this runtime; upgrade the plugin before exporting.");
-    const dir = path20.join(await knowledgeDirPath("skills"), skillId);
+    const dir = path21.join(await knowledgeDirPath("skills"), skillId);
     try {
       await requireRealDirectory(dir);
     } catch (error) {
-      if (isRecord12(error) && error.code === "ENOENT")
+      if (isRecord13(error) && error.code === "ENOENT")
         throw new ValidationFailure("SKILL_NOT_FOUND", "Selected Skill does not exist; use skill_query with a targeted filter.");
       throw error;
     }
-    const writerLock = path20.join(await knowledgeDirPath("indexes"), "locks", "skills.lock");
+    const writerLock = path21.join(await knowledgeDirPath("indexes"), "locks", "skills.lock");
     async function requireNoWriter() {
-      const lock = await fs15.lstat(writerLock).catch((error) => {
-        if (isRecord12(error) && error.code === "ENOENT")
+      const lock = await fs16.lstat(writerLock).catch((error) => {
+        if (isRecord13(error) && error.code === "ENOENT")
           return null;
         throw error;
       });
@@ -10477,16 +10569,16 @@ async function handleSkillExport(args = {}) {
 }
 
 // plugins/foundry/src/core/skills.ts
-import fs16 from "node:fs/promises";
-import path21 from "node:path";
-function isRecord13(value) {
+import fs17 from "node:fs/promises";
+import path22 from "node:path";
+function isRecord14(value) {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
 }
 function asArray2(value) {
   return Array.isArray(value) ? value : [];
 }
 function asRecords(value) {
-  return asArray2(value).filter(isRecord13);
+  return asArray2(value).filter(isRecord14);
 }
 function stringValue(value) {
   return typeof value === "string" ? value : undefined;
@@ -10495,13 +10587,13 @@ function numberValue2(value) {
   return typeof value === "number" ? value : 0;
 }
 async function readCandidate(id) {
-  return readJson(path21.join(await knowledgeDirPath("candidates"), `${safeName(id, "candidate_id")}.json`));
+  return readJson(path22.join(await knowledgeDirPath("candidates"), `${safeName(id, "candidate_id")}.json`));
 }
 async function requirePassingCandidate(candidateId) {
   if (!candidateId)
     throw Error("candidate_id is required");
   const candidate = await readCandidate(candidateId);
-  if (!isRecord13(candidate))
+  if (!isRecord14(candidate))
     throw Error("Candidate not found");
   if (candidate.state !== "EVALUATED" || candidate.evaluation?.result !== "pass") {
     throw Error("Skill requires a passing Candidate evaluation");
@@ -10510,11 +10602,11 @@ async function requirePassingCandidate(candidateId) {
 }
 async function readSkillMeta(name) {
   const skillName2 = safeName(name, "name");
-  const file = path21.join(await knowledgeDirPath("skills"), skillName2, "skill.json");
+  const file = path22.join(await knowledgeDirPath("skills"), skillName2, "skill.json");
   const meta = await readJson(file);
-  if (!isRecord13(meta))
+  if (!isRecord14(meta))
     throw Error("Skill not found");
-  return { skillName: skillName2, file, meta, dir: path21.dirname(file) };
+  return { skillName: skillName2, file, meta, dir: path22.dirname(file) };
 }
 function generatedSkillName(candidate, fallback = "generated-skill") {
   const slug = String(candidate.title || fallback).toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 64);
@@ -10550,8 +10642,8 @@ async function createSkill(args) {
   if (args.candidate_id)
     await requirePassingCandidate(args.candidate_id);
   const skillName2 = safeName(args.name, "name");
-  const dir = path21.join(await knowledgeDirPath("skills"), skillName2);
-  await fs16.mkdir(dir, { recursive: true });
+  const dir = path22.join(await knowledgeDirPath("skills"), skillName2);
+  await fs17.mkdir(dir, { recursive: true });
   const meta = {
     schema_version: SKILL_METADATA_SCHEMA_VERSION,
     name: skillName2,
@@ -10564,11 +10656,11 @@ async function createSkill(args) {
     created_at: now(),
     updated_at: now()
   };
-  await writeJson(path21.join(dir, "skill.json"), meta);
+  await writeJson(path22.join(dir, "skill.json"), meta);
   const content = args.content.endsWith(`
 `) ? args.content : `${args.content}
 `;
-  await fs16.writeFile(path21.join(dir, "SKILL.md"), content, "utf8");
+  await fs17.writeFile(path22.join(dir, "SKILL.md"), content, "utf8");
   await rebuildSkillIndex();
   await writeEvent("SkillDraftCreated", meta);
   return meta;
@@ -10630,14 +10722,14 @@ function skillDelta(args, candidate, action) {
     evidence: asArray2(args.evidence || candidate?.evidence).slice(0, 3),
     source_candidate: candidate?.id || args.candidate_id || null,
     source_pattern: args.pattern_fingerprint || candidate?.fingerprint || null,
-    changes: isRecord13(args.changes) ? args.changes : {},
+    changes: isRecord14(args.changes) ? args.changes : {},
     target_skill: args.target_skill || null,
     created_at: now()
   };
 }
 async function patchSkill(name, delta) {
   const { file, meta, dir } = await readSkillMeta(name);
-  const current = await fs16.readFile(path21.join(dir, "SKILL.md"), "utf8").catch(() => meta.content || "");
+  const current = await fs17.readFile(path22.join(dir, "SKILL.md"), "utf8").catch(() => meta.content || "");
   const append = typeof delta.changes.content_append === "string" ? delta.changes.content_append : "";
   const nextContent = typeof delta.changes.content === "string" ? delta.changes.content : append ? `${current.trimEnd()}
 
@@ -10651,7 +10743,7 @@ ${append.trim()}
   meta.updated_at = now();
   meta.evolution = [...meta.evolution || [], delta].slice(-20);
   await writeJson(file, meta);
-  await fs16.writeFile(path21.join(dir, "SKILL.md"), nextContent.endsWith(`
+  await fs17.writeFile(path22.join(dir, "SKILL.md"), nextContent.endsWith(`
 `) ? nextContent : `${nextContent}
 `, "utf8");
   await rebuildSkillIndex();
@@ -10703,9 +10795,9 @@ async function handleSkillEvaluate(args) {
 }
 async function evaluateSkill(args) {
   const skillName2 = safeName(args.name, "name");
-  const file = path21.join(await knowledgeDirPath("skills"), skillName2, "skill.json");
+  const file = path22.join(await knowledgeDirPath("skills"), skillName2, "skill.json");
   const item = await readJson(file);
-  if (!isRecord13(item))
+  if (!isRecord14(item))
     throw Error("Skill not found");
   const result = args.result;
   if (result !== "pass" && result !== "fail") {
@@ -10733,11 +10825,11 @@ async function publishSkill(args) {
     throw Error("Only the configured Maintainer can publish");
   }
   const skillName2 = safeName(args.name, "name");
-  const file = path21.join(await knowledgeDirPath("skills"), skillName2, "skill.json");
+  const file = path22.join(await knowledgeDirPath("skills"), skillName2, "skill.json");
   const meta = await readJson(file);
-  if (!isRecord13(meta))
+  if (!isRecord14(meta))
     throw Error("Skill not found");
-  const evaluation = isRecord13(meta.evaluation) ? meta.evaluation : {};
+  const evaluation = isRecord14(meta.evaluation) ? meta.evaluation : {};
   if (meta.state !== "EVALUATED" || evaluation.result !== "pass") {
     throw Error("Skill requires a passing evaluation");
   }
@@ -10752,11 +10844,11 @@ async function publishSkill(args) {
 }
 async function handleSkillRead(args) {
   const skillName2 = safeName(args.name, "name");
-  const dir = path21.join(await knowledgeDirPath("skills"), skillName2);
-  const meta = await readJson(path21.join(dir, "skill.json"));
-  if (!isRecord13(meta))
+  const dir = path22.join(await knowledgeDirPath("skills"), skillName2);
+  const meta = await readJson(path22.join(dir, "skill.json"));
+  if (!isRecord14(meta))
     throw Error("Skill not found");
-  const content = await fs16.readFile(path21.join(dir, "SKILL.md"), "utf8").catch(() => meta.content || "");
+  const content = await fs17.readFile(path22.join(dir, "SKILL.md"), "utf8").catch(() => meta.content || "");
   const { content: _storedContent, ...metadata } = meta;
   return { metadata, content };
 }
@@ -10764,9 +10856,9 @@ async function handleSkillList(args = {}) {
   const limit = listLimit(args.limit);
   const skillsDir = await knowledgeDirPath("skills");
   const items = [];
-  for (const dir of await fs16.readdir(skillsDir).catch(() => [])) {
-    const meta = await readJson(path21.join(skillsDir, dir, "skill.json"));
-    if (!isRecord13(meta))
+  for (const dir of await fs17.readdir(skillsDir).catch(() => [])) {
+    const meta = await readJson(path22.join(skillsDir, dir, "skill.json"));
+    if (!isRecord14(meta))
       continue;
     items.push(skillSummary(meta));
   }
@@ -10791,9 +10883,9 @@ async function handleSkillGet(args = {}) {
 }
 
 // plugins/foundry/src/core/usage.ts
-import path22 from "node:path";
+import path23 from "node:path";
 var OUTCOMES = ["success", "partial", "failure", "unknown"];
-function isRecord14(value) {
+function isRecord15(value) {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
 }
 function bump(meta, outcome) {
@@ -10810,9 +10902,9 @@ async function captureUsage(args = {}) {
   const outcome = args.outcome || "unknown";
   if (!OUTCOMES.includes(outcome))
     throw Error("outcome must be success, partial, failure, or unknown");
-  const skillFile = path22.join(await knowledgeDirPath("skills"), skill, "skill.json");
+  const skillFile = path23.join(await knowledgeDirPath("skills"), skill, "skill.json");
   const meta = await readJson(skillFile);
-  if (!isRecord14(meta))
+  if (!isRecord15(meta))
     throw Error("Skill not found");
   const usedAt = args.used_at || now();
   const usage = {
@@ -10826,7 +10918,7 @@ async function captureUsage(args = {}) {
     project: args.project || null,
     used_at: usedAt
   };
-  await writeJson(path22.join(await knowledgeDirPath("usage"), `${usage.id}.json`), usage);
+  await writeJson(path23.join(await knowledgeDirPath("usage"), `${usage.id}.json`), usage);
   bump(meta, outcome);
   meta.last_used_at = usedAt;
   meta.projects_used = [
@@ -11204,10 +11296,13 @@ var hubTools = [
   },
   {
     name: "hub_cleanup",
-    description: "Clean in three modes: generated archives absorbed Activities; blank safely archives empty Activities and rebuilds Patterns without breaking Candidate evidence; all permanently deletes every Usora Hub record, Skill, archive, event, and config and requires confirm=true. It empties the data directory but keeps the Hub directory and config file so the user can review the path.",
+    description: "Clean in four modes: generated archives absorbed Activities; blank safely archives empty Activities and rebuilds Patterns without breaking Candidate evidence; archive previews unreferenced archived Activities (confirm=true permanently deletes them), preserving Candidate and Skill references and skipping invalid files; all permanently deletes every Usora Hub record, Skill, archive, event, and config and requires confirm=true. It empties the data directory but keeps the Hub directory and config file so the user can review the path.",
     inputSchema: {
       type: "object",
-      properties: { mode: { type: "string", enum: ["generated", "blank", "all"] }, confirm: { type: "boolean" } }
+      properties: {
+        mode: { type: "string", enum: ["generated", "blank", "archive", "all"] },
+        confirm: { type: "boolean" }
+      }
     }
   },
   {
@@ -11529,10 +11624,10 @@ async function call(name, args = {}) {
 }
 
 // plugins/foundry/src/mcp/server.ts
-var pluginRoot = path23.resolve(path23.dirname(fileURLToPath4(import.meta.url)), "..", "..");
+var pluginRoot = path24.resolve(path24.dirname(fileURLToPath4(import.meta.url)), "..", "..");
 function readServerVersion() {
   try {
-    const plugin = JSON.parse(readFileSync(path23.join(pluginRoot, "plugin.json"), "utf8"));
+    const plugin = JSON.parse(readFileSync(path24.join(pluginRoot, "plugin.json"), "utf8"));
     return typeof plugin.version === "string" ? plugin.version : "2.0.0";
   } catch {
     return "2.0.0";

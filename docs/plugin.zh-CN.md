@@ -301,6 +301,12 @@ codex plugin remove usora@foundry
 
 卸载插件**不会**删除本地 Usora 数据。
 
+### 清理归档
+
+`hub_cleanup({ "mode": "archive" })` 预览当前宿主归档中未被候选能力或技能引用的实践记录，返回 `eligible`、`deleted`、`protected`、`skipped` 和 `dry_run`。
+
+确认永久删除时，调用 `hub_cleanup({ "mode": "archive", "confirm": true })`。每次执行都会重新检查引用，包括技能演进历史。无法解析的归档文件、目录和符号链接会跳过；若引用数据无法读取或解析，则中止清理。此模式只处理归档，不清理活跃记录或其他宿主的数据。
+
 清理数据：
 
 1. 运行 `hub_status` 找到 `hub` 和 `config_path`。

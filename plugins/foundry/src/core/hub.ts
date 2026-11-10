@@ -1,3 +1,4 @@
+import { cleanupArchive } from "./archive-cleanup.ts";
 import fs from "node:fs/promises";
 import path from "node:path";
 import {
@@ -242,15 +243,16 @@ async function dataLocations(): Promise<DataLocationInfo> {
 /**
  * `hub_cleanup`: dispatch to `cleanAll` or `archiveGenerated` by mode.
  *
- * @param {ToolArgs} args - `mode` ("generated"|"blank"|"all") and `confirm` (required when `mode` is "all").
+ * @param {ToolArgs} args - `mode` ("generated"|"blank"|"archive"|"all") and `confirm` (required when `mode` is "all").
  * @returns {Promise<object>} Cleanup result.
  * @throws {Error} On an invalid mode, or "all" without `confirm: true`.
  */
 export async function handleHubCleanup(args: HubCleanupArgs = {}) {
   const mode = args.mode || "generated";
-  if (!["generated", "blank", "all"].includes(mode)) {
-    throw Error("mode must be generated, blank or all");
+  if (!["generated", "blank", "archive", "all"].includes(mode)) {
+    throw Error("mode must be generated, blank, archive or all");
   }
+  if (mode === "archive") return cleanupArchive(args.confirm === true);
   if (mode === "all") {
     if (args.confirm !== true) {
       throw Error("all cleanup requires confirm=true");
